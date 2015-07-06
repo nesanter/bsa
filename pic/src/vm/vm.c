@@ -2,6 +2,8 @@
 
 struct bl_machine vm;
 
+struct entry entry_table[SYMT_MAX_SYMBOLS];
+
 int read_bytecode(unsigned char *bytecode_data, struct bytecode * bc) {
     bytecode_type bct = *((bytecode_type)bytecode_data);
     bc->type = bct;
@@ -63,48 +65,91 @@ int step_task() {
     unsigned int sz = vm.tasks[vm.active_task].stack_size;
     bl_stack_token *stack = vm.tasks[vm.active_task].stack;
 
+    struct entry ent;
+    int n;
+
     switch (bc.type) {
         case BCT_NOP:
             break;
         case BCT_ADD:
-            int n = (int)stack[sz-1].value + (int)stack[sz-2].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-1].value + (int)stack[sz-2].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_SUBTRACT:
-            int n = (int)stack[sz-2].value - (int)stack[sz-1].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-2].value - (int)stack[sz-1].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_MULTIPLY:
-            int n = (int)stack[sz-1].value * (int)stack[sz-2].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-1].value * (int)stack[sz-2].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_DIVIDE:
-            int n = (int)stack[sz-2].value / (int)stack[sz-1].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-2].value / (int)stack[sz-1].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_MODULO:
-            int n = (int)stack[sz-2].value % (int)stack[sz-1].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-2].value % (int)stack[sz-1].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_NEGATE:
-            int n = -(int)stack[sz-1].value;
-            stack[sz-1].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = -(int)stack[sz-1].value;
+            stack[sz-1].value = (token_t)n;
             break;
         case BCT_AND:
-            int n = (int)stack[sz-1].value && (int)stack[sz-2].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-1].value && (int)stack[sz-2].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_OR:
-            int n = (int)stack[sz-1].value + (int)stack[sz-2].value;
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = (int)stack[sz-1].value + (int)stack[sz-2].value;
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_XOR:
-            int n = ((int)stack[sz-1].value || (int)stack[sz-2].value) && !((int)stack[sz-1].value && (int)stack[sz-2].value);
-            stack[--sz].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = ((int)stack[sz-1].value || (int)stack[sz-2].value) && !((int)stack[sz-1].value && (int)stack[sz-2].value);
+            stack[--sz].value = (token_t)n;
             break;
         case BCT_NOT:
-            int n = !(int)stack[sz-1].value;
-            stack[sz-1].value = n;
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            n = !(int)stack[sz-1].value;
+            stack[sz-1].value = (token_t)n;
             break;
         case BCT_DISCARD:
             sz--;
@@ -114,11 +159,61 @@ int step_task() {
             sz++;
             break;
         case BCT_RETURN:
+            while (stack[--sz].type != TOKT_ADDRESS) {}
+            vm.task[active_task].ip = (unsigned char *)stack[sz--].value;
             break;
         case BCT_YIELD:
             break;
+        case BCT_END_SCOPE:
+            break;
         case BCT_LOAD:
-            stack[sz++] = (int)bc.
+            ent = entry_table[(unsigned int)bc.arg];
+            stack[sz].value = ent.value;
+            stack[sz].type = ent.type;
+            sz++;
+            break;
+        case BCT_STORE:
+            sz--;
+            ent.value = stack[sz].value;
+            ent.type = stack[sz].type;
+            entry_table[(unsigned int)bc.arg] = ent;
+            break;
+        case BCT_CONSTANT:
+            stack[sz].value = (token_t)bc.arg;
+            stack[sz].type = TOKT_NUMERIC;
+            break;
+        case BCT_JUMP:
+            vm.tasks[active_task].ip = (unsigned char *)bc.arg;
+            break;
+        case BCT_BRANCH_IF_TRUE:
+#ifdef VM_TYPE_CHECK
+            if (stack[sz-1].type != TOKT_NUMERIC)
+                return 1;
+#endif
+            if (stack[--sz].value) {
+                vm.tasks[active_task].ip = (unsigned char *)bc.arg;
+            }
+            break;
+        case BCT_RAISE:
+            break;
+        case BCT_CALL_USER:
+            stack[sz].value = vm.tasks[active_task].ip;
+            stack[sz].type = TOKT_ADDRESS;
+            sz++;
+            vm.tasks[active_task].ip = (unsigned char *)bc.arg;
+            break;
+        case BCT_CALL_LIB:
+            break;
+        case BCT_BLOCK:
+            break;
+        case BCT_FORK:
+            break;
+        case BCT_SCOPE_ALWAYS:
+            break;
+        case BCT_SCOPE_FAILURE:
+            break;
+        case BCT_SCOPE_SUCCESS:
+            break;
     }
 }
 

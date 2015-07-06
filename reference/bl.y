@@ -8,6 +8,7 @@
 %union {
     uint64_t llu;
     char *text;
+    unsigned long refid;
 }
 
 %token <llu> NUMERIC
@@ -26,6 +27,8 @@
 %right NOT
 %precedence UNARY
 
+%type <refid> function_def
+
 %%
 
 file: %empty
@@ -33,7 +36,7 @@ file: %empty
     | global_def file
     ;
 
-function_def: FUNCTION IDENT LPAREN args RPAREN LBRACE body RBRACE
+function_def: FUNCTION IDENT LPAREN args RPAREN LBRACE body RBRACE { $$ = magic_function($2, $4, $7); }
             ;
 
 global_def: IDENT EQUAL constant_expression SEMI

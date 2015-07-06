@@ -17,6 +17,7 @@ const bytecode_type BCT_DISCARD           = 11
 const bytecode_type BCT_DUPLICATE         = 12;
 const bytecode_type BCT_RETURN            = 13;
 const bytecode_type BCT_YIELD             = 14;
+const bytecode_type BCT_END_SCOPE         = 15;
 const bytecode_type BCT_LOAD              = 128;
 const bytecode_type BCT_STORE             = 129;
 const bytecode_type BCT_CONSTANT          = 130;

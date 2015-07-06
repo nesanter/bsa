@@ -39,10 +39,12 @@ extern (C) {
         writeln("Error (line ",yylineno,"): ",text(s));
     }
 
-    ExprToken create_expr_token(ExprTokenType type, char * text) {
-        return ExprToken(type, text);
+    ulong magic_function(asdfasdfasdf) {
+        // create a new FunctionDefinitino
+        auto fdef = new FunctionDefinition();
+        // fill in the fields
+        return fdef.reference();
     }
-
 }
 
 mixin template ReferenceHandler() {
@@ -94,6 +96,12 @@ class Expression {
     ExpressionNodeType type;
     string text;
     long value;
+}
+
+class FunctionDefinition {
+    mixin ReferenceHandler;
+
+    // arguments, identifier, body
 }
 
 void main() {

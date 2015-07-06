@@ -5,12 +5,20 @@
 
 const unsigned int VM_TASK_MAX = 8;
 const unsigned int VM_STACK_SIZE = 128;
+const unsigned int SYMT_MAX_SYMBOLS = 256;
 
 struct bytecode read_bytecode(unsigned char *bytecode_data, unsigned int length);
 
+typedef int bl_token_type;
+typedef void* token_t;
+const bl_token_type TOKT_UNDEFINED = -1;
+const bl_token_type TOKT_NUMERIC = 0;
+const bl_token_type TOKT_OBJECT = 1;
+const bl_token_type TOKT_ADDRESS = 2;
+
 struct bl_stack_token {
     bl_token_type type;
-    void *value;
+    token_t value;
 }
 
 typedef int bl_block_type;
@@ -44,6 +52,11 @@ struct bl_machine {
 
     struct bl_task tasks[VM_TASK_MAX];
     int active_task;
+};
+
+struct entry {
+    bl_token_type type;
+    token_t value;
 };
 
 
