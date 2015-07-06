@@ -7,21 +7,20 @@ if exists("b:current_syntax")
     finish
 endif
 
-syn keyword basicKeywords while if else return yield block fork scope contained
+syn keyword functionKeyword function
+syn keyword basicKeywords while if else return yield block fork contained
+syn keyword scopeKeyword scope contained
 
-syn match qualifier '[a-zA-Z][a-zA-Z0-9_]*::' nextgroup=ident contained
-syn match ident '[a-zA-Z][a-zA-Z0-9_]*\(\.[a-zA-Z][a-zA-Z0-9_]*)*\(\.\*)\?' contained
+syn match numeric '[a-zA-Z_]\@<![0-9]\+' skipwhite
 
-syn region defineBlock start="define" end=";" contains=basicKeywords,ident,qualifier,expr,code
+syn region body start="{" end="}" contains=basicKeywords,scopeKeyword,numeric,body transparent
+syn region string start="\"" end="\""
 
-syn region expr start="(" end=")" contained
-syn region code start="{" end="}" contained
+let b:current_syntax = "blc"
 
-let b:current_syntax = "dobj"
-
+hi def link functionKeyword Type
 hi def link basicKeywords Keyword
-hi def link qualifier Type
-hi def link ident Identifier
-hi def link expr Constant
-hi def link code Constant
+hi def link scopeKeyword Keyword
+hi def link string String
+hi def link numeric Constant
 
