@@ -1,0 +1,5 @@
+flex bl.l && \
+bison -d bl.y && \
+gcc -c lex.yy.c bl.tab.c && \
+ldc2 -relocation-model=pic bl.d lex.yy.o bl.tab.o
+
