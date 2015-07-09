@@ -1,0 +1,7 @@
+mkdir -p out && \
+cd out && \
+flex ../src/bl.l && \
+bison -d ../src/bl.y && \
+gcc -I../include -c lex.yy.c bl.tab.c && \
+dmd -ofbl2 $(find ../src -name '*.d') -L-lLLVM-3.6
+
