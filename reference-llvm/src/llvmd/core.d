@@ -147,6 +147,8 @@ extern (C) {
 
        LLVMValueRef LLVMGetParam(LLVMValueRef Fn, uint index);
 
+       LLVMValueRef LLVMConstInt(LLVMTypeRef IntTy, ulong N, int SignExtend);
+
        void LLVMDumpValue(LLVMValueRef Val);
 }
 
@@ -154,6 +156,10 @@ class Value {
     protected LLVMValueRef val;
     protected this(LLVMValueRef val) {
         this.val = val;
+    }
+
+    static Value create_const_int(Type type, ulong n) {
+        return new Value(LLVMConstInt(type.type, n, 0));
     }
 
     BasicBlock append_basic_block(string name) {
@@ -196,7 +202,27 @@ extern (C) {
         void LLVMDisposeBuilder(LLVMBuilderRef Builder);
 
         LLVMValueRef LLVMBuildAdd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildSub(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildMul(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildSDiv(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildSRem(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildICmp(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildNeg(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+
         LLVMValueRef LLVMBuildRet(LLVMBuilderRef, LLVMValueRef V);
+
+        enum LLVMIntPredicate {
+            LLVMIntEQ,
+            LLVMIntNE,
+            LLVMIntUGT,
+            LLVMIntUGE,
+            LLVMIntULT,
+            LLVMIntULE,
+            LLVMIntSGT,
+            LLVMIntSGE,
+            LLVMIntSLT,
+            LLVMIntSLE
+        }
 }
 
 class Builder {
@@ -219,9 +245,70 @@ class Builder {
     }
 
     
-    Value add(Value lhs, Value rhs, string name) {
+    Value add(Value lhs, Value rhs, string name = null) {
         return new Value(LLVMBuildAdd(builder, lhs.val, rhs.val, toStringz(name)));
     }
+
+    Value sub(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildSub(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value mul(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildMul(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value sdiv(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildSDiv(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value srem(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildSRem(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value neg(Value lhs, string name = null) {
+        return new Value(LLVMBuildNeg(builder, lhs.val, toStringz(name)));
+    }
+
+    Value icmp_eq(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntEQ, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_ne(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntNE, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_slt(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntSLT, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_slte(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntSLE, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_sgt(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntSGT, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_sgte(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntSGE, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_ult(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntULT, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_ulte(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntULE, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_ugt(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntUGT, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value icmp_ugte(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntUGE, lhs.val, rhs.val, toStringz(name)));
+    }
+
 
     Value ret(Value v) {
         return new Value(LLVMBuildRet(builder, v.val));

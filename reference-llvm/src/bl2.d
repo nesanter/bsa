@@ -2,6 +2,8 @@ import llvmd.core;
 
 import std.stdio;
 
+import symbol_table;
+
 /*
 void main() {
     auto mod = Module.create_with_name("my_module");
@@ -28,7 +30,35 @@ void main() {
 }
 */
 
-void main() {
+extern (C) {
+    extern __gshared int yylineno;
 
+    alias void* YY_BUFFER_STATE;
+    alias size_t yy_size_t;
+    YY_BUFFER_STATE yy_create_buffer(FILE* file, int size);
+    void yy_switch_to_buffer(YY_BUFFER_STATE new_buffer);
+    void yy_delete_buffer(YY_BUFFER_STATE buffer);
+    void yypush_buffer_state(YY_BUFFER_STATE buffer);
+    void yypop_buffer_state();
+    void yy_flush_buffer(YY_BUFFER_STATE buffer);
+    YY_BUFFER_STATE yy_scan_string(const char* str);
+    YY_BUFFER_STATE yy_scan_bytes(const char* bytes, int len);
+    YY_BUFFER_STATE yy_scan_buffer(char *base, yy_size_t size);
+
+    int yyparse();
+    extern __gshared FILE* yyin;
+
+    void yyerror(char *s, ...) {
+        writeln("Error (line ",yylineno,"): ",text(s));
+    }
+
+    __gshared int error_occurred = 0;
 }
 
+void main() {
+    if (yyparse()) {
+        return 1;
+    }
+
+    return 0;
+}

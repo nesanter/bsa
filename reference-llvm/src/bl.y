@@ -27,11 +27,14 @@
 %right NOT
 %precedence UNARY
 
+%type <refid> atom expression
+
 %%
 
 file: %empty
     | function_def file
     | global_def file
+    | EQUAL expression SEMI
     ;
 
 function_def: FUNCTION IDENT LPAREN args RPAREN LBRACE body RBRACE
@@ -96,24 +99,24 @@ assign_expression: IDENT EQUAL STRING
                  | IDENT EQUAL expression
                  ;
 
-expression: atom
-          | LPAREN expression RPAREN
-          | expression OR expression 
-          | expression XOR expression
-          | expression AND expression
-          | expression EQUAL_EQUAL expression
-          | expression LANGLE expression
-          | expression RANGLE expression
-          | expression LANGLE_EQUAL expression
-          | expression RANGLE_EQUAL expression
-          | expression PLUS expression
-          | expression MINUS expression
-          | expression STAR expression
-          | expression FSLASH expression
-          | expression PERCENT expression
-          | NOT expression %prec UNARY
-          | MINUS expression %prec UNARY
-          | PLUS expression %prec UNARY
+expression: atom { $$ = $1; }
+          | LPAREN expression RPAREN { $$ = $2; }
+          | expression OR expression { $$ = expr_op_lor($1, $3); }
+          | expression XOR expression { $$ = expr_op_lxor($1, $3); }
+          | expression AND expression { $$ = expr_op_land($1, $3); }
+          | expression EQUAL_EQUAL expression { $$ = expr_op_eq($1, $3); }
+          | expression LANGLE expression { $$ = expr_op_lt($1, $3); }
+          | expression RANGLE expression { $$ = expr_op_gt($1, $3); }
+          | expression LANGLE_EQUAL expression { $$ = expr_op_lte($1, $3); }
+          | expression RANGLE_EQUAL expression { $$ = expr_op_gte($1, $3); }
+          | expression PLUS expression { $$ = expr_op_add($1, $3); }
+          | expression MINUS expression { $$ = expr_op_sub($1, $3); }
+          | expression STAR expression { $$ = expr_op_mul($1, $3); }
+          | expression FSLASH expression { $$ = expr_op_sdiv($1, $3); }
+          | expression PERCENT expression { $$ = expr_op_mod($1, $3); }
+          | NOT expression %prec UNARY { $$ = expr_op_lnot($2); }
+          | MINUS expression %prec UNARY { $$ = expr_op_neg($2); }
+          | PLUS expression %prec UNARY { $$ = expr_op_pos($2); }
           ;
 
 constant_expression: constant_atom
@@ -140,19 +143,19 @@ constant_atom: NUMERIC
              | STRING
              ;
 
-atom: IDENT
-    | NUMERIC
-    | function_call
+atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
+    | NUMERIC { $$ = expr_atom_numeric($1); }
+    | function_call { $$ = expr_atom_numeric(0); }
     ;
 
-function_call: IDENT LPAREN params RPAREN
+function_call: IDENT LPAREN RPAREN
+             | IDENT LPAREN params RPAREN
              ;
 
-params: %empty
-      | expression
+params: expression
       | STRING
-      | args COMMA expression
-      | args COMMA STRING
+      | params COMMA expression
+      | params COMMA STRING
       ;
 
 %%
