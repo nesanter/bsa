@@ -32,7 +32,7 @@ class IfElse {
     bool empty = false;
     BasicBlock before, during, otherwise, after;
 
-    Value during_value, otherwise_value;
+    Value during_value, otherwise_value, after_value;
 }
 
 void init() {
@@ -285,15 +285,34 @@ extern (C) {
         current_value = void_value;
     }
 
-    void statement_if_end(ulong ifelse_ref) {
+    ulong statement_if_end(ulong ifelse_ref, ulong nested_ifelse_ref) {
         auto ifelse = IfElse.lookup(ifelse_ref);
+        IfElse nested;
+        Value[] phi_vals;
+        BasicBlock[] phi_blocks;
+
+        if (nested_ifelse_ref == ulong.max) {
+            nested = null;
+            phi_vals = [ifelse.during_value, ifelse.otherwise_value];
+            phi_blocks = [ifelse.during, ifelse.otherwise];
+        } else {
+            nested = IfElse.lookup(nested_ifelse_ref);
+            phi_vals = [ifelse.during_value, nested.after_value];
+            phi_blocks = [ifelse.during, nested.after];
+        }
+
         ifelse.otherwise_value = current_value;
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.after);
         current_block = ifelse.after;
-        current_value = current_builder.make_phi(numeric_type,
-                [ifelse.during_value, ifelse.otherwise_value],
-                [ifelse.during, ifelse.otherwise]);
+        ifelse.after_value = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+
+        current_value = ifelse.after_value;
+        return ifelse_ref;
+    }
+
+    ulong statement_else_terminal() {
+        return ulong.max;
     }
 
     /* Functions */

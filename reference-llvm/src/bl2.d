@@ -56,7 +56,7 @@ extern (C) {
     }
 }
 
-int main() {
+int main(string[] args) {
 
     init();
 
@@ -66,6 +66,10 @@ int main() {
 
     current_module.dump();
     writeln(current_module.verify());
+
+    if (args.length > 1) {
+        current_module.write_bitcode_to_file(args[1]);
+    }
 
     return 0;
 }

@@ -30,7 +30,8 @@ void statement_return_expr(unsigned long rhs_ref);
 
 unsigned long statement_if_begin(unsigned long cond_ref);
 void statement_if_break(unsigned long ifelse_ref);
-void statement_if_end(unsigned long ifelse_ref);
+unsigned long statement_if_end(unsigned long ifelse_ref, unsigned long long nested_ref);
+unsigned long statement_else_terminal();
 
 void function_begin(char *ident, unsigned long args_ref, int returns_object);
 void function_end();

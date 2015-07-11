@@ -27,7 +27,7 @@
 %right NOT
 %precedence UNARY
 
-%type <refid> atom expression args
+%type <refid> atom expression args else_statement if_statement
 
 %%
 
@@ -68,12 +68,12 @@ statement: expression SEMI { statement_expression($1); }
          | fork_statement SEMI
          ;
 
-if_statement: IF LPAREN expression RPAREN { $<refid>$ = statement_if_begin($3); } LBRACE body RBRACE { statement_if_break($<refid>5); } else_statement { statement_if_end($<refid>5); }
+if_statement: IF LPAREN expression RPAREN { $<refid>$ = statement_if_begin($3); } LBRACE body RBRACE { statement_if_break($<refid>5); } else_statement { $$ = statement_if_end($<refid>5, $10); }
             ;
 
-else_statement: %empty
-              | ELSE LBRACE body RBRACE
-              | ELSE if_statement
+else_statement: %empty { $$ = statement_else_terminal(); }
+              | ELSE LBRACE body RBRACE { $$ = statement_else_terminal(); }
+              | ELSE if_statement { $$ = $2; }
               ;
 
 while_statement: WHILE LPAREN expression RPAREN LBRACE body RBRACE
