@@ -72,6 +72,10 @@ int step_task() {
         case BCT_NOP:
             break;
         case BCT_ADD:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -80,6 +84,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_SUBTRACT:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -88,6 +96,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_MULTIPLY:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -96,6 +108,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_DIVIDE:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -104,6 +120,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_MODULO:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -112,6 +132,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_NEGATE:
+#ifdef VM_STACK_CHECK
+            if (sz < 1)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC)
                 return 1;
@@ -120,6 +144,10 @@ int step_task() {
             stack[sz-1].value = (token_t)n;
             break;
         case BCT_AND:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -128,6 +156,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_OR:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -136,6 +168,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_XOR:
+#ifdef VM_STACK_CHECK
+            if (sz < 2)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC || stack[sz-2].type != TOKT_NUMERIC)
                 return 1;
@@ -144,6 +180,10 @@ int step_task() {
             stack[--sz].value = (token_t)n;
             break;
         case BCT_NOT:
+#ifdef VM_STACK_CHECK
+            if (sz < 1)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC)
                 return 1;
@@ -152,14 +192,31 @@ int step_task() {
             stack[sz-1].value = (token_t)n;
             break;
         case BCT_DISCARD:
+#ifdef VM_STACK_CHECK
+            if (sz < 1)
+                return 1;
+#endif
             sz--;
             break;
         case BCT_DUPLICATE:
+#ifdef VM_STACK_CHECK
+            if (sz < 1 || sz == VM_STACK_SIZE)
+                return 1;
+#endif
             stack[sz] = stack[sz-1];
             sz++;
             break;
         case BCT_RETURN:
-            while (stack[--sz].type != TOKT_ADDRESS) {}
+#ifdef VM_STACK_CHECK
+            if (sz < 1)
+                return 1;
+#endif
+            while (stack[--sz].type != TOKT_ADDRESS) {
+#ifdef VM_STACK_CHECK
+                if (sz < 1)
+                    return 1;
+#endif
+            }
             vm.task[active_task].ip = (unsigned char *)stack[sz--].value;
             break;
         case BCT_YIELD:
@@ -167,18 +224,30 @@ int step_task() {
         case BCT_END_SCOPE:
             break;
         case BCT_LOAD:
+#ifdef VM_STACK_CHECK
+            if (sz == VM_STACK_SIZE)
+                return 1;
+#endif
             ent = entry_table[(unsigned int)bc.arg];
             stack[sz].value = ent.value;
             stack[sz].type = ent.type;
             sz++;
             break;
         case BCT_STORE:
+#ifdef VM_STACK_CHECK
+            if (sz < 1)
+                return 1;
+#endif
             sz--;
             ent.value = stack[sz].value;
             ent.type = stack[sz].type;
             entry_table[(unsigned int)bc.arg] = ent;
             break;
         case BCT_CONSTANT:
+#ifdef VM_STACK_CHECK
+            if (sz == VM_STACK_SIZE)
+                return 1;
+#endif
             stack[sz].value = (token_t)bc.arg;
             stack[sz].type = TOKT_NUMERIC;
             break;
@@ -186,6 +255,10 @@ int step_task() {
             vm.tasks[active_task].ip = (unsigned char *)bc.arg;
             break;
         case BCT_BRANCH_IF_TRUE:
+#ifdef VM_STACK_CHECK
+            if (sz < 1)
+                return 1;
+#endif
 #ifdef VM_TYPE_CHECK
             if (stack[sz-1].type != TOKT_NUMERIC)
                 return 1;
@@ -197,6 +270,10 @@ int step_task() {
         case BCT_RAISE:
             break;
         case BCT_CALL_USER:
+#ifdef VM_STACK_CHECK
+            if (sz == VM_STACK_SIZE)
+                return 1;
+#endif
             stack[sz].value = vm.tasks[active_task].ip;
             stack[sz].type = TOKT_ADDRESS;
             sz++;
@@ -215,6 +292,8 @@ int step_task() {
         case BCT_SCOPE_SUCCESS:
             break;
     }
+
+    return 0;
 }
 
 int step_machine() {

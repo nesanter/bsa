@@ -27,7 +27,7 @@
 %right NOT
 %precedence UNARY
 
-%type <refid> function_def
+%type <refid> atom expression
 
 %%
 
@@ -36,7 +36,7 @@ file: %empty
     | global_def file
     ;
 
-function_def: FUNCTION IDENT LPAREN args RPAREN LBRACE body RBRACE { $$ = magic_function($2, $4, $7); }
+function_def: FUNCTION IDENT LPAREN args RPAREN LBRACE body RBRACE 
             ;
 
 global_def: IDENT EQUAL constant_expression SEMI
@@ -98,21 +98,21 @@ assign_expression: IDENT EQUAL STRING
                  | IDENT EQUAL expression
                  ;
 
-expression: atom { $$ = create_expr_token(TOK_IDENT, $1); }
+expression: atom { $$ = $1; }
           | LPAREN expression RPAREN { $$ = $2; }
-          | expression OR expression { $$ = join_expression($1, $3, 
-          | expression XOR expression
-          | expression AND expression
-          | expression EQUAL_EQUAL expression
-          | expression LANGLE expression
-          | expression RANGLE expression
-          | expression LANGLE_EQUAL expression
-          | expression RANGLE_EQUAL expression
-          | expression PLUS expression
-          | expression MINUS expression
-          | expression STAR expression
-          | expression FSLASH expression
-          | expression PERCENT expression
+          | expression OR expression { $$ = create_expression(OP_OR, $1, $3); }
+          | expression XOR expression { $$ = create_expression(OP_XOR, $1, $3); }
+          | expression AND expression { $$ = create_expression(OP_AND, $1, $3); }
+          | expression EQUAL_EQUAL expression { $$ = create_expression(OP_EQUAL_EQUAL, $1, $3); }
+          | expression LANGLE expression { $$ = create_expression(OP_LANGLE, $1, $3); }
+          | expression RANGLE expression { $$ = create_expression(OP_RANGLE, $1, $3); }
+          | expression LANGLE_EQUAL expression { $$ = create_expression(OP_LANGLE_EQUAL, $1, $3); }
+          | expression RANGLE_EQUAL expression { $$ = create_expression(OP_RANGLE_EQUAL, $1, $3); }
+          | expression PLUS expression { $$ = create_expression(OP_PLUS, $1, $3); }
+          | expression MINUS expression { $$ = create_expression(OP_MINUS, $1, $3); }
+          | expression STAR expression { $$ = create_expression(OP_STAR, $1, $3); }
+          | expression FSLASH expression { $$ = create_expression(OP_FSLASH, $1, $3); }
+          | expression PERCENT expression { $$ = create_expression(OP_PERCENT, $1, $3); }
           | NOT expression %prec UNARY
           | MINUS expression %prec UNARY
           | PLUS expression %prec UNARY
@@ -142,9 +142,9 @@ constant_atom: NUMERIC
              | STRING
              ;
 
-atom: IDENT
-    | NUMERIC
-    | function_call
+atom: IDENT { $$ = create_atom_ident($1); }
+    | NUMERIC { $$ = create_atom_numeric($1); }
+    | function_call { $$ = $1; }
     ;
 
 function_call: IDENT LPAREN params RPAREN

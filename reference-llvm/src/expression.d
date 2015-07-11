@@ -4,14 +4,16 @@ import util, symbol_table, errors;
 import std.conv;
 import std.stdio;
 
-
 Module current_module;
 Builder current_builder;
 
 Value current_function;
 BasicBlock current_block;
 
-Type object_type;
+Value current_value;
+
+Type object_type, numeric_type;
+Value void_value;
 
 class Expression {
     mixin ReferenceHandler;
@@ -29,12 +31,16 @@ class IfElse {
 
     bool empty = false;
     BasicBlock before, during, otherwise, after;
+
+    Value during_value, otherwise_value;
 }
 
 void init() {
     current_module = Module.create_with_name("main_module");
     current_builder = Builder.create();
+    numeric_type = Type.int_type(4);
     object_type = Type.struct_type([], false);
+    void_value = Value.create_const_int(numeric_type, 0);
 }
 
 extern (C) {
@@ -229,8 +235,16 @@ extern (C) {
 
         sym.type = SymbolType.VARIABLE;
         sym.value = rhs.value;
+
+        current_value = rhs.value;
     }
 
+    void statement_expression(ulong expr_ref) {
+        auto expr = Expression.lookup(expr_ref);
+        current_value = expr.value;
+    }
+
+    /*
     void statement_return_void() {
         current_builder.ret_void();
     }
@@ -239,6 +253,7 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
         current_builder.ret(rhs.value);
     }
+    */
 
     ulong statement_if_begin(ulong cond_ref) {
         auto cond = Expression.lookup(cond_ref);
@@ -249,6 +264,10 @@ extern (C) {
         ifelse.during = current_function.append_basic_block(null);
         ifelse.otherwise = current_function.append_basic_block(null);
         ifelse.after = current_function.append_basic_block(null);
+
+        current_value = void_value;
+        ifelse.during_value = void_value;
+        ifelse.otherwise_value = void_value;
 
         current_builder.cond_br(cond.value, ifelse.during, ifelse.otherwise);
         current_builder.position_at_end(ifelse.during);
@@ -262,12 +281,19 @@ extern (C) {
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.otherwise);
         current_block = ifelse.otherwise;
+        ifelse.during_value = current_value;
+        current_value = void_value;
     }
 
     void statement_if_end(ulong ifelse_ref) {
         auto ifelse = IfElse.lookup(ifelse_ref);
+        ifelse.otherwise_value = current_value;
+        current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.after);
         current_block = ifelse.after;
+        current_value = current_builder.make_phi(numeric_type,
+                [ifelse.during_value, ifelse.otherwise_value],
+                [ifelse.during, ifelse.otherwise]);
     }
 
     /* Functions */
@@ -278,13 +304,15 @@ extern (C) {
         current_block = current_function.append_basic_block("entry");
         current_builder.position_at_end(current_block);
 
+        current_value = void_value;
+
         foreach (i, sym; args.symbols) {
             sym.value = current_function.get_param(cast(uint)i);
         }
     }
 
     void function_end() {
-        current_builder.ret(Value.create_const_int(Type.int_type(4), 0));
+        current_builder.ret(current_value);
     }
 
     /* Arguments */

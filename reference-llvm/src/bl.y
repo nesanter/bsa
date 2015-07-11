@@ -15,7 +15,7 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL POUND
-%token FUNCTION WHILE IF ELSE BLOCK YIELD RETURN FORK SCOPE ALWAYS SUCCESS FAILURE
+%token FUNCTION WHILE IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE
 
 %left OR
 %left XOR
@@ -57,14 +57,14 @@ body: statement
     | body statement
     ;
 
-statement: expression SEMI
+statement: expression SEMI { statement_expression($1); }
          | assign_statement SEMI
          | if_statement
          | while_statement
          | scope_statement
          | block_statement SEMI
          | yield_statement SEMI
-         | return_statement SEMI
+/*         | return_statement SEMI */
          | fork_statement SEMI
          ;
 
@@ -93,9 +93,11 @@ block_statement: BLOCK IDENT
 yield_statement: YIELD
                ;
 
+/*
 return_statement: RETURN { statement_return_void(); }
                 | RETURN expression { statement_return_expr($2); }
                 ;
+*/
 
 fork_statement: FORK IDENT
               ;

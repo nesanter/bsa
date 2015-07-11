@@ -23,6 +23,7 @@ unsigned long expr_op_lnot(unsigned long lhs_ref);
 unsigned long expr_op_neg(unsigned long lhs_ref);
 unsigned long expr_op_pos(unsigned long lhs_ref);
 
+void statement_expression(unsigned long expr_ref);
 void statement_assign(char *lhs, unsigned long rhs_ref);
 void statement_return_void();
 void statement_return_expr(unsigned long rhs_ref);

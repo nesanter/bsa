@@ -46,7 +46,7 @@
 "else" { return ELSE; }
 "block" { return BLOCK; }
 "yield" { return YIELD; }
-"return" { return RETURN; }
+ /* "return" { return RETURN; }*/
 "fork" { return FORK; }
 "scope" { return SCOPE; }
 "always" { return ALWAYS; }

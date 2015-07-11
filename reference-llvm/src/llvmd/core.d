@@ -229,8 +229,12 @@ extern (C) {
         LLVMValueRef LLVMBuildBr(LLVMBuilderRef, LLVMBasicBlockRef Dest);
         LLVMValueRef LLVMBuildCondBr(LLVMBuilderRef, LLVMValueRef If, LLVMBasicBlockRef Then, LLVMBasicBlockRef Else);
 
+        LLVMValueRef LLVMBuildPhi(LLVMBuilderRef, LLVMTypeRef T, const char *Name);
+
+        void LLVMAddIncoming(LLVMValueRef PhiNode, LLVMValueRef *IncomingValues, LLVMBasicBlockRef *IncomingBlocks, uint count);
+
         enum LLVMIntPredicate {
-            LLVMIntEQ,
+            LLVMIntEQ = 32,
             LLVMIntNE,
             LLVMIntUGT,
             LLVMIntUGE,
@@ -345,6 +349,25 @@ class Builder {
 
     Value cond_br(Value cond, BasicBlock if_true, BasicBlock if_false) {
         return new Value(LLVMBuildCondBr(builder, cond.val, if_true.basic_block, if_false.basic_block));
+    }
+
+    Value phi(Type type, string name = null) {
+        return new Value(LLVMBuildPhi(builder, type.type, toStringz(name)));
+    }
+
+    Value make_phi(Type type, Value[] vals, BasicBlock[] blocks) {
+        assert(vals.length == blocks.length);
+        LLVMValueRef[] rawvals = new LLVMValueRef[](vals.length);
+        LLVMBasicBlockRef[] rawblocks = new LLVMBasicBlockRef[](blocks.length);
+
+        foreach (i; 0 .. vals.length) {
+            rawvals[i] = vals[i].val;
+            rawblocks[i] = blocks[i].basic_block;
+        }
+
+        auto res = phi(type);
+        LLVMAddIncoming(res.val, rawvals.ptr, rawblocks.ptr, cast(uint)rawvals.length);
+        return res;
     }
 }
 

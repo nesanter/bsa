@@ -39,11 +39,33 @@ extern (C) {
         writeln("Error (line ",yylineno,"): ",text(s));
     }
 
-    ulong magic_function(asdfasdfasdf) {
-        // create a new FunctionDefinitino
-        auto fdef = new FunctionDefinition();
-        // fill in the fields
-        return fdef.reference();
+    ulong create_expression(char *op, ulong left, ulong right) {
+        auto expr = new Expression;
+        expr.type = ExpressionNodeType.OPERATOR;
+        expr.text = text(op);
+        expr.left = Expression.lookup(left);
+        expr.right = Expression.lookup(right);
+        return expr.reference();
+    }
+
+    ulong create_atom_ident(char *ident) {
+        auto expr = new Expression;
+        expr.type = ExpressionNodeType.IDENTIFIER;
+        expr.text = text(ident);
+        return expr.reference();
+    }
+    ulong create_atom_numeric(char *val) {
+        auto expr = new Expression;
+        expr.type = ExpressionNodeType.NUMERIC_LITERAL;
+        expr.text = text(val);
+        return expr.reference();
+    }
+    
+    ulong create_atom_string(char *str) {
+        auto expr = new Expression;
+        expr.type = ExpressionNodeType.STRING_LITERAL;
+        expr.text = text(str);
+        return expr.reference();
     }
 }
 
@@ -71,6 +93,12 @@ mixin template ReferenceHandler() {
     }
 }
 
+class FunctionDef {
+    mixin ReferenceHandler;
+
+
+}
+
 enum SymbolType {
     VARIABLE,
     FUNCTION
@@ -95,7 +123,7 @@ class Expression {
 
     ExpressionNodeType type;
     string text;
-    long value;
+    Expression left, right;
 }
 
 class FunctionDefinition {
