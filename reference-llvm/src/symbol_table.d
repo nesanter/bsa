@@ -1,12 +1,14 @@
 import llvmd.core;
 import util;
 
-class SybolTable {
-    Symbol[string] symbols;
+class SymbolTable {
+    static Symbol[string] symbols;
 }
 
 enum SymbolType {
+    NONE,
     VARIABLE,
+    OBJECT,
     CONSTANT,
     FUNCTION,
     FUNC_CALL
@@ -15,17 +17,29 @@ enum SymbolType {
 class Symbol {
     mixin ReferenceHandler;
 
+    this() {
+        type = SymbolType.NONE;
+    }
+
     SymbolType type;
     Value value;
 }
 
 Symbol find_symbol(string s) {
-    foreach_reverse (tbl; symbol_tables) {
-        if (s in tbl.symbols) {
-            return tbl.symbols[s];
-        }
-    }
-    
-    return null;
+    return SymbolTable.symbols.get(s, null);
 }
 
+Symbol find_or_create_symbol(string s) {
+    if (s !in SymbolTable.symbols) {
+        SymbolTable.symbols[s] = new Symbol;
+    }
+    return SymbolTable.symbols[s];
+}
+
+Symbol create_symbol(string s) {
+    if (s in SymbolTable.symbols)
+        return null;
+    
+    SymbolTable.symbols[s] = new Symbol;
+    return SymbolTable.symbols[s];
+}

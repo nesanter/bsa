@@ -21,6 +21,7 @@
 ";" { return SEMI; }
 "," { return COMMA; }
 "=" { return EQUAL; }
+"#" { return POUND; }
 
  /* operators */
 "+" { return PLUS; }

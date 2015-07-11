@@ -14,7 +14,7 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
-%token DOT SEMI COMMA EQUAL
+%token DOT SEMI COMMA EQUAL POUND
 %token FUNCTION WHILE IF ELSE BLOCK YIELD RETURN FORK SCOPE ALWAYS SUCCESS FAILURE
 
 %left OR
@@ -27,25 +27,30 @@
 %right NOT
 %precedence UNARY
 
-%type <refid> atom expression
+%type <refid> atom expression args
 
 %%
 
 file: %empty
     | function_def file
     | global_def file
-    | EQUAL expression SEMI
     ;
 
-function_def: FUNCTION IDENT LPAREN args RPAREN LBRACE body RBRACE
+function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
+
+function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
+                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); }
+                  ;
 
 global_def: IDENT EQUAL constant_expression SEMI
           ;
 
-args: %empty
-    | IDENT
-    | args COMMA IDENT
+args: %empty { $$ = args_empty(); }
+    | IDENT { $$ = args_create($1, 0); }
+    | POUND IDENT { $$ = args_create($2, 1); }
+    | args COMMA IDENT { $$ = args_add($1, $3, 0); }
+    | args COMMA POUND IDENT { $$ = args_add($1, $4, 1); }
     ;
 
 body: statement
@@ -53,7 +58,7 @@ body: statement
     ;
 
 statement: expression SEMI
-         | assign_expression SEMI
+         | assign_statement SEMI
          | if_statement
          | while_statement
          | scope_statement
@@ -63,13 +68,13 @@ statement: expression SEMI
          | fork_statement SEMI
          ;
 
-if_statement: IF LPAREN expression RPAREN LBRACE body RBRACE else_statement
+if_statement: IF LPAREN expression RPAREN { $<refid>$ = statement_if_begin($3); } LBRACE body RBRACE { statement_if_break($<refid>5); } else_statement { statement_if_end($<refid>5); }
             ;
 
 else_statement: %empty
               | ELSE LBRACE body RBRACE
               | ELSE if_statement
-                ;
+              ;
 
 while_statement: WHILE LPAREN expression RPAREN LBRACE body RBRACE
                ;
@@ -88,16 +93,16 @@ block_statement: BLOCK IDENT
 yield_statement: YIELD
                ;
 
-return_statement: RETURN
-                | RETURN expression
+return_statement: RETURN { statement_return_void(); }
+                | RETURN expression { statement_return_expr($2); }
                 ;
 
 fork_statement: FORK IDENT
               ;
 
-assign_expression: IDENT EQUAL STRING
-                 | IDENT EQUAL expression
-                 ;
+assign_statement: IDENT EQUAL STRING { /* do nothing */ }
+                | IDENT EQUAL expression { statement_assign($1, $3); }
+                ;
 
 expression: atom { $$ = $1; }
           | LPAREN expression RPAREN { $$ = $2; }

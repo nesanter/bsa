@@ -1,7 +1,10 @@
 import llvmd.core;
 
 import std.stdio;
+import std.conv;
+import core.vararg;
 
+import expression, util;
 import symbol_table;
 
 /*
@@ -51,14 +54,18 @@ extern (C) {
     void yyerror(char *s, ...) {
         writeln("Error (line ",yylineno,"): ",text(s));
     }
-
-    __gshared int error_occurred = 0;
 }
 
-void main() {
+int main() {
+
+    init();
+
     if (yyparse()) {
         return 1;
     }
+
+    current_module.dump();
+    writeln(current_module.verify());
 
     return 0;
 }

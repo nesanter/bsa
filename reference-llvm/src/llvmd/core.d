@@ -2,6 +2,7 @@ module llvmd.core;
 
 import std.conv;
 import std.string;
+import std.stdio;
 
 /*
 void main() {
@@ -88,8 +89,10 @@ class Module {
     bool verify() {
         char *err;
         int n = LLVMVerifyModule(mod, LLVMVerifierFailureAction.LLVMReturnStatusAction, &err);
-        if (err)
+        if (err) {
             error = text(err);
+            stderr.writeln(error);
+        }
         if (n)
             return true;
         else
@@ -113,6 +116,7 @@ extern (C) {
 
         LLVMTypeRef LLVMIntType(uint NumBits);
         LLVMTypeRef LLVMFunctionType(LLVMTypeRef ReturnType, LLVMTypeRef *ParamTypes, uint ParamCount, int IsVarArg);
+        LLVMTypeRef LLVMStructType(LLVMTypeRef *ElementTypes, uint ElementCount, int Packed);
 
         void LLVMDumpType(LLVMTypeRef Ty);
 }
@@ -133,6 +137,14 @@ class Type {
             params[i] = pt.type;
 
         return new Type(LLVMFunctionType(return_type.type, params.ptr, cast(uint)params.length, 0));
+    }
+
+    static Type struct_type(Type[] element_types, bool packed) {
+        LLVMTypeRef[] els = new LLVMTypeRef[](element_types.length);
+        foreach (i, et; element_types)
+            els[i] = et.type;
+
+        return new Type(LLVMStructType(els.ptr, cast(uint)els.length, packed ? 1 : 0));
     }
 
     void dump() {
@@ -206,10 +218,16 @@ extern (C) {
         LLVMValueRef LLVMBuildMul(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildSDiv(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildSRem(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
-        LLVMValueRef LLVMBuildICmp(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
-        LLVMValueRef LLVMBuildNeg(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildICmp(LLVMBuilderRef, LLVMIntPredicate Pred, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildNeg(LLVMBuilderRef, LLVMValueRef LHS, const char *Name);
+
+        LLVMValueRef LLVMBuildSelect(LLVMBuilderRef, LLVMValueRef If, LLVMValueRef Then, LLVMValueRef Else, const char *Name);
 
         LLVMValueRef LLVMBuildRet(LLVMBuilderRef, LLVMValueRef V);
+        LLVMValueRef LLVMBuildRetVoid(LLVMBuilderRef);
+
+        LLVMValueRef LLVMBuildBr(LLVMBuilderRef, LLVMBasicBlockRef Dest);
+        LLVMValueRef LLVMBuildCondBr(LLVMBuilderRef, LLVMValueRef If, LLVMBasicBlockRef Then, LLVMBasicBlockRef Else);
 
         enum LLVMIntPredicate {
             LLVMIntEQ,
@@ -309,9 +327,24 @@ class Builder {
         return new Value(LLVMBuildICmp(builder, LLVMIntPredicate.LLVMIntUGE, lhs.val, rhs.val, toStringz(name)));
     }
 
+    Value select(Value test, Value if_true, Value if_false, string name = null) {
+        return new Value(LLVMBuildSelect(builder, test.val, if_true.val, if_false.val, toStringz(name)));
+    }
 
     Value ret(Value v) {
         return new Value(LLVMBuildRet(builder, v.val));
+    }
+
+    Value ret_void() {
+        return new Value(LLVMBuildRetVoid(builder));
+    }
+
+    Value br(BasicBlock dest) {
+        return new Value(LLVMBuildBr(builder, dest.basic_block));
+    }
+
+    Value cond_br(Value cond, BasicBlock if_true, BasicBlock if_false) {
+        return new Value(LLVMBuildCondBr(builder, cond.val, if_true.basic_block, if_false.basic_block));
     }
 }
 

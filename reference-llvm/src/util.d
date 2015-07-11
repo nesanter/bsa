@@ -1,5 +1,11 @@
 module util;
 
+import core.exception;
+
+extern (C) {
+    __gshared int error_occured = 0;
+}
+
 mixin template ReferenceHandler() {
     private static typeof(this)[] references;
 
@@ -16,11 +22,10 @@ mixin template ReferenceHandler() {
     }
 
     static typeof(this) lookup(ulong id) {
-        try {
-            return references[id];
-        } catch (RangeError e) {
+        if (id >= references.length)
             return null;
-        }
+        else
+            return references[id];
     }
 }
 
