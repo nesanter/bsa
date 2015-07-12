@@ -1,3 +1,5 @@
+import std.stdio;
+
 import llvmd.core;
 import util;
 
@@ -18,6 +20,9 @@ class Symbol {
     this() {
         this.type = SymbolType.NONE;
     }
+
+    bool is_global;
+    Value parent;
 
     SymbolType type;
     //Value value;
@@ -59,4 +64,16 @@ Symbol[] find_symbols_in_block(BasicBlock block) {
         }
     }
     return syms;
+}
+
+void flush_symbols(Value parent) {
+    string[] flush;
+    foreach (name, sym; SymbolTable.symbols) {
+        if (!sym.is_global && (sym.parent == parent || parent is null))
+            flush ~= name;
+    }
+    writeln(flush);
+    foreach (name; flush) {
+        SymbolTable.symbols.remove(name);
+    }
 }

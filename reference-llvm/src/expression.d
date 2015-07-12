@@ -19,6 +19,8 @@ Value yield_fn, fork_fn;
 
 SystemCall[string] system_calls;
 
+IfElse active_ifelse;
+
 class Expression {
     mixin ReferenceHandler;
     Value value;
@@ -48,6 +50,8 @@ class IfElse {
     BasicBlock before, during, otherwise, after;
 
     Value during_value, otherwise_value, after_value;
+
+    IfElse parent;
 }
 
 class While {
@@ -72,7 +76,7 @@ class SystemCall {
 void init() {
     current_module = Module.create_with_name("main_module");
     current_builder = Builder.create();
-    numeric_type = Type.int_type(4);
+    numeric_type = Type.int_type(32);
     object_type = Type.struct_type([], false);
     void_value = Value.create_const_int(numeric_type, 0);
 
@@ -107,13 +111,14 @@ extern (C) {
 //            return ulong.max;
         }
         auto res = new Expression;
+        writeln(sym.last_block);
         res.value = sym.values[sym.last_block];
         return res.reference();
     }
 
     ulong expr_atom_numeric(ulong n) {
         auto res = new Expression;
-        res.value = Value.create_const_int(Type.int_type(4), n);
+        res.value = Value.create_const_int(numeric_type, n);
 
         return res.reference();
     }
@@ -154,11 +159,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(Type.int_type(4), 0));
-        auto b = current_builder.icmp_ne(rhs.value, Value.create_const_int(Type.int_type(4), 0));
+        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
+        auto b = current_builder.icmp_ne(rhs.value, Value.create_const_int(numeric_type, 0));
 
         auto res = new Expression;
-        res.value = current_builder.select(a, Value.create_const_int(Type.int_type(4), 1), b);
+        res.value = current_builder.select(a, Value.create_const_int(numeric_type, 1), b);
 
         return res.reference();
     }
@@ -167,8 +172,8 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(Type.int_type(4), 0));
-        auto b = current_builder.icmp_ne(rhs.value, Value.create_const_int(Type.int_type(4), 0));
+        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
+        auto b = current_builder.icmp_ne(rhs.value, Value.create_const_int(numeric_type, 0));
 
         auto res = new Expression;
         res.value = current_builder.icmp_ne(a, b);
@@ -180,11 +185,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(Type.int_type(4), 0));
-        auto b = current_builder.icmp_ne(lhs.value, Value.create_const_int(Type.int_type(4), 0));
+        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
+        auto b = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
 
         auto res = new Expression;
-        res.value = current_builder.select(a, b, Value.create_const_int(Type.int_type(4), 0));
+        res.value = current_builder.select(a, b, Value.create_const_int(numeric_type, 0));
 
         return res.reference();
     }
@@ -293,7 +298,7 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
 
         auto res = new Expression;
-        res.value = current_builder.icmp_eq(lhs.value, Value.create_const_int(Type.int_type(4), 0));
+        res.value = current_builder.icmp_eq(lhs.value, Value.create_const_int(numeric_type, 0));
 
         return res.reference();
     }
@@ -320,6 +325,7 @@ extern (C) {
         auto fn = find_symbol(text(ident));
         if (fn is null) {
             fn = create_symbol(text(ident));
+            fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
             Type[] types;
             foreach (n; 0 .. p.values.length)
@@ -339,6 +345,9 @@ extern (C) {
 
     void statement_assign(char *lhs, ulong rhs_ref) {
         auto sym = find_or_create_symbol(text(lhs));
+        if (sym.parent is null) {
+            sym.parent = current_function;
+        }
         auto rhs = Expression.lookup(rhs_ref);
 
         sym.type = SymbolType.VARIABLE;
@@ -372,7 +381,14 @@ extern (C) {
 
         auto ifelse = new IfElse;
 
-        ifelse.before = current_block;
+        if (active_ifelse is null) {
+            ifelse.before = current_block;
+        } else {
+            ifelse.before = active_ifelse.before;
+            ifelse.parent = active_ifelse;
+            active_ifelse = null;
+        }
+
         ifelse.during = current_function.append_basic_block(null);
         ifelse.otherwise = current_function.append_basic_block(null);
         ifelse.after = current_function.append_basic_block(null);
@@ -392,6 +408,7 @@ extern (C) {
         auto ifelse = IfElse.lookup(ifelse_ref);
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.otherwise);
+        ifelse.during = current_block;
         current_block = ifelse.otherwise;
         ifelse.during_value = current_value;
         current_value = void_value;
@@ -400,6 +417,8 @@ extern (C) {
         foreach (sym; syms) {
             sym.last_block = ifelse.before;
         }
+
+        active_ifelse = ifelse;
     }
 
     ulong statement_if_end(ulong ifelse_ref, ulong nested_ifelse_ref) {
@@ -413,7 +432,7 @@ extern (C) {
         if (nested_ifelse_ref == ulong.max) {
             nested = null;
             phi_vals = [ifelse.during_value, ifelse.otherwise_value];
-            phi_blocks = [ifelse.during, ifelse.otherwise];
+            phi_blocks = [ifelse.during, current_block];
         } else {
             nested = IfElse.lookup(nested_ifelse_ref);
             phi_vals = [ifelse.during_value, nested.after_value];
@@ -422,12 +441,13 @@ extern (C) {
 
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.after);
+        auto prev_block = current_block;
         current_block = ifelse.after;
         ifelse.after_value = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
 
         auto syms1 = find_symbols_in_block(ifelse.during);
         if (nested_ifelse_ref == ulong.max) {
-            phi_blocks = [ifelse.during, ifelse.otherwise];
+            phi_blocks = [ifelse.during, prev_block];
         } else {
             phi_blocks = [ifelse.during, nested.after];
         }
@@ -442,7 +462,7 @@ extern (C) {
         }
 
         auto syms2 = find_symbols_in_block(ifelse.otherwise);
-        phi_blocks[1] = ifelse.otherwise;
+        phi_blocks[1] = prev_block;
         foreach (sym; syms2) {
             phi_vals = [];
             foreach (bl; phi_blocks) {
@@ -453,6 +473,11 @@ extern (C) {
         }
 
         current_value = ifelse.after_value;
+
+        if (active_ifelse == ifelse) {
+            active_ifelse = ifelse.parent;
+        }
+
         return ifelse_ref;
     }
 
@@ -528,6 +553,7 @@ extern (C) {
         auto fn = find_symbol(text(ident));
         if (fn is null) {
             fn = create_symbol(text(ident));
+            fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
             fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, []));
         } else {
@@ -548,6 +574,7 @@ extern (C) {
         if (fn is null) {
             current_function = current_module.add_function(text(ident), Type.function_type(numeric_type, args.types));
             fn = create_symbol(text(ident));
+            fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
             fn.values[null] = current_function;
         } else {
@@ -565,12 +592,14 @@ extern (C) {
 
         foreach (i, sym; args.symbols) {
             sym.values[current_block] = current_function.get_param(cast(uint)i);
+            sym.parent = current_function;
             sym.last_block = current_block;
         }
     }
 
     void function_end() {
         current_builder.ret(current_value);
+        flush_symbols(current_function);
     }
 
     /* Arguments */
@@ -590,7 +619,7 @@ extern (C) {
             a.types ~= object_type;
             sym.type = SymbolType.OBJECT;
         } else {
-            a.types ~= Type.int_type(4);
+            a.types ~= numeric_type;
             sym.type = SymbolType.VARIABLE;
         }
         a.symbols ~= sym;
@@ -600,6 +629,7 @@ extern (C) {
     ulong args_add(ulong args_ref, char *ident, int is_object) {
         auto a = Arguments.lookup(args_ref);
         auto sym = create_symbol(text(ident));
+        sym.parent = current_function;
         if (sym is null) {
             stderr.writeln("error: ", text(ident), " shadows");
             generic_error();
@@ -608,7 +638,7 @@ extern (C) {
             a.types ~= object_type;
             sym.type = SymbolType.OBJECT;
         } else {
-            a.types ~= Type.int_type(4);
+            a.types ~= numeric_type;
             sym.type = SymbolType.VARIABLE;
         }
         a.symbols ~= sym;

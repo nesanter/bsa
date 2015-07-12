@@ -29,10 +29,10 @@
 "*" { return STAR; }
 "%" { return PERCENT; }
 "/" { return FSLASH; }
-">=" { return LANGLE_EQUAL; }
-">" { return LANGLE; }
-"<=" { return RANGLE_EQUAL; }
-"<" { return RANGLE; }
+">=" { return RANGLE_EQUAL; }
+">" { return RANGLE; }
+"<=" { return LANGLE_EQUAL; }
+"<" { return LANGLE; }
 "==" { return EQUAL_EQUAL; }
 
  /* keywords */
