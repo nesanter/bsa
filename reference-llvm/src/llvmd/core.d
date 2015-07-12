@@ -135,7 +135,6 @@ class Type {
     }
 
     static Type function_type(Type return_type, Type[] param_types) {
-        writeln(param_types);
         LLVMTypeRef[] params = new LLVMTypeRef[](param_types.length);
         foreach (i,pt; param_types)
             params[i] = pt.type;
@@ -261,7 +260,6 @@ class BasicBlock {
 
     Value first_instruction() {
         auto inst = LLVMGetFirstInstruction(basic_block);
-        writeln(inst);
         return new Value(inst);
     }
 }

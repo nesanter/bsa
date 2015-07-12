@@ -538,6 +538,13 @@ extern (C) {
     void create_function_call(char *ident, ulong params_ref) {
         auto p = Params.lookup(params_ref);
 
+        foreach (ref v; p.values) {
+            if (v.type.same(bool_type)) {
+                v = current_builder.select(v, true_numeric_value, false_numeric_value);
+                stderr.writeln("warning: boolean parameter will be passed as numeric value (line ",yylineno,")");
+            }
+        }
+
         auto fn = find_symbol(text(ident));
         if (fn is null) {
             fn = create_symbol(text(ident));
@@ -674,7 +681,18 @@ extern (C) {
         current_builder.position_at_end(ifelse.after);
         auto prev_block = current_block;
         current_block = ifelse.after;
-        ifelse.after_value = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+
+        Type t = null;
+        foreach (v; phi_vals) {
+            if (t is null) {
+                t = v.type;
+            } else if (!t.same(v.type)) {
+                stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+                generic_error();
+            }
+        }
+
+        ifelse.after_value = current_builder.make_phi(t, phi_vals, phi_blocks);
 
         auto syms1 = find_symbols_in_block(ifelse.during);
         if (nested_ifelse_ref == ulong.max) {
@@ -693,7 +711,16 @@ extern (C) {
                 phi_vals ~= v;
                 
             }
-            sym.values[current_block] = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+            t = null;
+            foreach (v; phi_vals) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+                    generic_error();
+                }
+            }
+            sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
             sym.last_block = current_block;
         }
 
@@ -708,7 +735,16 @@ extern (C) {
                 }
                 phi_vals ~= v;
             }
-            sym.values[current_block] = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+            t = null;
+            foreach (v; phi_vals) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+                    generic_error();
+                }
+            }
+            sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
             sym.last_block = current_block;
         }
 
@@ -843,6 +879,7 @@ extern (C) {
             fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
             fn.values[null] = current_function;
+            fn.arg_types = args.types;
         } else {
             if (fn.arg_types.length != args.types.length) {
                 stderr.writeln("error: inconsistant use of function ",text(ident), text(ident), " (line ",yylineno,")");
