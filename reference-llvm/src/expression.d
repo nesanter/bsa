@@ -1,8 +1,12 @@
 import llvmd.core;
-import util, symbol_table, errors;
+import util, symbol_table, errors, manifest;
 
 import std.conv;
 import std.stdio;
+
+extern (C) {
+    extern __gshared int yylineno;
+}
 
 Module current_module;
 Builder current_builder;
@@ -12,8 +16,9 @@ BasicBlock current_block;
 
 Value current_value;
 
-Type object_type, numeric_type;
-Value void_value;
+Type object_type, numeric_type, bool_type;
+Value void_value, false_value, true_value,
+      false_numeric_value, true_numeric_value;
 
 Value yield_fn, fork_fn;
 
@@ -21,9 +26,12 @@ SystemCall[string] system_calls;
 
 IfElse active_ifelse;
 
+Manifest current_manifest;
+
 class Expression {
     mixin ReferenceHandler;
     Value value;
+    bool is_bool;
 }
 
 class Arguments {
@@ -73,12 +81,18 @@ class SystemCall {
     }
 }
 
-void init() {
+void init(string manifest_file) {
     current_module = Module.create_with_name("main_module");
     current_builder = Builder.create();
     numeric_type = Type.int_type(32);
+    bool_type = Type.int_type(1);
     object_type = Type.struct_type([], false);
     void_value = Value.create_const_int(numeric_type, 0);
+    true_value = Value.create_const_int(bool_type, 1);
+    false_value = Value.create_const_int(bool_type, 0);
+    true_numeric_value = Value.create_const_int(numeric_type, 1);
+    false_numeric_value = Value.create_const_int(numeric_type, 0);
+
 
 //    write_function = current_module.add_function("___write_builtin", Type.function_type(numeric_type, [numeric_type]));
 //    read_function = current_module.add_function("___read_builtin", Type.function_type(numeric_type, [numeric_type]));
@@ -88,6 +102,9 @@ void init() {
 
     yield_fn = current_module.add_function("___yield_builtin", Type.function_type(numeric_type, []));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(numeric_type, [Type.pointer_type(Type.function_type(numeric_type, []))]));
+
+    if (manifest_file.length > 0)
+        current_manifest = Manifest.load(File(manifest_file, "r"));
 }
 
 bool unimplemented_functions() {
@@ -105,14 +122,14 @@ extern (C) {
     ulong expr_atom_ident(char *s) {
         auto sym = find_symbol(text(s));
         if (sym is null) {
-            stderr.writeln("error: ", text(s), " nonexistant");
+            stderr.writeln("error: ", text(s), " nonexistant (line ",yylineno,")");
             generic_error();
 //            error_occured++;
 //            return ulong.max;
         }
         auto res = new Expression;
-        writeln(sym.last_block);
         res.value = sym.values[sym.last_block];
+        res.is_bool = sym.is_bool;
         return res.reference();
     }
 
@@ -129,6 +146,18 @@ extern (C) {
         return res.reference();
     }
 
+    ulong expr_atom_bool(int is_true) {
+        auto res = new Expression;
+        res.is_bool = true;
+        if (is_true == 1) {
+            res.value = true_value;
+        } else {
+            res.value = false_value;
+        }
+
+        return res.reference();
+    }
+
     ulong expr_atom_syscall(char *ident, ulong qident_ref, ulong params_ref) {
         auto q = QualifiedIdentifier.lookup(qident_ref);
         auto p = Params.lookup(params_ref);
@@ -137,15 +166,31 @@ extern (C) {
         auto call = system_calls.get(text(ident), null);
 
         if (call is null) {
-            stderr.writeln("error: no such system intrinsic ",text(ident));
+            stderr.writeln("error: no such system intrinsic ",text(ident), " (line ",yylineno,")");
             generic_error();
         }
         if (call.args != p.values.length + 1) {
-            stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident));
+            stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident), " (line ",yylineno,")");
             generic_error();
         }
 
-        Value[] praw = [Value.create_const_int(numeric_type, 0)];
+        if (current_manifest is null) {
+            stderr.writeln("error: no manifest loaded (line ",yylineno,")");
+            generic_error();
+        }
+
+        string qname;
+        foreach (s; q.idents)
+            qname ~= "."~s;
+
+        if (qname !in current_manifest.entries) {
+            stderr.writeln("error: no such object ",qname, " (line ",yylineno,")");
+            generic_error();
+        }
+
+        ushort[2] qn = current_manifest.entries[qname];
+
+        Value[] praw = [Value.create_const_int(numeric_type, (qn[0] | (qn[1] << 16)))];
 
         foreach (v; p.values)
             praw ~= v;
@@ -159,11 +204,17 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
-        auto b = current_builder.icmp_ne(rhs.value, Value.create_const_int(numeric_type, 0));
+        if (!lhs.is_bool || !rhs.is_bool) {
+            stderr.writeln("error: 'or' must be used with boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
+        auto a = current_builder.icmp_ne(lhs.value, false_value);
+        auto b = current_builder.icmp_ne(rhs.value, false_value);
 
         auto res = new Expression;
-        res.value = current_builder.select(a, Value.create_const_int(numeric_type, 1), b);
+        res.value = current_builder.select(a, true_value, b);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -172,11 +223,17 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
-        auto b = current_builder.icmp_ne(rhs.value, Value.create_const_int(numeric_type, 0));
+        if (!lhs.is_bool || !rhs.is_bool) {
+            stderr.writeln("error: 'xor' must be used with boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
+        auto a = current_builder.icmp_ne(lhs.value, false_value);
+        auto b = current_builder.icmp_ne(rhs.value, false_value);
 
         auto res = new Expression;
         res.value = current_builder.icmp_ne(a, b);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -185,11 +242,17 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        auto a = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
-        auto b = current_builder.icmp_ne(lhs.value, Value.create_const_int(numeric_type, 0));
+        if (!lhs.is_bool || !rhs.is_bool) {
+            stderr.writeln("error: 'and' must be used with boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
+        auto a = current_builder.icmp_ne(lhs.value, false_value);
+        auto b = current_builder.icmp_ne(lhs.value, false_value);
 
         auto res = new Expression;
-        res.value = current_builder.select(a, b, Value.create_const_int(numeric_type, 0));
+        res.value = current_builder.select(a, b, false_value);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -198,8 +261,14 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.is_bool != rhs.is_bool) {
+            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.icmp_eq(lhs.value, rhs.value);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -207,6 +276,11 @@ extern (C) {
     ulong expr_op_lt(ulong lhs_ref, ulong rhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool != rhs.is_bool) {
+            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
+            generic_error();
+        }
 
         auto res = new Expression;
         res.value = current_builder.icmp_slt(lhs.value, rhs.value);
@@ -218,8 +292,14 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.is_bool != rhs.is_bool) {
+            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.icmp_sgt(lhs.value, rhs.value);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -228,8 +308,14 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.is_bool != rhs.is_bool) {
+            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.icmp_slte(lhs.value, rhs.value);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -238,8 +324,14 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.is_bool != rhs.is_bool) {
+            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.icmp_sgte(lhs.value, rhs.value);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -297,8 +389,13 @@ extern (C) {
     ulong expr_op_lnot(ulong lhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
 
+        if (!lhs.is_bool) {
+            stderr.writeln("error: 'not' must be used with a boolean value (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
-        res.value = current_builder.icmp_eq(lhs.value, Value.create_const_int(numeric_type, 0));
+        res.value = current_builder.icmp_eq(lhs.value, false_value);
 
         return res.reference();
     }
@@ -334,7 +431,7 @@ extern (C) {
             fn.arg_types = types;
         } else {
             if (fn.arg_types.length != p.values.length) {
-                stderr.writeln("error: incorrect number of parameters for function ",text(ident));
+                stderr.writeln("error: incorrect number of parameters for function ",text(ident), " (line ",yylineno,")");
                 generic_error();
             }
         }
@@ -353,16 +450,29 @@ extern (C) {
         sym.type = SymbolType.VARIABLE;
 
         sym.values[current_block] = rhs.value;
+        sym.is_bool = rhs.is_bool;
         sym.last_block = current_block;
 
 //        sym.value = rhs.value;
 
+        /*
+        if (rhs.is_bool) {
+            current_value = current_builder.select(rhs.value, true_numeric_value, false_numeric_value);
+        } else {
+            current_value = rhs.value;
+        }
+        */
         current_value = rhs.value;
     }
 
     void statement_expression(ulong expr_ref) {
         auto expr = Expression.lookup(expr_ref);
-        current_value = expr.value;
+        if (expr.is_bool) {
+            stderr.writeln("warning: boolean expression statement (line ",yylineno,")");
+            current_value = current_builder.select(expr.value, true_numeric_value, false_numeric_value);
+        } else {
+            current_value = expr.value;
+        }
     }
 
     /*
@@ -498,6 +608,14 @@ extern (C) {
         current_builder.position_at_end(loop.test);
 
         current_block = loop.test;
+
+        foreach (sym; SymbolTable.symbols) {
+            if (sym.type != SymbolType.VARIABLE)
+                continue;
+            sym.values[loop.test] = Value.create_const_int(numeric_type, 0);
+            sym.values[loop.during] = sym.values[loop.test];
+            sym.dummy[loop.test] = sym.values[loop.test];
+        }
         
         return loop.reference();
     }
@@ -520,7 +638,21 @@ extern (C) {
 
         current_builder.br(loop.test);
 
-        auto syms = find_symbols_in_block(loop.during) ~ find_symbols_in_block(loop.test);
+        auto syms = find_symbols_in_block(loop.test);
+        auto syms2 = find_symbols_in_block(loop.during);
+
+        foreach (sym2; syms2) {
+            bool dup = false;
+            foreach (sym; syms) {
+                if (sym2 == sym) {
+                    dup = true;
+                    break;
+                }
+            }
+            if (!dup) {
+                syms ~= sym2;
+            }
+        }
 
         Value[] phi_values;
         BasicBlock[] phi_blocks = [loop.before, loop.during];
@@ -535,6 +667,10 @@ extern (C) {
             }
             sym.values[loop.after] = current_builder.make_phi(numeric_type, phi_values, phi_blocks);
             sym.last_block = loop.after;
+
+            if (sym.dummy[loop.test] !is null) {
+                Value.replace_all(sym.dummy[loop.test], sym.values[loop.after]);
+            }
         }
         
         current_builder.position_at_end(loop.after);
@@ -558,7 +694,7 @@ extern (C) {
             fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, []));
         } else {
             if (fn.arg_types.length != 0) {
-                stderr.writeln("error: cannot fork function with arguments ", text(ident));
+                stderr.writeln("error: cannot fork function with arguments ", text(ident), " (line ",yylineno,")");
                 generic_error();
             }
         }
@@ -579,7 +715,7 @@ extern (C) {
             fn.values[null] = current_function;
         } else {
             if (fn.arg_types.length != args.types.length) {
-                stderr.writeln("error: inconsistant use of function ",text(ident));
+                stderr.writeln("error: inconsistant use of function ",text(ident), text(ident), " (line ",yylineno,")");
                 generic_error();
             }
             current_function = fn.values[null];
@@ -598,6 +734,10 @@ extern (C) {
     }
 
     void function_end() {
+        if (current_value.type.same(bool_type)) {
+            stderr.writeln("warning: boolean function will evaluate to a numeric value (line ",yylineno,")");
+            current_value = current_builder.select(current_value, true_numeric_value, false_numeric_value);
+        }
         current_builder.ret(current_value);
         flush_symbols(current_function);
     }
@@ -612,7 +752,7 @@ extern (C) {
         auto a = new Arguments;
         auto sym = create_symbol(text(ident));
         if (sym is null) {
-            stderr.writeln("error: ", text(ident), " shadows");
+            stderr.writeln("error: ", text(ident), " shadows (line ",yylineno,")");
             generic_error();
         }
         if (is_object) {
@@ -631,7 +771,7 @@ extern (C) {
         auto sym = create_symbol(text(ident));
         sym.parent = current_function;
         if (sym is null) {
-            stderr.writeln("error: ", text(ident), " shadows");
+            stderr.writeln("error: ", text(ident), " shadows (line ",yylineno,")");
             generic_error();
         }
         if (is_object) {

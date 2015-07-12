@@ -157,6 +157,10 @@ class Type {
     void dump() {
         LLVMDumpType(type);
     }
+
+    bool same(Type other) {
+        return type == other.type;
+    }
 }
 
 extern (C) {
@@ -167,6 +171,10 @@ extern (C) {
        LLVMValueRef LLVMGetParam(LLVMValueRef Fn, uint index);
 
        LLVMValueRef LLVMConstInt(LLVMTypeRef IntTy, ulong N, int SignExtend);
+
+       void LLVMReplaceAllUsesWith(LLVMValueRef OldVal, LLVMValueRef NewVal);
+
+       LLVMTypeRef LLVMTypeOf(LLVMValueRef Val);
 
        void LLVMDumpValue(LLVMValueRef Val);
 }
@@ -181,12 +189,20 @@ class Value {
         return new Value(LLVMConstInt(type.type, n, 0));
     }
 
+    static void replace_all(Value old, Value replacement) {
+        LLVMReplaceAllUsesWith(old.val, replacement.val);
+    }
+
     BasicBlock append_basic_block(string name) {
         return new BasicBlock(LLVMAppendBasicBlock(val, toStringz(name)));
     }
 
     Value get_param(uint index) {
         return new Value(LLVMGetParam(val, index));
+    }
+
+    @property Type type() {
+        return new Type(LLVMTypeOf(val));
     }
 
     void dump() {

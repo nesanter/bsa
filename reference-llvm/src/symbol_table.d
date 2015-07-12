@@ -23,6 +23,7 @@ class Symbol {
 
     bool is_global;
     Value parent;
+    bool is_bool;
 
     SymbolType type;
     //Value value;
@@ -30,6 +31,8 @@ class Symbol {
 //    BasicBlock[] blocks;
     BasicBlock last_block;
     Value[BasicBlock] values;
+
+    Value[BasicBlock] dummy;
 
     Type[] arg_types;
     Type return_type;
@@ -72,7 +75,6 @@ void flush_symbols(Value parent) {
         if (!sym.is_global && (sym.parent == parent || parent is null))
             flush ~= name;
     }
-    writeln(flush);
     foreach (name; flush) {
         SymbolTable.symbols.remove(name);
     }

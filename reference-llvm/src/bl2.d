@@ -1,5 +1,6 @@
 import llvmd.core;
 
+import std.getopt;
 import std.stdio;
 import std.conv;
 import core.vararg;
@@ -58,13 +59,25 @@ extern (C) {
 
 int main(string[] args) {
 
-    init();
+    string output_file;
+    string manifest_file;
+    bool print_ir;
+
+    getopt(args,
+           "o", &output_file,
+           "m", &manifest_file,
+           "d", &print_ir
+          );
+
+    init(manifest_file);
 
     if (yyparse()) {
         return 1;
     }
 
-    current_module.dump();
+    if (print_ir)
+        current_module.dump();
+
     if (current_module.verify()) {
         return 1;
     }
@@ -73,8 +86,8 @@ int main(string[] args) {
         return 1;
     }
 
-    if (args.length > 1) {
-        current_module.write_bitcode_to_file(args[1]);
+    if (output_file.length > 0) {
+        current_module.write_bitcode_to_file(output_file);
     }
 
     return 0;

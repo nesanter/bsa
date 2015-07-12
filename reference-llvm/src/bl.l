@@ -40,6 +40,8 @@
 "and" { return AND; }
 "or" { return OR; }
 "xor" { return XOR; }
+"true" { return TRUE; }
+"false" { return FALSE; }
 "function" { return FUNCTION; }
 "while" { return WHILE; }
 "do" { return DO; }

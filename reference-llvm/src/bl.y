@@ -15,7 +15,7 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL POUND
-%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE
+%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE TRUE FALSE
 
 %precedence PAREN
 %left OR
@@ -159,6 +159,8 @@ constant_atom: NUMERIC
 
 atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
     | NUMERIC { $$ = expr_atom_numeric($1); }
+    | TRUE { $$ = expr_atom_bool(1); }
+    | FALSE { $$ = expr_atom_bool(0); }
     | function_call { $$ = expr_atom_function_call(); }
     | system_call { $$ = $1; }
     ;

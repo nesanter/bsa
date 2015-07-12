@@ -7,6 +7,7 @@ int error_occured;
 unsigned long expr_atom_ident(char *s);
 unsigned long expr_atom_numeric(unsigned long n);
 unsigned long expr_atom_function_call();
+unsigned long expr_atom_bool(int is_true);
 unsigned long expr_atom_syscall(char *ident, unsigned long qident_ref, unsigned long params_ref);
 unsigned long expr_op_lor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_lxor(unsigned long lhs_ref, unsigned long rhs_ref);
