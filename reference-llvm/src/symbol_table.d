@@ -14,6 +14,16 @@ enum SymbolType {
     FUNCTION,
 }
 
+class InstUsage {
+    ulong pos;
+    Value inst;
+
+    this(Value inst, ulong pos) {
+        this.pos = pos;
+        this.inst = inst;
+    }
+}
+
 class Symbol {
     mixin ReferenceHandler;
 
@@ -36,6 +46,8 @@ class Symbol {
     Value[BasicBlock] values;
 
     Value[BasicBlock] dummy;
+
+    InstUsage[][BasicBlock] associated_const_usages;
 
     Type[] arg_types;
     Type return_type;

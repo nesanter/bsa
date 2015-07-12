@@ -181,6 +181,8 @@ extern (C) {
        const(char *) LLVMGetAsString(LLVMValueRef c, size_t *Out);
        int LLVMIsConstantString(LLVMValueRef c);
 
+       int LLVMIsConstant(LLVMValueRef Val);
+
        LLVMValueRef LLVMConstGEP(LLVMValueRef ConstantVal, LLVMValueRef *ConstantIndices, uint NumIndices);
 
        LLVMValueRef LLVMGetNextInstruction(LLVMValueRef Inst);
@@ -341,6 +343,10 @@ class Value {
 
     bool is_constant_string() {
         return LLVMIsConstantString(val) != 0;
+    }
+
+    bool is_const() {
+        return LLVMIsConstant(val) != 0;
     }
 
     bool same(Value other) {

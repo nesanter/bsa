@@ -32,6 +32,7 @@ class Expression {
     mixin ReferenceHandler;
     Value value;
     bool is_bool;
+    Symbol const_is_sym;
 }
 
 class Arguments {
@@ -44,6 +45,7 @@ class Params {
     mixin ReferenceHandler;
 
     Value[] values;
+    Symbol[] const_syms;
 }
 
 class QualifiedIdentifier {
@@ -139,6 +141,8 @@ extern (C) {
         auto res = new Expression;
         res.value = sym.values[sym.last_block];
         res.is_bool = sym.is_bool;
+        if (res.value.is_const())
+            res.const_is_sym = sym;
         return res.reference();
     }
 
@@ -263,6 +267,13 @@ extern (C) {
         res.value = current_builder.select(a, true_value, b);
         res.is_bool = true;
 
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
+
         return res.reference();
     }
 
@@ -282,6 +293,12 @@ extern (C) {
         res.value = current_builder.icmp_ne(a, b);
         res.is_bool = true;
 
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -300,7 +317,12 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.select(a, b, false_value);
         res.is_bool = true;
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -331,7 +353,12 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.icmp_eq(lval, rval);
         res.is_bool = true;
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -361,7 +388,12 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.icmp_slt(lval, rval);
         res.is_bool = true;
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -391,7 +423,12 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.icmp_sgt(lval, rval);
         res.is_bool = true;
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -421,7 +458,12 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.icmp_slte(lval, rval);
         res.is_bool = true;
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -451,7 +493,12 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.icmp_sgte(lval, rval);
         res.is_bool = true;
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -466,7 +513,12 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.add(lhs.value, rhs.value);
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -481,7 +533,12 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.sub(lhs.value, rhs.value);
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -496,7 +553,12 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.mul(lhs.value, rhs.value);
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -511,7 +573,12 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.sdiv(lhs.value, rhs.value);
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -526,7 +593,12 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.srem(lhs.value, rhs.value);
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
+        if (rhs.const_is_sym !is null) {
+            rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
+        }
         return res.reference();
     }
 
@@ -540,7 +612,9 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.icmp_eq(lhs.value, false_value);
-
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
         return res.reference();
     }
 
@@ -553,6 +627,9 @@ extern (C) {
         }
         auto res = new Expression;
         res.value = current_builder.neg(lhs.value);
+        if (lhs.const_is_sym !is null) {
+            lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
+        }
 
         return res.reference();
     }
@@ -574,6 +651,8 @@ extern (C) {
             }
         }
 
+
+
         auto fn = find_symbol(text(ident));
         if (fn is null) {
             fn = create_symbol(text(ident));
@@ -591,6 +670,12 @@ extern (C) {
             }
         }
         current_value = current_builder.call(fn.values[null], p.values);
+
+        foreach (i,s; p.const_syms) {
+            if (s !is null) {
+                s.associated_const_usages[current_block] ~= new InstUsage(current_value, i);
+            }
+        }
     }
 
     /* Statements */
@@ -748,7 +833,7 @@ extern (C) {
                     }
                     if (v == void_value) {
                         stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
-                        generic_error();
+//                        generic_error();
                     }
                 }
                 phi_vals ~= v;
@@ -860,8 +945,10 @@ extern (C) {
 
         current_builder.br(loop.test);
 
-        auto syms = find_symbols_in_block(loop.test);
+        auto syms1 = find_symbols_in_block(loop.test);
         auto syms2 = find_symbols_in_block(loop.during);
+
+        auto syms = syms1.dup;
 
         foreach (sym2; syms2) {
             bool dup = false;
@@ -899,7 +986,15 @@ extern (C) {
             }
             Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
             sym.values[loop.after] = newval;
-            replacements[sym.values[loop.before]] = newval;
+            ulong min = 0;
+            BasicBlock prev_block = null;
+            foreach (bl; sym.values.byKey) {
+                if (bl.index >= min && bl.index <= loop.before.index) {
+                    min = bl.index;
+                    prev_block = bl;
+                }
+            }
+            replacements[sym.values[prev_block]] = newval;
             
             sym.last_block = loop.after;
             sym.is_bool = t.same(bool_type);
@@ -918,9 +1013,25 @@ extern (C) {
             if (!inst.is_phi()) {
                 foreach (i; 0 .. inst.get_num_operands()) {
                     Value operand = inst.get_operand(i);
-                    foreach (k,v; replacements) {
-                        if (operand.same(k)) {
-                            inst.set_operand(i, v);
+                    if (operand.is_const()) {
+                        bool stop = false;
+                        foreach (sym; syms1) {
+                            foreach (usage; sym.associated_const_usages.get(loop.test, [])) {
+                                if (usage.inst.same(inst) && usage.pos == i) {
+                                    inst.set_operand(i, sym.values[loop.after]);
+                                    stop = true;
+                                    break;
+                                }
+                            }
+                            if (stop)
+                                break;
+                        }
+                    } else {
+                        foreach (k,v; replacements) {
+                            if (operand.same(k)) {
+                                inst.set_operand(i, v);
+                                break;
+                            }
                         }
                     }
                 }
@@ -928,7 +1039,35 @@ extern (C) {
 
             inst = inst.next_instruction();
         }
-        
+
+        inst = loop.during.first_instruction();
+
+        while (inst !is null) {
+
+            if (!inst.is_phi()) {
+                foreach (i; 0 .. inst.get_num_operands()) {
+                    Value operand = inst.get_operand(i);
+                    if (operand.is_const()) {
+                        foreach (sym; syms2) {
+                            foreach (usage; sym.associated_const_usages.get(loop.during, [])) {
+                                if (usage.inst.same(inst) && usage.pos == i) {
+                                    inst.set_operand(i, sym.values[loop.after]);
+                                }
+                            }
+                        }
+                    } else {
+                        foreach (k,v; replacements) {
+                            if (operand.same(k)) {
+                                inst.set_operand(i, v);
+                            }
+                        }
+                    }
+                }
+            }
+
+            inst = inst.next_instruction();
+        }        
+
         current_builder.position_at_end(loop.after);
         current_value = void_value;
 
@@ -1051,26 +1190,39 @@ extern (C) {
 
     ulong params_create(ulong expr_ref) {
         auto p = new Params;
-        p.values ~= Expression.lookup(expr_ref).value;
+        auto expr = Expression.lookup(expr_ref);
+        p.values ~= expr.value;
+        if (expr.const_is_sym !is null) {
+            p.const_syms ~= expr.const_is_sym;
+        } else {
+            p.const_syms ~= null;
+        }
         return p.reference();
     }
 
     ulong params_create_string(char *s) {
         auto p = new Params;
         p.values ~= Value.create_string(text(s));
+        p.const_syms ~= null;
         return p.reference();
     }
 
     ulong params_add(ulong param_ref, ulong expr_ref) {
         auto p = Params.lookup(param_ref);
-        p.values ~= Expression.lookup(expr_ref).value;
-
+        auto expr = Expression.lookup(expr_ref);
+        p.values ~= expr.value;
+        if (expr.const_is_sym !is null) {
+            p.const_syms ~= expr.const_is_sym;
+        } else {
+            p.const_syms ~= null;
+        }
         return p.reference();
     }
 
     ulong params_add_string(ulong param_ref, char *s) {
         auto p = Params.lookup(param_ref);
         p.values ~= Value.create_string(text(s));
+        p.const_syms ~= null;
         return p.reference();
     }
 
