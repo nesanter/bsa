@@ -17,9 +17,12 @@ enum SymbolType {
 class Symbol {
     mixin ReferenceHandler;
 
-    this() {
+    this(string ident) {
+        this.ident = ident;
         this.type = SymbolType.NONE;
     }
+
+    string ident;
 
     bool is_global;
     Value parent;
@@ -46,7 +49,7 @@ Symbol find_symbol(string s) {
 
 Symbol find_or_create_symbol(string s) {
     if (s !in SymbolTable.symbols) {
-        SymbolTable.symbols[s] = new Symbol;
+        SymbolTable.symbols[s] = new Symbol(s);
     }
     return SymbolTable.symbols[s];
 }
@@ -55,7 +58,7 @@ Symbol create_symbol(string s) {
     if (s in SymbolTable.symbols)
         return null;
     
-    SymbolTable.symbols[s] = new Symbol;
+    SymbolTable.symbols[s] = new Symbol(s);
     return SymbolTable.symbols[s];
 }
 

@@ -261,13 +261,28 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        /*
         if (lhs.is_bool != rhs.is_bool) {
             stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
             generic_error();
         }
+        */
+
+        Value lval, rval;
+
+        if (lhs.is_bool && !rhs.is_bool) {
+            lval = lhs.value;
+            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+        } else if (!lhs.is_bool && rhs.is_bool) {
+            rval = rhs.value;
+            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+        } else {
+            lval = lhs.value;
+            rval = rhs.value;
+        }
 
         auto res = new Expression;
-        res.value = current_builder.icmp_eq(lhs.value, rhs.value);
+        res.value = current_builder.icmp_eq(lval, rval);
         res.is_bool = true;
 
         return res.reference();
@@ -277,13 +292,28 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        /*
         if (lhs.is_bool != rhs.is_bool) {
             stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
             generic_error();
         }
+        */
+        Value lval, rval;
+
+        if (lhs.is_bool && !rhs.is_bool) {
+            lval = lhs.value;
+            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+        } else if (!lhs.is_bool && rhs.is_bool) {
+            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+            rval = rhs.value;
+        } else {
+            lval = lhs.value;
+            rval = rhs.value;
+        }
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slt(lhs.value, rhs.value);
+        res.value = current_builder.icmp_slt(lval, rval);
+        res.is_bool = true;
 
         return res.reference();
     }
@@ -292,13 +322,27 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        /*
         if (lhs.is_bool != rhs.is_bool) {
             stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
             generic_error();
         }
+        */
+        Value lval, rval;
+
+        if (lhs.is_bool && !rhs.is_bool) {
+            lval = lhs.value;
+            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+        } else if (!lhs.is_bool && rhs.is_bool) {
+            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+            rval = rhs.value;
+        } else {
+            lval = lhs.value;
+            rval = rhs.value;
+        }
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgt(lhs.value, rhs.value);
+        res.value = current_builder.icmp_sgt(lval, rval);
         res.is_bool = true;
 
         return res.reference();
@@ -308,13 +352,27 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        /*
         if (lhs.is_bool != rhs.is_bool) {
             stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
             generic_error();
         }
+        */
+        Value lval, rval;
+
+        if (lhs.is_bool && !rhs.is_bool) {
+            lval = lhs.value;
+            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+        } else if (!lhs.is_bool && rhs.is_bool) {
+            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+            rval = rhs.value;
+        } else {
+            lval = lhs.value;
+            rval = rhs.value;
+        }
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slte(lhs.value, rhs.value);
+        res.value = current_builder.icmp_slte(lval, rval);
         res.is_bool = true;
 
         return res.reference();
@@ -324,13 +382,27 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        /*
         if (lhs.is_bool != rhs.is_bool) {
             stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
             generic_error();
         }
+        */
+        Value lval, rval;
+
+        if (lhs.is_bool && !rhs.is_bool) {
+            lval = lhs.value;
+            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+        } else if (!lhs.is_bool && rhs.is_bool) {
+            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+            rval = rhs.value;
+        } else {
+            lval = lhs.value;
+            rval = rhs.value;
+        }
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgte(lhs.value, rhs.value);
+        res.value = current_builder.icmp_sgte(lval, rval);
         res.is_bool = true;
 
         return res.reference();
@@ -467,12 +539,14 @@ extern (C) {
 
     void statement_expression(ulong expr_ref) {
         auto expr = Expression.lookup(expr_ref);
+        /*
         if (expr.is_bool) {
             stderr.writeln("warning: boolean expression statement (line ",yylineno,")");
             current_value = current_builder.select(expr.value, true_numeric_value, false_numeric_value);
         } else {
-            current_value = expr.value;
-        }
+        */
+        current_value = expr.value;
+//        }
     }
 
     /*
@@ -565,7 +639,12 @@ extern (C) {
         foreach (sym; syms1) {
             phi_vals = [];
             foreach (bl; phi_blocks) {
-                phi_vals ~= sym.values.get(bl, void_value);
+                auto v = sym.values.get(bl, void_value);
+                if (v == void_value) {
+                    stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+                }
+                phi_vals ~= v;
+                
             }
             sym.values[current_block] = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
             sym.last_block = current_block;
@@ -576,7 +655,11 @@ extern (C) {
         foreach (sym; syms2) {
             phi_vals = [];
             foreach (bl; phi_blocks) {
-                phi_vals ~= sym.values.get(bl, void_value);
+                auto v = sym.values.get(bl, void_value);
+                if (v == void_value) {
+                    stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+                }
+                phi_vals ~= v;
             }
             sym.values[current_block] = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
             sym.last_block = current_block;
