@@ -135,6 +135,7 @@ class Type {
     }
 
     static Type function_type(Type return_type, Type[] param_types) {
+        writeln(param_types);
         LLVMTypeRef[] params = new LLVMTypeRef[](param_types.length);
         foreach (i,pt; param_types)
             params[i] = pt.type;
@@ -171,10 +172,17 @@ extern (C) {
        LLVMValueRef LLVMGetParam(LLVMValueRef Fn, uint index);
 
        LLVMValueRef LLVMConstInt(LLVMTypeRef IntTy, ulong N, int SignExtend);
+       LLVMValueRef LLVMConstString(const char *Str, uint Length, uint DontNullTerminate);
+       LLVMValueRef LLVMConstNull(LLVMTypeRef Ty);
 
        void LLVMReplaceAllUsesWith(LLVMValueRef OldVal, LLVMValueRef NewVal);
 
        LLVMTypeRef LLVMTypeOf(LLVMValueRef Val);
+
+       const(char *) LLVMGetAsString(LLVMValueRef c, size_t *Out);
+       int LLVMIsConstantString(LLVMValueRef c);
+
+       LLVMValueRef LLVMConstGEP(LLVMValueRef ConstantVal, LLVMValueRef *ConstantIndices, uint NumIndices);
 
        void LLVMDumpValue(LLVMValueRef Val);
 }
@@ -187,6 +195,14 @@ class Value {
 
     static Value create_const_int(Type type, ulong n) {
         return new Value(LLVMConstInt(type.type, n, 0));
+    }
+
+    static Value create_string(string s) {
+        return new Value(LLVMConstString(toStringz(s), cast(uint)s.length, 1));
+    }
+
+    static Value create_const_null(Type t) {
+        return new Value(LLVMConstNull(t.type));
     }
 
     static void replace_all(Value old, Value replacement) {
@@ -203,6 +219,22 @@ class Value {
 
     @property Type type() {
         return new Type(LLVMTypeOf(val));
+    }
+
+    string as_string() {
+        size_t n;
+        return text(LLVMGetAsString(val, &n));
+    }
+
+    Value const_gep(Value[] indices) {
+        LLVMValueRef[] rawvals = new LLVMValueRef[](indices.length);
+        foreach (i, ind; indices)
+            rawvals[i] = ind.val;
+        return new Value(LLVMConstGEP(val, rawvals.ptr, cast(uint)rawvals.length));
+    }
+
+    bool is_constant_string() {
+        return LLVMIsConstantString(val) != 0;
     }
 
     void dump() {
@@ -254,6 +286,8 @@ extern (C) {
         LLVMValueRef LLVMBuildNeg(LLVMBuilderRef, LLVMValueRef LHS, const char *Name);
 
         LLVMValueRef LLVMBuildSelect(LLVMBuilderRef, LLVMValueRef If, LLVMValueRef Then, LLVMValueRef Else, const char *Name);
+
+        LLVMValueRef LLVMBuildGlobalStringPtr(LLVMBuilderRef B, const char *Str, const char *Name);
 
         LLVMValueRef LLVMBuildRet(LLVMBuilderRef, LLVMValueRef V);
         LLVMValueRef LLVMBuildRetVoid(LLVMBuilderRef);
@@ -372,6 +406,10 @@ class Builder {
 
     Value select(Value test, Value if_true, Value if_false, string name = null) {
         return new Value(LLVMBuildSelect(builder, test.val, if_true.val, if_false.val, toStringz(name)));
+    }
+
+    Value global_string_ptr(string s, string name = null) {
+        return new Value(LLVMBuildGlobalStringPtr(builder, toStringz(s), toStringz(name)));
     }
 
     Value ret(Value v) {

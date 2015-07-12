@@ -56,7 +56,9 @@ unsigned long args_add(unsigned long args_ref, char *ident, int is_object);
 
 unsigned long params_empty();
 unsigned long params_create(unsigned long expr_ref);
+unsigned long params_create_string(char *s);
 unsigned long params_add(unsigned long params_ref, unsigned long expr_ref);
+unsigned long params_add_string(unsigned long params_ref, char *s);
 
 unsigned long qident_create(char *ident);
 unsigned long qident_add(unsigned long qident_ref, char *ident);

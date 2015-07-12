@@ -16,7 +16,7 @@ BasicBlock current_block;
 
 Value current_value;
 
-Type object_type, numeric_type, bool_type;
+Type object_type, numeric_type, bool_type, string_type;
 Value void_value, false_value, true_value,
       false_numeric_value, true_numeric_value;
 
@@ -70,12 +70,20 @@ class While {
 class SystemCall {
     ulong args;
     Value fn;
+    bool string_arg, string_arg_replaces_arg;
+    int[] defaults;
 
-    this(string name, ulong args) {
+    this(string name, ulong args, bool string_arg, bool string_arg_replaces_arg = false) {
         this.args = args;
+        this.string_arg = string_arg;
+        this.string_arg_replaces_arg = string_arg_replaces_arg;
         Type[] arg_types;
         foreach (n; 0 .. args)
             arg_types ~= numeric_type;
+
+        if (string_arg) {
+            arg_types ~= string_type;
+        }
 
         fn = current_module.add_function(name, Type.function_type(numeric_type, arg_types));
     }
@@ -87,6 +95,7 @@ void init(string manifest_file) {
     numeric_type = Type.int_type(32);
     bool_type = Type.int_type(1);
     object_type = Type.struct_type([], false);
+    string_type = Type.pointer_type(Type.int_type(8));
     void_value = Value.create_const_int(numeric_type, 0);
     true_value = Value.create_const_int(bool_type, 1);
     false_value = Value.create_const_int(bool_type, 0);
@@ -97,8 +106,8 @@ void init(string manifest_file) {
 //    write_function = current_module.add_function("___write_builtin", Type.function_type(numeric_type, [numeric_type]));
 //    read_function = current_module.add_function("___read_builtin", Type.function_type(numeric_type, [numeric_type]));
 
-    system_calls["write"] = new SystemCall("___write_builtin", 2);
-    system_calls["read"] = new SystemCall("___read_builtin", 1);
+    system_calls["write"] = new SystemCall("___write_builtin", 2, true, true);
+    system_calls["read"] = new SystemCall("___read_builtin", 1, false);
 
     yield_fn = current_module.add_function("___yield_builtin", Type.function_type(numeric_type, []));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(numeric_type, [Type.pointer_type(Type.function_type(numeric_type, []))]));
@@ -169,10 +178,12 @@ extern (C) {
             stderr.writeln("error: no such system intrinsic ",text(ident), " (line ",yylineno,")");
             generic_error();
         }
+        /*
         if (call.args != p.values.length + 1) {
             stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident), " (line ",yylineno,")");
             generic_error();
         }
+        */
 
         if (current_manifest is null) {
             stderr.writeln("error: no manifest loaded (line ",yylineno,")");
@@ -191,11 +202,47 @@ extern (C) {
         ushort[2] qn = current_manifest.entries[qname];
 
         Value[] praw = [Value.create_const_int(numeric_type, (qn[0] | (qn[1] << 16)))];
+        string[] prawstr;
 
-        foreach (v; p.values)
-            praw ~= v;
+        foreach (v; p.values) {
+            if (v.is_constant_string()) {
+                prawstr ~= text(v.as_string);
+            } else if (v.type.same(bool_type)) {
+                praw ~= current_builder.select(v, true_numeric_value, false_numeric_value);
+            } else {
+                praw ~= v;
+            }
+        }
+        
+        if (prawstr.length > 0 && call.string_arg_replaces_arg) {
+            praw ~= Value.create_const_int(numeric_type, 0);
+        }
 
-        res.value = current_builder.call(call.fn, praw);
+        if (praw.length != call.args) {
+            stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident), " (line ",yylineno,")");
+            generic_error();
+        }
+
+        if (prawstr.length > 0 && !call.string_arg) {
+            stderr.writeln("error: system intrinsic ",text(ident), " does not accept strings (line ",yylineno,")");
+            generic_error();
+        }
+
+        if (call.string_arg) {
+            Value strv;
+            if (prawstr.length == 0) {
+                strv = Value.create_const_null(string_type);
+            } else {
+                string str;
+                foreach (s; prawstr) {
+                    str ~= s ~ '\0';
+                }
+                strv = current_builder.global_string_ptr(str);
+            }
+            res.value = current_builder.call(call.fn, praw ~ strv);
+        } else {
+            res.value = current_builder.call(call.fn, praw);
+        }
 
         return res.reference();
     }
@@ -881,10 +928,22 @@ extern (C) {
         return p.reference();
     }
 
+    ulong params_create_string(char *s) {
+        auto p = new Params;
+        p.values ~= Value.create_string(text(s));
+        return p.reference();
+    }
+
     ulong params_add(ulong param_ref, ulong expr_ref) {
         auto p = Params.lookup(param_ref);
         p.values ~= Expression.lookup(expr_ref).value;
 
+        return p.reference();
+    }
+
+    ulong params_add_string(ulong param_ref, char *s) {
+        auto p = Params.lookup(param_ref);
+        p.values ~= Value.create_string(text(s));
         return p.reference();
     }
 

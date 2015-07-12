@@ -28,7 +28,7 @@
 %right NOT
 %precedence UNARY
 
-%type <refid> atom expression args else_statement if_statement params qualified_ident system_call
+%type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
 
 %%
 
@@ -109,8 +109,7 @@ return_statement: RETURN { statement_return_void(); }
 fork_statement: FORK IDENT { statement_fork($2); }
               ;
 
-assign_statement: IDENT EQUAL STRING { /* do nothing */ }
-                | IDENT EQUAL expression { statement_assign($1, $3); }
+assign_statement: IDENT EQUAL expression { statement_assign($1, $3); }
                 ;
 
 expression: atom { $$ = $1; }
@@ -154,7 +153,6 @@ constant_expression: constant_atom
           ;
 
 constant_atom: NUMERIC
-             | STRING
              ;
 
 atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
@@ -176,8 +174,14 @@ params: expression { $$ = params_create($1); }
       ;
 
 system_call: LBRACK IDENT qualified_ident RBRACK { $$ = expr_atom_syscall($2, $3, params_empty()); }
-           | LBRACK IDENT params COMMA qualified_ident RBRACK { $$ = expr_atom_syscall($2, $5, $3); }
+           | LBRACK IDENT params_s COMMA qualified_ident RBRACK { $$ = expr_atom_syscall($2, $5, $3); }
            ;
+
+params_s: expression { $$ = params_create($1); }
+        | STRING { $$ = params_create_string($1); }
+        | params_s COMMA expression { $$ = params_add($1, $3); }
+        | params_s COMMA STRING { $$ = params_add_string($1, $3); }
+        ;
 
 qualified_ident: DOT IDENT { $$ = qident_create($2); }
                | qualified_ident DOT IDENT { $$ = qident_add($1, $3); }
