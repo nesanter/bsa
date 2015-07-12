@@ -1,7 +1,12 @@
 function foobar(x) {
     y = 1;
-    while { x > 0; }
+    t = true;
+    while { (x > 0) and t; }
     do { y = y * x;
-         x = x - 1; }
+         x = x - 1;
+         if (y > 100) {
+            t = false;
+         }
+    }
     y;
 }

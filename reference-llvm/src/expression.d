@@ -295,7 +295,7 @@ extern (C) {
         }
 
         auto a = current_builder.icmp_ne(lhs.value, false_value);
-        auto b = current_builder.icmp_ne(lhs.value, false_value);
+        auto b = current_builder.icmp_ne(rhs.value, false_value);
 
         auto res = new Expression;
         res.value = current_builder.select(a, b, false_value);
@@ -712,12 +712,16 @@ extern (C) {
         current_block = ifelse.after;
 
         Type t = null;
-        foreach (v; phi_vals) {
+        foreach (ref v; phi_vals) {
             if (t is null) {
                 t = v.type;
             } else if (!t.same(v.type)) {
-                stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
-                generic_error();
+                if (v == void_value && t.same(bool_type)) {
+                    v = false_value;
+                } else {
+                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+                    generic_error();
+                }
             }
         }
 
@@ -734,19 +738,31 @@ extern (C) {
             phi_vals = [];
             foreach (bl; phi_blocks) {
                 auto v = sym.values.get(bl, void_value);
+                ulong min = 0;
                 if (v == void_value) {
-                    stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+                    foreach (k,va; sym.values) {
+                        if (k.index >= min && k.index <= ifelse.before.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+                        stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+                        generic_error();
+                    }
                 }
                 phi_vals ~= v;
                 
             }
             t = null;
-            foreach (v; phi_vals) {
+            foreach (i,v; phi_vals) {
                 if (t is null) {
                     t = v.type;
                 } else if (!t.same(v.type)) {
+                    writeln("here ",i);
+                    v.dump();
                     stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
-                    generic_error();
+//                    generic_error();
                 }
             }
             sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
@@ -756,6 +772,15 @@ extern (C) {
         auto syms2 = find_symbols_in_block(ifelse.otherwise);
         phi_blocks[1] = prev_block;
         foreach (sym; syms2) {
+            bool already = false;
+            foreach (symprev; syms1) {
+                if (symprev == sym) {
+                    already = true;
+                    break;
+                }
+            }
+            if (already)
+                continue;
             phi_vals = [];
             foreach (bl; phi_blocks) {
                 auto v = sym.values.get(bl, void_value);
@@ -804,6 +829,7 @@ extern (C) {
 
         current_block = loop.test;
 
+        /*
         foreach (sym; SymbolTable.symbols) {
             if (sym.type != SymbolType.VARIABLE)
                 continue;
@@ -811,6 +837,7 @@ extern (C) {
             sym.values[loop.during] = sym.values[loop.test];
             sym.dummy[loop.test] = sym.values[loop.test];
         }
+        */
         
         return loop.reference();
     }
@@ -850,22 +877,56 @@ extern (C) {
         }
 
         Value[] phi_values;
-        BasicBlock[] phi_blocks = [loop.before, loop.during];
+        BasicBlock[] phi_blocks = [loop.before, current_block];
 
         current_builder.position_before(loop.test.first_instruction());
 
+        Value[Value] replacements;
         
         foreach (sym; syms) {
             phi_values = [];
             foreach (bl; phi_blocks) {
                 phi_values ~= sym.values.get(bl, void_value);
             }
-            sym.values[loop.after] = current_builder.make_phi(numeric_type, phi_values, phi_blocks);
+            Type t = null;
+            foreach (v; phi_values) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+//                    generic_error();
+                }
+            }
+            Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
+            sym.values[loop.after] = newval;
+            replacements[sym.values[loop.before]] = newval;
+            
             sym.last_block = loop.after;
+            sym.is_bool = t.same(bool_type);
 
+            /*
             if (sym.dummy[loop.test] !is null) {
                 Value.replace_all(sym.dummy[loop.test], sym.values[loop.after]);
             }
+            */
+        }
+
+        Value inst = loop.test.first_instruction();
+
+        while (inst !is null) {
+
+            if (!inst.is_phi()) {
+                foreach (i; 0 .. inst.get_num_operands()) {
+                    Value operand = inst.get_operand(i);
+                    foreach (k,v; replacements) {
+                        if (operand.same(k)) {
+                            inst.set_operand(i, v);
+                        }
+                    }
+                }
+            }
+
+            inst = inst.next_instruction();
         }
         
         current_builder.position_at_end(loop.after);

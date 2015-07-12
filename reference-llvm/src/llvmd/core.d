@@ -183,7 +183,93 @@ extern (C) {
 
        LLVMValueRef LLVMConstGEP(LLVMValueRef ConstantVal, LLVMValueRef *ConstantIndices, uint NumIndices);
 
+       LLVMValueRef LLVMGetNextInstruction(LLVMValueRef Inst);
+
+       LLVMValueRef LLVMGetOperand(LLVMValueRef Val, uint Index);
+       uint LLVMGetNumOperands(LLVMValueRef Val);
+       void LLVMSetOperand(LLVMValueRef User, uint Index, LLVMValueRef Val);
+
        void LLVMDumpValue(LLVMValueRef Val);
+    
+       LLVMOpcode LLVMGetInstructionOpcode(LLVMValueRef Inst);
+
+       enum LLVMOpcode {
+           /* Terminator Instructions */
+           LLVMRet            = 1,
+           LLVMBr             = 2,
+           LLVMSwitch         = 3,
+           LLVMIndirectBr     = 4,
+           LLVMInvoke         = 5,
+           /* removed 6 due to API changes */
+           LLVMUnreachable    = 7,
+
+           /* Standard Binary Operators */
+           LLVMAdd            = 8,
+           LLVMFAdd           = 9,
+           LLVMSub            = 10,
+           LLVMFSub           = 11,
+           LLVMMul            = 12,
+           LLVMFMul           = 13,
+           LLVMUDiv           = 14,
+           LLVMSDiv           = 15,
+           LLVMFDiv           = 16,
+           LLVMURem           = 17,
+           LLVMSRem           = 18,
+           LLVMFRem           = 19,
+
+           /* Logical Operators */
+           LLVMShl            = 20,
+           LLVMLShr           = 21,
+           LLVMAShr           = 22,
+           LLVMAnd            = 23,
+           LLVMOr             = 24,
+           LLVMXor            = 25,
+
+           /* Memory Operators */
+           LLVMAlloca         = 26,
+           LLVMLoad           = 27,
+           LLVMStore          = 28,
+           LLVMGetElementPtr  = 29,
+
+           /* Cast Operators */
+           LLVMTrunc          = 30,
+           LLVMZExt           = 31,
+           LLVMSExt           = 32,
+           LLVMFPToUI         = 33,
+           LLVMFPToSI         = 34,
+           LLVMUIToFP         = 35,
+           LLVMSIToFP         = 36,
+           LLVMFPTrunc        = 37,
+           LLVMFPExt          = 38,
+           LLVMPtrToInt       = 39,
+           LLVMIntToPtr       = 40,
+           LLVMBitCast        = 41,
+           LLVMAddrSpaceCast  = 60,
+
+           /* Other Operators */
+           LLVMICmp           = 42,
+           LLVMFCmp           = 43,
+           LLVMPHI            = 44,
+           LLVMCall           = 45,
+           LLVMSelect         = 46,
+           LLVMUserOp1        = 47,
+           LLVMUserOp2        = 48,
+           LLVMVAArg          = 49,
+           LLVMExtractElement = 50,
+           LLVMInsertElement  = 51,
+           LLVMShuffleVector  = 52,
+           LLVMExtractValue   = 53,
+           LLVMInsertValue    = 54,
+
+           /* Atomic operators */
+           LLVMFence          = 55,
+           LLVMAtomicCmpXchg  = 56,
+           LLVMAtomicRMW      = 57,
+
+           /* Exception Handling Operators */
+           LLVMResume         = 58,
+           LLVMLandingPad     = 59
+       }
 }
 
 class Value {
@@ -212,8 +298,29 @@ class Value {
         return new BasicBlock(LLVMAppendBasicBlock(val, toStringz(name)));
     }
 
+    Value next_instruction() {
+        auto iref = LLVMGetNextInstruction(val);
+        if (iref is null) {
+            return null;
+        } else {
+            return new Value(iref);
+        }
+    }
+
     Value get_param(uint index) {
         return new Value(LLVMGetParam(val, index));
+    }
+
+    Value get_operand(uint index) {
+        return new Value(LLVMGetOperand(val, index));
+    }
+
+    uint get_num_operands() {
+        return LLVMGetNumOperands(val);
+    }
+
+    void set_operand(uint index, Value newval) {
+        LLVMSetOperand(val, index, newval.val);
     }
 
     @property Type type() {
@@ -236,8 +343,16 @@ class Value {
         return LLVMIsConstantString(val) != 0;
     }
 
+    bool same(Value other) {
+        return val == other.val;
+    }
+
     void dump() {
         LLVMDumpValue(val);
+    }
+
+    bool is_phi() {
+        return LLVMGetInstructionOpcode(val) == LLVMOpcode.LLVMPHI;
     }
 }
 
@@ -252,10 +367,14 @@ extern (C) {
 }
 
 class BasicBlock {
+    static ulong bb_count;
+    ulong index;
+
     protected LLVMBasicBlockRef basic_block;
 
     protected this(LLVMBasicBlockRef basic_block) {
         this.basic_block = basic_block;
+        this.index = bb_count++;
     }
 
     Value first_instruction() {
