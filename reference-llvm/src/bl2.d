@@ -57,17 +57,25 @@ extern (C) {
     }
 }
 
+bool dump_on_error = false;
+
 int main(string[] args) {
 
     string output_file;
     string manifest_file;
     bool print_ir;
 
-    getopt(args,
-           "o", &output_file,
-           "m", &manifest_file,
-           "d", &print_ir
-          );
+    try {
+        getopt(args,
+                "o", &output_file,
+                "m", &manifest_file,
+                "d", &print_ir,
+                "show-error-ir", &dump_on_error
+              );
+    } catch (Exception e) {
+        stderr.writeln(e.msg);
+        return 1;
+    }
 
     init(manifest_file);
 
@@ -79,6 +87,9 @@ int main(string[] args) {
         current_module.dump();
 
     if (current_module.verify()) {
+        if (!print_ir && dump_on_error)
+            current_module.dump();
+        stderr.writeln("[internal compiler error]");
         return 1;
     }
 
