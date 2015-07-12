@@ -459,6 +459,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
+            stderr.writeln("error: '+' must be used with numeric values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.add(lhs.value, rhs.value);
 
@@ -468,6 +473,11 @@ extern (C) {
     ulong expr_op_sub(ulong lhs_ref, ulong rhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
+            stderr.writeln("error: '-' must be used with numeric values (line ",yylineno,")");
+            generic_error();
+        }
 
         auto res = new Expression;
         res.value = current_builder.sub(lhs.value, rhs.value);
@@ -479,6 +489,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
+            stderr.writeln("error: '*' must be used with numeric values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.mul(lhs.value, rhs.value);
 
@@ -489,6 +504,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
+        if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
+            stderr.writeln("error: '/' must be used with numeric values (line ",yylineno,")");
+            generic_error();
+        }
+
         auto res = new Expression;
         res.value = current_builder.sdiv(lhs.value, rhs.value);
 
@@ -498,6 +518,11 @@ extern (C) {
     ulong expr_op_mod(ulong lhs_ref, ulong rhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
+            stderr.writeln("error: '%' must be used with numeric values (line ",yylineno,")");
+            generic_error();
+        }
 
         auto res = new Expression;
         res.value = current_builder.srem(lhs.value, rhs.value);
@@ -522,6 +547,10 @@ extern (C) {
     ulong expr_op_neg(ulong lhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
 
+        if (lhs.value.type.same(bool_type)) {
+            stderr.writeln("error: '-' must be used with a numeric value (line ",yylineno,")");
+            generic_error();
+        }
         auto res = new Expression;
         res.value = current_builder.neg(lhs.value);
 
