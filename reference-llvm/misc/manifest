@@ -1,0 +1,11 @@
+.led.select     0   0
+.led.state      0   1
+.led.set        0   2
+.led.clear      0   3
+.led.toggle     0   4
+
+.sw.select      1   0
+.sw.state       1   1
+
+.console        2   0
+
