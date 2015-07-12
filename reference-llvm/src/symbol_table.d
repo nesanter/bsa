@@ -28,6 +28,8 @@ class Symbol {
 
     Type[] arg_types;
     Type return_type;
+
+    bool implemented;
 }
 
 Symbol find_symbol(string s) {

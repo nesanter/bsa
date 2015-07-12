@@ -42,6 +42,10 @@ unsigned long statement_while_begin();
 unsigned long statement_while_begin_do(unsigned long loop_ref);
 void statement_while_end(unsigned long loop_ref);
 
+void statement_yield();
+
+void statement_fork(char *ident);
+
 void function_begin(char *ident, unsigned long args_ref, int returns_object);
 void function_end();
 

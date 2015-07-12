@@ -97,7 +97,7 @@ scope_type: ALWAYS
 block_statement: BLOCK IDENT
                ;
 
-yield_statement: YIELD
+yield_statement: YIELD { statement_yield(); }
                ;
 
 /*
@@ -106,7 +106,7 @@ return_statement: RETURN { statement_return_void(); }
                 ;
 */
 
-fork_statement: FORK IDENT
+fork_statement: FORK IDENT { statement_fork($2); }
               ;
 
 assign_statement: IDENT EQUAL STRING { /* do nothing */ }

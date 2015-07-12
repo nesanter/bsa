@@ -69,6 +69,10 @@ int main(string[] args) {
         return 1;
     }
 
+    if (unimplemented_functions()) {
+        return 1;
+    }
+
     if (args.length > 1) {
         current_module.write_bitcode_to_file(args[1]);
     }

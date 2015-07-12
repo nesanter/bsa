@@ -15,7 +15,7 @@ Value current_value;
 Type object_type, numeric_type;
 Value void_value;
 
-Value read_function, write_function;
+Value yield_fn, fork_fn;
 
 SystemCall[string] system_calls;
 
@@ -81,6 +81,20 @@ void init() {
 
     system_calls["write"] = new SystemCall("___write_builtin", 2);
     system_calls["read"] = new SystemCall("___read_builtin", 1);
+
+    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(numeric_type, []));
+    fork_fn = current_module.add_function("___fork_builtin", Type.function_type(numeric_type, [Type.pointer_type(Type.function_type(numeric_type, []))]));
+}
+
+bool unimplemented_functions() {
+    bool errors = false;
+    foreach (name, sym; SymbolTable.symbols) {
+        if (sym.type == SymbolType.FUNCTION && !sym.implemented) {
+            stderr.writeln("error: unimplemented function ", name);
+            errors = true;
+        }
+    }
+    return errors;
 }
 
 extern (C) {
@@ -504,6 +518,28 @@ extern (C) {
         current_block = loop.after;
     }
 
+    void statement_yield() {
+        current_value = void_value;
+        current_builder.call(yield_fn, []);
+    }
+
+    void statement_fork(char *ident) {
+        current_value = void_value;
+        auto fn = find_symbol(text(ident));
+        if (fn is null) {
+            fn = create_symbol(text(ident));
+            fn.type = SymbolType.FUNCTION;
+            fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, []));
+        } else {
+            if (fn.arg_types.length != 0) {
+                stderr.writeln("error: cannot fork function with arguments ", text(ident));
+                generic_error();
+            }
+        }
+        current_builder.call(fork_fn, [fn.values[null]]);
+        current_value = void_value;
+    }
+
     /* Functions */
 
     void function_begin(char *ident, ulong args_ref, int returns_object) {
@@ -521,6 +557,7 @@ extern (C) {
             }
             current_function = fn.values[null];
         }
+        fn.implemented = true;
         current_block = current_function.append_basic_block("entry");
         current_builder.position_at_end(current_block);
 

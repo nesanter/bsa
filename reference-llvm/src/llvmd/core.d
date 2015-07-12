@@ -119,6 +119,7 @@ extern (C) {
         LLVMTypeRef LLVMIntType(uint NumBits);
         LLVMTypeRef LLVMFunctionType(LLVMTypeRef ReturnType, LLVMTypeRef *ParamTypes, uint ParamCount, int IsVarArg);
         LLVMTypeRef LLVMStructType(LLVMTypeRef *ElementTypes, uint ElementCount, int Packed);
+        LLVMTypeRef LLVMPointerType(LLVMTypeRef ElementType, uint AddressSpace);
 
         void LLVMDumpType(LLVMTypeRef Ty);
 }
@@ -147,6 +148,10 @@ class Type {
             els[i] = et.type;
 
         return new Type(LLVMStructType(els.ptr, cast(uint)els.length, packed ? 1 : 0));
+    }
+
+    static Type pointer_type(Type base) {
+        return new Type(LLVMPointerType(base.type, 0));
     }
 
     void dump() {
