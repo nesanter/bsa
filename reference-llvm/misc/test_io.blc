@@ -1,0 +1,8 @@
+function foo(x) {
+    if ([write x, .led.on] == 1) {
+        [read .sw.sw0.value];
+    } else {
+        -1;
+    }
+}
+

@@ -62,9 +62,11 @@ class Module {
 
     string error;
 
+    /*
     ~this() {
         LLVMDisposeModule(mod);
     }
+    */
 
     static Module create_with_name(string name) {
         return new Module(LLVMModuleCreateWithName(toStringz(name)));
@@ -193,6 +195,8 @@ extern (C) {
         alias LLVMOpaqueBasicBlock* LLVMBasicBlockRef;
 
         LLVMBasicBlockRef LLVMAppendBasicBlock(LLVMValueRef Fn, const char *Name);
+
+        LLVMValueRef LLVMGetFirstInstruction(LLVMBasicBlockRef BB);
 }
 
 class BasicBlock {
@@ -200,6 +204,12 @@ class BasicBlock {
 
     protected this(LLVMBasicBlockRef basic_block) {
         this.basic_block = basic_block;
+    }
+
+    Value first_instruction() {
+        auto inst = LLVMGetFirstInstruction(basic_block);
+        writeln(inst);
+        return new Value(inst);
     }
 }
 
@@ -211,6 +221,7 @@ extern (C) {
 
         LLVMBuilderRef LLVMCreateBuilder();
         void LLVMPositionBuilderAtEnd(LLVMBuilderRef Builder, LLVMBasicBlockRef Block);
+        void LLVMPositionBuilderBefore(LLVMBuilderRef Builder, LLVMValueRef Inst);
         void LLVMDisposeBuilder(LLVMBuilderRef Builder);
 
         LLVMValueRef LLVMBuildAdd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
@@ -228,6 +239,7 @@ extern (C) {
 
         LLVMValueRef LLVMBuildBr(LLVMBuilderRef, LLVMBasicBlockRef Dest);
         LLVMValueRef LLVMBuildCondBr(LLVMBuilderRef, LLVMValueRef If, LLVMBasicBlockRef Then, LLVMBasicBlockRef Else);
+        LLVMValueRef LLVMBuildCall(LLVMBuilderRef, LLVMValueRef Fn, LLVMValueRef *Args, uint NumArgs, const char *Name);
 
         LLVMValueRef LLVMBuildPhi(LLVMBuilderRef, LLVMTypeRef T, const char *Name);
 
@@ -254,9 +266,11 @@ class Builder {
         this.builder = builder;
     }
 
+    /*
     ~this() {
         LLVMDisposeBuilder(builder);
     }
+    */
 
     static Builder create() {
         return new Builder(LLVMCreateBuilder());
@@ -264,6 +278,10 @@ class Builder {
 
     void position_at_end(BasicBlock block) {
         LLVMPositionBuilderAtEnd(builder, block.basic_block);
+    }
+
+    void position_before(Value inst) {
+        LLVMPositionBuilderBefore(builder, inst.val);
     }
 
     
@@ -349,6 +367,14 @@ class Builder {
 
     Value cond_br(Value cond, BasicBlock if_true, BasicBlock if_false) {
         return new Value(LLVMBuildCondBr(builder, cond.val, if_true.basic_block, if_false.basic_block));
+    }
+
+    Value call(Value fn, Value[] params, string name = null) {
+        LLVMValueRef[] raw_vals = new LLVMValueRef[](params.length);
+        foreach (i, p; params) {
+            raw_vals[i] = p.val;
+        }
+        return new Value(LLVMBuildCall(builder, fn.val, raw_vals.ptr, cast(uint)raw_vals.length, toStringz(name)));
     }
 
     Value phi(Type type, string name = null) {

@@ -8,7 +8,7 @@
 %%
 
  /* comments */
-#.*$
+"//".*$
 
  /* special symbols */
 "{" { return LBRACE; }
@@ -42,6 +42,7 @@
 "xor" { return XOR; }
 "function" { return FUNCTION; }
 "while" { return WHILE; }
+"do" { return DO; }
 "if" { return IF; }
 "else" { return ELSE; }
 "block" { return BLOCK; }

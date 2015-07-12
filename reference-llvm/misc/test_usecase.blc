@@ -1,0 +1,17 @@
+function led_and_sw() {
+    while {
+        1;
+    } do {
+        if ([read .sw.sw0.value]) {
+            [write 1, .led.led0.value]);
+        } else {
+            [write 0, .led.led0.value]);
+        }
+        //etc.
+    }
+}
+
+
+[write n, .led.select]
+[write 1, .led.value]
+

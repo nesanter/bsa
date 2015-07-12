@@ -65,7 +65,9 @@ int main(string[] args) {
     }
 
     current_module.dump();
-    writeln(current_module.verify());
+    if (current_module.verify()) {
+        return 1;
+    }
 
     if (args.length > 1) {
         current_module.write_bitcode_to_file(args[1]);

@@ -15,6 +15,10 @@ Value current_value;
 Type object_type, numeric_type;
 Value void_value;
 
+Value read_function, write_function;
+
+SystemCall[string] system_calls;
+
 class Expression {
     mixin ReferenceHandler;
     Value value;
@@ -26,13 +30,43 @@ class Arguments {
     Symbol[] symbols;
 }
 
+class Params {
+    mixin ReferenceHandler;
+
+    Value[] values;
+}
+
+class QualifiedIdentifier {
+    mixin ReferenceHandler;
+
+    string[] idents;
+}
+
 class IfElse {
     mixin ReferenceHandler;
 
-    bool empty = false;
     BasicBlock before, during, otherwise, after;
 
     Value during_value, otherwise_value, after_value;
+}
+
+class While {
+    mixin ReferenceHandler;
+    BasicBlock before, test, during, after;
+}
+
+class SystemCall {
+    ulong args;
+    Value fn;
+
+    this(string name, ulong args) {
+        this.args = args;
+        Type[] arg_types;
+        foreach (n; 0 .. args)
+            arg_types ~= numeric_type;
+
+        fn = current_module.add_function(name, Type.function_type(numeric_type, arg_types));
+    }
 }
 
 void init() {
@@ -41,6 +75,12 @@ void init() {
     numeric_type = Type.int_type(4);
     object_type = Type.struct_type([], false);
     void_value = Value.create_const_int(numeric_type, 0);
+
+//    write_function = current_module.add_function("___write_builtin", Type.function_type(numeric_type, [numeric_type]));
+//    read_function = current_module.add_function("___read_builtin", Type.function_type(numeric_type, [numeric_type]));
+
+    system_calls["write"] = new SystemCall("___write_builtin", 2);
+    system_calls["read"] = new SystemCall("___read_builtin", 1);
 }
 
 extern (C) {
@@ -53,13 +93,45 @@ extern (C) {
 //            return ulong.max;
         }
         auto res = new Expression;
-        res.value = sym.value;
+        res.value = sym.values[sym.last_block];
         return res.reference();
     }
 
     ulong expr_atom_numeric(ulong n) {
         auto res = new Expression;
         res.value = Value.create_const_int(Type.int_type(4), n);
+
+        return res.reference();
+    }
+
+    ulong expr_atom_function_call() {
+        auto res = new Expression;
+        res.value = current_value;
+        return res.reference();
+    }
+
+    ulong expr_atom_syscall(char *ident, ulong qident_ref, ulong params_ref) {
+        auto q = QualifiedIdentifier.lookup(qident_ref);
+        auto p = Params.lookup(params_ref);
+        auto res = new Expression;
+
+        auto call = system_calls.get(text(ident), null);
+
+        if (call is null) {
+            stderr.writeln("error: no such system intrinsic ",text(ident));
+            generic_error();
+        }
+        if (call.args != p.values.length + 1) {
+            stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident));
+            generic_error();
+        }
+
+        Value[] praw = [Value.create_const_int(numeric_type, 0)];
+
+        foreach (v; p.values)
+            praw ~= v;
+
+        res.value = current_builder.call(call.fn, praw);
 
         return res.reference();
     }
@@ -226,6 +298,28 @@ extern (C) {
         return lhs_ref;
     }
 
+    /* Function calls */
+
+    void create_function_call(char *ident, ulong params_ref) {
+        auto p = Params.lookup(params_ref);
+
+        auto fn = find_symbol(text(ident));
+        if (fn is null) {
+            fn = create_symbol(text(ident));
+            fn.type = SymbolType.FUNCTION;
+            Type[] types;
+            foreach (n; 0 .. p.values.length)
+                types ~= numeric_type;
+            fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, types));
+            fn.arg_types = types;
+        } else {
+            if (fn.arg_types.length != p.values.length) {
+                stderr.writeln("error: incorrect number of parameters for function ",text(ident));
+                generic_error();
+            }
+        }
+        current_value = current_builder.call(fn.values[null], p.values);
+    }
 
     /* Statements */
 
@@ -234,7 +328,11 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         sym.type = SymbolType.VARIABLE;
-        sym.value = rhs.value;
+
+        sym.values[current_block] = rhs.value;
+        sym.last_block = current_block;
+
+//        sym.value = rhs.value;
 
         current_value = rhs.value;
     }
@@ -283,6 +381,11 @@ extern (C) {
         current_block = ifelse.otherwise;
         ifelse.during_value = current_value;
         current_value = void_value;
+
+        auto syms = find_symbols_in_block(ifelse.during);
+        foreach (sym; syms) {
+            sym.last_block = ifelse.before;
+        }
     }
 
     ulong statement_if_end(ulong ifelse_ref, ulong nested_ifelse_ref) {
@@ -290,6 +393,8 @@ extern (C) {
         IfElse nested;
         Value[] phi_vals;
         BasicBlock[] phi_blocks;
+        
+        ifelse.otherwise_value = current_value;
 
         if (nested_ifelse_ref == ulong.max) {
             nested = null;
@@ -301,11 +406,37 @@ extern (C) {
             phi_blocks = [ifelse.during, nested.after];
         }
 
-        ifelse.otherwise_value = current_value;
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.after);
         current_block = ifelse.after;
         ifelse.after_value = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+
+        auto syms1 = find_symbols_in_block(ifelse.during);
+        if (nested_ifelse_ref == ulong.max) {
+            phi_blocks = [ifelse.during, ifelse.otherwise];
+        } else {
+            phi_blocks = [ifelse.during, nested.after];
+        }
+
+        foreach (sym; syms1) {
+            phi_vals = [];
+            foreach (bl; phi_blocks) {
+                phi_vals ~= sym.values.get(bl, void_value);
+            }
+            sym.values[current_block] = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+            sym.last_block = current_block;
+        }
+
+        auto syms2 = find_symbols_in_block(ifelse.otherwise);
+        phi_blocks[1] = ifelse.otherwise;
+        foreach (sym; syms2) {
+            phi_vals = [];
+            foreach (bl; phi_blocks) {
+                phi_vals ~= sym.values.get(bl, void_value);
+            }
+            sym.values[current_block] = current_builder.make_phi(numeric_type, phi_vals, phi_blocks);
+            sym.last_block = current_block;
+        }
 
         current_value = ifelse.after_value;
         return ifelse_ref;
@@ -315,18 +446,89 @@ extern (C) {
         return ulong.max;
     }
 
+    ulong statement_while_begin() {
+        auto loop = new While;
+
+        current_value = void_value;
+        loop.before = current_block;
+        loop.test = current_function.append_basic_block(null);
+        loop.during = current_function.append_basic_block(null);
+        loop.after = current_function.append_basic_block(null);
+
+        current_builder.br(loop.test);
+        current_builder.position_at_end(loop.test);
+
+        current_block = loop.test;
+        
+        return loop.reference();
+    }
+
+    ulong statement_while_begin_do(ulong loop_ref) {
+        auto loop = While.lookup(loop_ref);
+        
+        current_builder.cond_br(current_value, loop.during, loop.after);
+        current_builder.position_at_end(loop.during);
+
+        current_block = loop.during;
+
+        current_value = void_value;
+
+        return loop.reference();
+    }
+
+    void statement_while_end(ulong loop_ref) {
+        auto loop = While.lookup(loop_ref);
+
+        current_builder.br(loop.test);
+
+        auto syms = find_symbols_in_block(loop.during) ~ find_symbols_in_block(loop.test);
+
+        Value[] phi_values;
+        BasicBlock[] phi_blocks = [loop.before, loop.during];
+
+        current_builder.position_before(loop.test.first_instruction());
+
+        
+        foreach (sym; syms) {
+            phi_values = [];
+            foreach (bl; phi_blocks) {
+                phi_values ~= sym.values.get(bl, void_value);
+            }
+            sym.values[loop.after] = current_builder.make_phi(numeric_type, phi_values, phi_blocks);
+            sym.last_block = loop.after;
+        }
+        
+        current_builder.position_at_end(loop.after);
+        current_value = void_value;
+
+        current_block = loop.after;
+    }
+
     /* Functions */
 
     void function_begin(char *ident, ulong args_ref, int returns_object) {
         auto args = Arguments.lookup(args_ref);
-        current_function = current_module.add_function(text(ident), Type.function_type(Type.int_type(4), args.types));
+        auto fn = find_symbol(text(ident));
+        if (fn is null) {
+            current_function = current_module.add_function(text(ident), Type.function_type(numeric_type, args.types));
+            fn = create_symbol(text(ident));
+            fn.type = SymbolType.FUNCTION;
+            fn.values[null] = current_function;
+        } else {
+            if (fn.arg_types.length != args.types.length) {
+                stderr.writeln("error: inconsistant use of function ",text(ident));
+                generic_error();
+            }
+            current_function = fn.values[null];
+        }
         current_block = current_function.append_basic_block("entry");
         current_builder.position_at_end(current_block);
 
         current_value = void_value;
 
         foreach (i, sym; args.symbols) {
-            sym.value = current_function.get_param(cast(uint)i);
+            sym.values[current_block] = current_function.get_param(cast(uint)i);
+            sym.last_block = current_block;
         }
     }
 
@@ -376,10 +578,39 @@ extern (C) {
         return a.reference();
     }
 
+    /* Parameters */
 
+    ulong params_empty() {
+        auto p = new Params;
+        return p.reference();
+    }
 
+    ulong params_create(ulong expr_ref) {
+        auto p = new Params;
+        p.values ~= Expression.lookup(expr_ref).value;
+        return p.reference();
+    }
 
+    ulong params_add(ulong param_ref, ulong expr_ref) {
+        auto p = Params.lookup(param_ref);
+        p.values ~= Expression.lookup(expr_ref).value;
 
+        return p.reference();
+    }
+
+    /* Qualified Identifier */
+
+    ulong qident_create(char *ident) {
+        auto q = new QualifiedIdentifier;
+        q.idents ~= text(ident);
+        return q.reference();
+    }
+
+    ulong qident_add(ulong qident_ref, char *ident) {
+        auto q = QualifiedIdentifier.lookup(qident_ref);
+        q.idents ~= text(ident);
+        return q.reference();
+    }
 }
 
 

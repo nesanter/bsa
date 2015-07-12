@@ -15,8 +15,9 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL POUND
-%token FUNCTION WHILE IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE
+%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE
 
+%precedence PAREN
 %left OR
 %left XOR
 %left AND
@@ -27,7 +28,7 @@
 %right NOT
 %precedence UNARY
 
-%type <refid> atom expression args else_statement if_statement
+%type <refid> atom expression args else_statement if_statement params qualified_ident system_call
 
 %%
 
@@ -57,7 +58,8 @@ body: statement
     | body statement
     ;
 
-statement: expression SEMI { statement_expression($1); }
+statement: SEMI /* "empty" statement */
+         | expression SEMI { statement_expression($1); }
          | assign_statement SEMI
          | if_statement
          | while_statement
@@ -76,7 +78,12 @@ else_statement: %empty { $$ = statement_else_terminal(); }
               | ELSE if_statement { $$ = $2; }
               ;
 
-while_statement: WHILE LPAREN expression RPAREN LBRACE body RBRACE
+/*
+while_statement: WHILE LPAREN expression RPAREN { $<refid>$ = statement_while_begin($3); } LBRACE body RBRACE { statement_while_end($<refid>5); }
+               ;
+*/
+
+while_statement: WHILE { $<refid>$ = statement_while_begin(); } LBRACE body RBRACE { $<refid>$ = statement_while_begin_do($<refid>2); } DO LBRACE body RBRACE { statement_while_end($<refid>6); }
                ;
 
 scope_statement: SCOPE scope_type LBRACE body RBRACE
@@ -107,7 +114,7 @@ assign_statement: IDENT EQUAL STRING { /* do nothing */ }
                 ;
 
 expression: atom { $$ = $1; }
-          | LPAREN expression RPAREN { $$ = $2; }
+          | LPAREN expression RPAREN %prec PAREN { $$ = $2; }
           | expression OR expression { $$ = expr_op_lor($1, $3); }
           | expression XOR expression { $$ = expr_op_lxor($1, $3); }
           | expression AND expression { $$ = expr_op_land($1, $3); }
@@ -152,17 +159,26 @@ constant_atom: NUMERIC
 
 atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
     | NUMERIC { $$ = expr_atom_numeric($1); }
-    | function_call { $$ = expr_atom_numeric(0); }
+    | function_call { $$ = expr_atom_function_call(); }
+    | system_call { $$ = $1; }
     ;
 
-function_call: IDENT LPAREN RPAREN
-             | IDENT LPAREN params RPAREN
+function_call: IDENT LPAREN RPAREN { create_function_call($1, params_empty()); }
+             | IDENT LPAREN params RPAREN { create_function_call($1, $3); }
              ;
 
-params: expression
-      | STRING
-      | params COMMA expression
-      | params COMMA STRING
+params: expression { $$ = params_create($1); }
+/*      | STRING */
+      | params COMMA expression { $$ = params_add($1, $3); }
+/*      | params COMMA STRING */
       ;
+
+system_call: LBRACK IDENT qualified_ident RBRACK { $$ = expr_atom_syscall($2, $3, params_empty()); }
+           | LBRACK IDENT params COMMA qualified_ident RBRACK { $$ = expr_atom_syscall($2, $5, $3); }
+           ;
+
+qualified_ident: DOT IDENT { $$ = qident_create($2); }
+               | qualified_ident DOT IDENT { $$ = qident_add($1, $3); }
+               ;
 
 %%
