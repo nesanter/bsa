@@ -972,7 +972,7 @@ extern (C) {
             fn.arg_types = args.types;
         } else {
             if (fn.arg_types.length != args.types.length) {
-                stderr.writeln("error: inconsistant use of function ",text(ident), text(ident), " (line ",yylineno,")");
+                stderr.writeln("error: inconsistent use of function ",text(ident), " (line ",yylineno,")");
                 generic_error();
             }
             current_function = fn.values[null];
