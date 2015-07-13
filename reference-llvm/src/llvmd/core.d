@@ -91,7 +91,7 @@ class Module {
     bool verify() {
         char *err;
         int n = LLVMVerifyModule(mod, LLVMVerifierFailureAction.LLVMReturnStatusAction, &err);
-        if (err) {
+        if (n && err) {
             error = text(err);
             stderr.writeln(error);
         }
