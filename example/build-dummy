@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ -z "$1" ] ; then
+    echo "Syntax: $0 blc_file"
+    exit 1
+fi
+
+./bl2 -m manifest -o output.bc < $1 && \
+llc -relocation-model=static output.bc && \
+gcc -static dummy.c output.s
+
