@@ -1,0 +1,17 @@
+PROCESSOR=32MX250F128B
+NAME=bl-firmware
+if [ -n "$1" ] ; then
+    BLCSRC=$1
+else
+    BLCSRC=test.blc
+fi
+
+export PATH=/opt/microchip/xc32/v1.33/bin:$PATH
+
+./bl2 -m manifest -o output.bc < $BLCSRC && \
+llc -soft-float -mattr=+noabicalls -march=mipsel -mcpu=mips32r2 -relocation-model=static -filetype=asm output.bc || exit 1
+sed -i '/\.nan/d' output.s && \
+xc32-gcc -c -mprocessor=$PROCESSOR -mno-mips16 -mno-micromips output.s -Wa,--defsym=__MPLAB_BUILD=1,--gdwarf-2 && \
+xc32-gcc -g -mprocessor=$PROCESSOR -o $NAME.elf -Wl,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') bl-runtime.a && \
+xc32-bin2hex $NAME.elf
+

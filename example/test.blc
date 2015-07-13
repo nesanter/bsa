@@ -1,0 +1,32 @@
+function entry() {
+//    [write fact(10), .console];
+    [write "Hi", .console];
+    nl();
+    [write fact(10), .console];
+    nl();
+    [write "Done with user", .console];
+    nl();
+}
+
+function fact(x) {
+    f = 1;
+    if (x == -1) {
+        f = -1;
+    }// else {
+//        f = 1;
+//    }
+    while { x > 0; } do {
+        [write x, .console];
+        nl();
+        f = f * x;
+        x = x - 1;
+    }
+    f;
+}
+
+function nl() {
+    while { [read .console.tx] == false; } do { ; }
+    [write 10, .console.tx];
+    while { [read .console.tx] == false; } do { ; }
+    [write 13, .console.tx];
+}
