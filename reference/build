@@ -1,6 +1,0 @@
-cd out && \
-flex ../src/bl.l && \
-bison -d ../src/bl.y && \
-gcc -c lex.yy.c bl.tab.c && \
-ldc2 -relocation-model=pic ../src/bl.d lex.yy.o bl.tab.o
-
