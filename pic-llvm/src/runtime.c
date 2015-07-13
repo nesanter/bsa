@@ -19,16 +19,18 @@ struct driver {
 
 const driver_write_fn all_write_fns[] = {
     /* .console */
-    &drv_console_write, // 0
+    &drv_console_write, // 0.0
+    &drv_console_raw_write, //0.1
 };
 
 const driver_read_fn all_read_fns[] = {
     /* .console */
     &drv_console_read, // 0
+    &drv_console_tx_ready, //0.1
 };
 
 const struct driver drivers[] = {
-    { &all_write_fns[0], &all_read_fns[0], 1 }
+    { &all_write_fns[0], &all_read_fns[0], 2 }
 };
 
 int ___write_builtin(unsigned int target, int val, char *str) {
@@ -69,9 +71,18 @@ int ___fork_builtin(int (*fn)()) {
 int drv_console_write(int val, char *str) {
     if (str)
         uart_print(str);
-    else
+    else {
         uart_print(todecimal(val));
+    }
     return DRV_SUCCESS;
+}
+
+int drv_console_raw_write(int val, char *str) {
+    if (uart_tx(val & 0xFF) == UART_TX_SUCCESS) {
+        return DRV_SUCCESS;
+    } else {
+        return DRV_FAILURE;
+    }
 }
 
 int drv_console_read() {
@@ -84,3 +95,10 @@ int drv_console_read() {
     }
 }
 
+int drv_console_tx_ready() {
+    if (u_uartx_get_tx_full(UART1)) {
+        return DRV_FAILURE;
+    } else {
+        return DRV_SUCCESS;
+    }
+}

@@ -1002,7 +1002,23 @@ extern (C) {
         foreach (sym; syms) {
             phi_values = [];
             foreach (bl; phi_blocks) {
-                phi_values ~= sym.values.get(bl, void_value);
+//                phi_values ~= sym.values.get(bl, void_value);
+                auto v = sym.values.get(bl, void_value);
+                ulong min = 0;
+                if (v == void_value) {
+                    foreach (k,va; sym.values) {
+                        if (k.index >= min && k.index <= loop.before.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+//                        stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+//                        generic_error();
+                        warn_conditionally_defined(sym.ident);
+                    }
+                }
+                phi_values ~= v;
             }
             Type t = null;
             foreach (v; phi_values) {
@@ -1019,7 +1035,7 @@ extern (C) {
             sym.values[loop.after] = newval;
             ulong min = 0;
             BasicBlock prev_block = null;
-            foreach (bl; sym.values.byKey) {
+            foreach (bl, va; sym.values) {
                 if (bl.index >= min && bl.index <= loop.before.index) {
                     min = bl.index;
                     prev_block = bl;
