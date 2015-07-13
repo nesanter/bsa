@@ -28,16 +28,19 @@ const driver_write_fn all_write_fns[] = {
     &drv_console_rx_block_write, // 0.3
     0, // 0.4
     0, // 0.5
+    0, // 0.6
 };
 
 const driver_read_fn all_read_fns[] = {
     /* .console */
     0, // 0
-    &drv_console_tx_ready, // 0.1
+    0, // 0.1
+//    &drv_console_tx_ready, // 0.1
     &drv_console_rx_block_read, // 0.2
     &drv_console_rx_block_read, // 0.3
     &drv_console_rx_ready, // 0.4
     &drv_console_rx_read, // 0.5
+    &drv_console_tx_ready, // 0.6
 };
 
 const struct driver drivers[] = {
