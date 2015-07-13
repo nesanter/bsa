@@ -4,10 +4,6 @@ import util, symbol_table, errors, manifest;
 import std.conv;
 import std.stdio;
 
-extern (C) {
-    extern __gshared int yylineno;
-}
-
 Module current_module;
 Builder current_builder;
 
@@ -122,7 +118,8 @@ bool unimplemented_functions() {
     bool errors = false;
     foreach (name, sym; SymbolTable.symbols) {
         if (sym.type == SymbolType.FUNCTION && !sym.implemented) {
-            stderr.writeln("error: unimplemented function ", name);
+//            stderr.writeln("error: unimplemented function ", name);
+            error_unimplemented_function(name);
             errors = true;
         }
     }
@@ -133,8 +130,9 @@ extern (C) {
     ulong expr_atom_ident(char *s) {
         auto sym = find_symbol(text(s));
         if (sym is null) {
-            stderr.writeln("error: ", text(s), " nonexistant (line ",yylineno,")");
-            generic_error();
+            error_unknown_identifier(text(s));
+//            stderr.writeln("error: ", text(s), " nonexistant (line ",yylineno,")");
+//            generic_error();
 //            error_occured++;
 //            return ulong.max;
         }
@@ -179,8 +177,9 @@ extern (C) {
         auto call = system_calls.get(text(ident), null);
 
         if (call is null) {
-            stderr.writeln("error: no such system intrinsic ",text(ident), " (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: no such system intrinsic ",text(ident), " (line ",yylineno,")");
+//            generic_error();
+            error_unknown_intrinsic(text(ident));
         }
         /*
         if (call.args != p.values.length + 1) {
@@ -190,8 +189,9 @@ extern (C) {
         */
 
         if (current_manifest is null) {
-            stderr.writeln("error: no manifest loaded (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: no manifest loaded (line ",yylineno,")");
+//            generic_error();
+            error_no_manifest();
         }
 
         string qname;
@@ -199,8 +199,9 @@ extern (C) {
             qname ~= "."~s;
 
         if (qname !in current_manifest.entries) {
-            stderr.writeln("error: no such object ",qname, " (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: no such object ",qname, " (line ",yylineno,")");
+//            generic_error();
+            error_not_in_manifest(qname);
         }
 
         ushort[2] qn = current_manifest.entries[qname];
@@ -223,13 +224,15 @@ extern (C) {
         }
 
         if (praw.length != call.args) {
-            stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident), " (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: incorrect number of parameters for intrinsic ",text(ident), " (line ",yylineno,")");
+//            generic_error();
+            error_intrinsic_parameter_count(text(ident));
         }
 
         if (prawstr.length > 0 && !call.string_arg) {
-            stderr.writeln("error: system intrinsic ",text(ident), " does not accept strings (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: system intrinsic ",text(ident), " does not accept strings (line ",yylineno,")");
+//            generic_error();
+            error_intrinsic_unhandled_string(text(ident));
         }
 
         if (call.string_arg) {
@@ -256,8 +259,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (!lhs.is_bool || !rhs.is_bool) {
-            stderr.writeln("error: 'or' must be used with boolean values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: 'or' must be used with boolean values (line ",yylineno,")");
+//            generic_error();
+            error_logical_op_requires_booleans("or");
         }
 
         auto a = current_builder.icmp_ne(lhs.value, false_value);
@@ -282,8 +286,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (!lhs.is_bool || !rhs.is_bool) {
-            stderr.writeln("error: 'xor' must be used with boolean values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: 'xor' must be used with boolean values (line ",yylineno,")");
+//            generic_error();
+            error_logical_op_requires_booleans("xor");
         }
 
         auto a = current_builder.icmp_ne(lhs.value, false_value);
@@ -307,8 +312,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (!lhs.is_bool || !rhs.is_bool) {
-            stderr.writeln("error: 'and' must be used with boolean values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: 'and' must be used with boolean values (line ",yylineno,")");
+//            generic_error();
+            error_logical_op_requires_booleans("and");
         }
 
         auto a = current_builder.icmp_ne(lhs.value, false_value);
@@ -507,8 +513,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
-            stderr.writeln("error: '+' must be used with numeric values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: '+' must be used with numeric values (line ",yylineno,")");
+//            generic_error();
+            error_arithmetic_op_requires_numerics("+");
         }
 
         auto res = new Expression;
@@ -527,8 +534,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
-            stderr.writeln("error: '-' must be used with numeric values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: '-' must be used with numeric values (line ",yylineno,")");
+//            generic_error();
+            error_arithmetic_op_requires_numerics("-");
         }
 
         auto res = new Expression;
@@ -547,8 +555,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
-            stderr.writeln("error: '*' must be used with numeric values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: '*' must be used with numeric values (line ",yylineno,")");
+//            generic_error();
+            error_arithmetic_op_requires_numerics("*");
         }
 
         auto res = new Expression;
@@ -567,8 +576,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
-            stderr.writeln("error: '/' must be used with numeric values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: '/' must be used with numeric values (line ",yylineno,")");
+//            generic_error();
+            error_arithmetic_op_requires_numerics("/");
         }
 
         auto res = new Expression;
@@ -587,8 +597,9 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (lhs.value.type.same(bool_type) || rhs.value.type.same(bool_type)) {
-            stderr.writeln("error: '%' must be used with numeric values (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: '%' must be used with numeric values (line ",yylineno,")");
+//            generic_error();
+            error_arithmetic_op_requires_numerics("%");
         }
 
         auto res = new Expression;
@@ -606,8 +617,9 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
 
         if (!lhs.is_bool) {
-            stderr.writeln("error: 'not' must be used with a boolean value (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: 'not' must be used with a boolean value (line ",yylineno,")");
+//            generic_error();
+            error_logical_op_requires_booleans("not");
         }
 
         auto res = new Expression;
@@ -622,8 +634,9 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
 
         if (lhs.value.type.same(bool_type)) {
-            stderr.writeln("error: '-' must be used with a numeric value (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: '-' must be used with a numeric value (line ",yylineno,")");
+//            generic_error();
+            error_arithmetic_op_requires_numerics("-");
         }
         auto res = new Expression;
         res.value = current_builder.neg(lhs.value);
@@ -647,7 +660,8 @@ extern (C) {
         foreach (ref v; p.values) {
             if (v.type.same(bool_type)) {
                 v = current_builder.select(v, true_numeric_value, false_numeric_value);
-                stderr.writeln("warning: boolean parameter will be passed as numeric value (line ",yylineno,")");
+//                stderr.writeln("warning: boolean parameter will be passed as numeric value (line ",yylineno,")");
+                warn_boolean_parameter();
             }
         }
 
@@ -665,8 +679,9 @@ extern (C) {
             fn.arg_types = types;
         } else {
             if (fn.arg_types.length != p.values.length) {
-                stderr.writeln("error: incorrect number of parameters for function ",text(ident), " (line ",yylineno,")");
-                generic_error();
+//                stderr.writeln("error: incorrect number of parameters for function ",text(ident), " (line ",yylineno,")");
+//                generic_error();
+                error_inconsistent_function(text(ident));
             }
         }
         current_value = current_builder.call(fn.values[null], p.values);
@@ -804,8 +819,9 @@ extern (C) {
                 if (v == void_value && t.same(bool_type)) {
                     v = false_value;
                 } else {
-                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
-                    generic_error();
+//                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+//                    generic_error();
+                    error_indeterminate_statement_type();
                 }
             }
         }
@@ -832,8 +848,9 @@ extern (C) {
                         }
                     }
                     if (v == void_value) {
-                        stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+//                        stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
 //                        generic_error();
+                        warn_conditionally_defined(sym.ident);
                     }
                 }
                 phi_vals ~= v;
@@ -844,10 +861,11 @@ extern (C) {
                 if (t is null) {
                     t = v.type;
                 } else if (!t.same(v.type)) {
-                    writeln("here ",i);
-                    v.dump();
-                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+ //                   writeln("here ",i);
+//                    v.dump();
+//                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
 //                    generic_error();
+                    error_indeterminate_statement_type();
                 }
             }
             sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
@@ -870,7 +888,17 @@ extern (C) {
             foreach (bl; phi_blocks) {
                 auto v = sym.values.get(bl, void_value);
                 if (v == void_value) {
-                    stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+                    ulong min = 0;
+                    foreach (k,va; sym.values) {
+                        if (k.index >= min && k.index <= ifelse.before.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+//                    stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
+                        warn_conditionally_defined(sym.ident);
+                    }
                 }
                 phi_vals ~= v;
             }
@@ -879,8 +907,9 @@ extern (C) {
                 if (t is null) {
                     t = v.type;
                 } else if (!t.same(v.type)) {
-                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
-                    generic_error();
+//                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+//                    generic_error();
+                    error_indeterminate_statement_type();
                 }
             }
             sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
@@ -980,8 +1009,10 @@ extern (C) {
                 if (t is null) {
                     t = v.type;
                 } else if (!t.same(v.type)) {
-                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
+//                    stderr.writeln("error: statement may result in either boolean or numeric (line ",yylineno,")");
 //                    generic_error();
+                    warn_unexpected_error();
+                    error_indeterminate_statement_type();
                 }
             }
             Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
@@ -1089,8 +1120,9 @@ extern (C) {
             fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, []));
         } else {
             if (fn.arg_types.length != 0) {
-                stderr.writeln("error: cannot fork function with arguments ", text(ident), " (line ",yylineno,")");
-                generic_error();
+//                stderr.writeln("error: cannot fork function with arguments ", text(ident), " (line ",yylineno,")");
+//                generic_error();
+                error_fork_function_with_arguments(text(ident));
             }
         }
         current_builder.call(fork_fn, [fn.values[null]]);
@@ -1111,8 +1143,10 @@ extern (C) {
             fn.arg_types = args.types;
         } else {
             if (fn.arg_types.length != args.types.length) {
-                stderr.writeln("error: inconsistent use of function ",text(ident), " (line ",yylineno,")");
-                generic_error();
+//                stderr.writeln("error: inconsistent use of function ",text(ident), " (line ",yylineno,")");
+//                generic_error();
+//                error_insonsistent_function(text(ident));
+                error_function_mismatch_with_prior_use(text(ident));
             }
             current_function = fn.values[null];
         }
@@ -1131,7 +1165,8 @@ extern (C) {
 
     void function_end() {
         if (current_value.type.same(bool_type)) {
-            stderr.writeln("warning: boolean function will evaluate to a numeric value (line ",yylineno,")");
+//            stderr.writeln("warning: boolean function will evaluate to a numeric value (line ",yylineno,")");
+            warn_boolean_return();
             current_value = current_builder.select(current_value, true_numeric_value, false_numeric_value);
         }
         current_builder.ret(current_value);
@@ -1148,8 +1183,9 @@ extern (C) {
         auto a = new Arguments;
         auto sym = create_symbol(text(ident));
         if (sym is null) {
-            stderr.writeln("error: ", text(ident), " shadows (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: ", text(ident), " shadows (line ",yylineno,")");
+//            generic_error();
+            error_shadowing(text(ident));
         }
         if (is_object) {
             a.types ~= object_type;
@@ -1167,8 +1203,9 @@ extern (C) {
         auto sym = create_symbol(text(ident));
         sym.parent = current_function;
         if (sym is null) {
-            stderr.writeln("error: ", text(ident), " shadows (line ",yylineno,")");
-            generic_error();
+//            stderr.writeln("error: ", text(ident), " shadows (line ",yylineno,")");
+//            generic_error();
+            error_shadowing(text(ident));
         }
         if (is_object) {
             a.types ~= object_type;

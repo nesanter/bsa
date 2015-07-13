@@ -5,7 +5,7 @@ import std.stdio;
 import std.conv;
 import core.vararg;
 
-import expression, util;
+import expression, util, errors;
 import symbol_table;
 
 /*
@@ -53,11 +53,14 @@ extern (C) {
     extern __gshared FILE* yyin;
 
     void yyerror(char *s, ...) {
-        writeln("Error (line ",yylineno,"): ",text(s));
+        error_yyerror(text(s));
+//        stderr.writeln("Error (\033[1;34mline ",yylineno,"\033[0m): \033[1;31m",text(s), "\033[0m");
     }
 }
 
 bool dump_on_error = false;
+bool color_errors = true;
+bool conditional_definitions_are_errors = false;
 
 int main(string[] args) {
 
@@ -70,7 +73,9 @@ int main(string[] args) {
                 "o", &output_file,
                 "m", &manifest_file,
                 "d", &print_ir,
-                "show-error-ir", &dump_on_error
+                "show-error-ir", &dump_on_error,
+                "color", &color_errors,
+                "strict", &conditional_definitions_are_errors
               );
     } catch (Exception e) {
         stderr.writeln(e.msg);
@@ -89,7 +94,8 @@ int main(string[] args) {
     if (current_module.verify()) {
         if (!print_ir && dump_on_error)
             current_module.dump();
-        stderr.writeln("[internal compiler error]");
+        error_internal();
+//        stderr.writeln("[internal compiler error]");
         return 1;
     }
 
