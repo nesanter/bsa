@@ -1202,7 +1202,9 @@ extern (C) {
 
     ulong params_create_string(char *s) {
         auto p = new Params;
-        p.values ~= Value.create_string(text(s));
+        auto str = text(s);
+        str = str[1..$-1];
+        p.values ~= Value.create_string(str);
         p.const_syms ~= null;
         return p.reference();
     }
@@ -1221,7 +1223,9 @@ extern (C) {
 
     ulong params_add_string(ulong param_ref, char *s) {
         auto p = Params.lookup(param_ref);
-        p.values ~= Value.create_string(text(s));
+        auto str = text(s);
+        str = str[1..$-1];
+        p.values ~= Value.create_string(str);
         p.const_syms ~= null;
         return p.reference();
     }

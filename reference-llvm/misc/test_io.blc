@@ -1,3 +1,9 @@
+function entry() {
+    foo(7);
+    foo(12);
+    bar();
+}
+
 function foo(x) {
     if (([write x, .led.select] == 1) and ([write 1, .led.state] == 1)) {
         [write 0, .sw.select];

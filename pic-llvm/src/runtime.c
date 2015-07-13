@@ -35,13 +35,24 @@ int ___write_builtin(unsigned int target, int val, char *str) {
     unsigned short low = target & 0xFFFF;
     unsigned short high = (target & 0xFFFF0000) > 16;
 
-    return drivers[low].write_fns[high](val, str);
+    driver_write_fn fn = drivers[low].write_fns[high];
+    if (fn) {
+        return fn(val, str);
+    } else {
+        return 0;
+    }
 }
 
 int ___read_builtin(unsigned int target) {
     unsigned short low = target & 0xFFFF;
     unsigned short high = (target & 0xFFFF0000) > 16;
-    return drivers[low].read_fns[high]();
+
+    driver_read_fn fn = drivers[low].read_fns[high];
+    if (fn) {
+        return fn();
+    } else {
+        return 0;
+    }
 }
 
 int ___yield_builtin(void) {
