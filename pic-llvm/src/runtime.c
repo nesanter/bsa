@@ -7,6 +7,9 @@
 #define DRV_SUCCESS (1)
 #define DRV_FAILURE (0)
 
+#define DRV_TRUE (1)
+#define DRV_FALSE (0)
+
 typedef int (*driver_write_fn)(int val, char *str);
 typedef int (*driver_read_fn)();
 
@@ -21,12 +24,20 @@ const driver_write_fn all_write_fns[] = {
     /* .console */
     &drv_console_write, // 0.0
     &drv_console_raw_write, //0.1
+    &drv_console_tx_block_write, // 0.2
+    &drv_console_rx_block_write, // 0.3
+    0, // 0.4
+    0, // 0.5
 };
 
 const driver_read_fn all_read_fns[] = {
     /* .console */
-    &drv_console_read, // 0
-    &drv_console_tx_ready, //0.1
+    0, // 0
+    &drv_console_tx_ready, // 0.1
+    &drv_console_rx_block_read, // 0.2
+    &drv_console_rx_block_read, // 0.3
+    &drv_console_rx_ready, // 0.4
+    &drv_console_rx_read, // 0.5
 };
 
 const struct driver drivers[] = {
@@ -68,6 +79,8 @@ int ___fork_builtin(int (*fn)()) {
 
 /* driver functions */
 
+int tx_block = 0, rx_block = 0;
+
 int drv_console_write(int val, char *str) {
     if (str)
         uart_print(str);
@@ -78,20 +91,40 @@ int drv_console_write(int val, char *str) {
 }
 
 int drv_console_raw_write(int val, char *str) {
-    if (uart_tx(val & 0xFF) == UART_TX_SUCCESS) {
+    if (tx_block) {
+        while (uart_tx(val & 0xFF) == UART_TX_FAILURE);
         return DRV_SUCCESS;
     } else {
-        return DRV_FAILURE;
+        if (uart_tx(val & 0xFF) == UART_TX_SUCCESS) {
+            return DRV_SUCCESS;
+        } else {
+            return DRV_FAILURE;
+        }
     }
 }
 
-int drv_console_read() {
+int drv_console_tx_block_write(int val, char *str) {
+    tx_block = val;
+    return DRV_SUCCESS;
+}
+
+int drv_console_rx_block_write(int val, char *str) {
+    rx_block = val;
+    return DRV_SUCCESS;
+}
+
+int drv_console_rx_read() {
     char c;
-    int r = uart_rx(&c);
-    if (r == UART_RX_SUCCESS) {
+    if (rx_block) {
+        while (uart_rx(&c) == UART_RX_FAILURE);
         return (int)c;
     } else {
-        return -1;
+        int r = uart_rx(&c);
+        if (r == UART_RX_SUCCESS) {
+            return (int)c;
+        } else {
+            return -1;
+        }
     }
 }
 
@@ -101,4 +134,26 @@ int drv_console_tx_ready() {
     } else {
         return DRV_SUCCESS;
     }
+}
+
+int drv_console_rx_ready() {
+    if (u_uartx_get_rx_available(UART1)) {
+        return DRV_SUCCESS;
+    } else {
+        return DRV_FAILURE;
+    }
+}
+
+int drv_console_tx_block_read() {
+    if (tx_block)
+        return DRV_TRUE;
+    else
+        return DRV_FALSE;
+}
+
+int drv_console_rx_block_read() {
+    if (rx_block)
+        return DRV_TRUE;
+    else
+        return DRV_FALSE;
 }
