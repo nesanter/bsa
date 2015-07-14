@@ -3,10 +3,13 @@
 #include "ulib/ulib.h"
 #include "ulib/ulib_int.h"
 #include "proc/p32mx250f128b.h"
+#include "bootloader.h"
 
+/*
 void u_initialize(unsigned int *errorepc) {
     u_int_setup(errorepc);
 }
+*/
 
 /* ------------------------- UART ------------------------- */
 
@@ -114,6 +117,7 @@ int u_uartx_get_break_status(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(11);
     }
+    return 0;
 }
 
 int u_uartx_get_tx_full(u_uart_select select) {
@@ -122,6 +126,7 @@ int u_uartx_get_tx_full(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(9);
     }
+    return 0;
 }
 
 int u_uartx_get_tx_shift_empty(u_uart_select select) {
@@ -130,6 +135,7 @@ int u_uartx_get_tx_shift_empty(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(8);
     }
+    return 0;
 }
 
 int u_uartx_get_rx_idle(u_uart_select select) {
@@ -138,6 +144,7 @@ int u_uartx_get_rx_idle(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(4);
     }
+    return 0;
 }
 
 int u_uartx_get_parity_error(u_uart_select select) {
@@ -146,6 +153,7 @@ int u_uartx_get_parity_error(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(3);
     }
+    return 0;
 }
 
 int u_uartx_get_framing_error(u_uart_select select) {
@@ -154,6 +162,7 @@ int u_uartx_get_framing_error(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(2);
     }
+    return 0;
 }
 
 int u_uartx_get_overrun_error(u_uart_select select) {
@@ -162,6 +171,7 @@ int u_uartx_get_overrun_error(u_uart_select select) {
     } else if (select == UART2) {
         return U1STA & BITS(1);
     }
+    return 0;
 }
 
 void u_uartx_clear_overrun_error(u_uart_select select) {
@@ -178,6 +188,7 @@ int u_uartx_get_rx_available(u_uart_select select) {
     } else if (select == UART2) {
         return U2STA & BITS(0);
     }
+    return 0;
 }
 
 void  u_uartx_tx_register_write(u_uart_select select, char c) {
@@ -194,6 +205,7 @@ char u_uartx_rx_register_read(u_uart_select select) {
     } else if (select == UART2) {
         return U2RXREG;
     }
+    return 0;
 }
 
 u_uart_int_config u_uartx_int_load_config(u_uart_select select) {
@@ -225,6 +237,8 @@ u_uart_int_config u_uartx_int_load_config(u_uart_select select) {
         config.tx_clear = 0;
         config.rx_clear = 0;
     }
+
+    return config;
 }
 
 void u_uartx_int_save_config(u_uart_select select, u_uart_int_config config) {

@@ -1,4 +1,4 @@
-#include <sys/attribs.h>
+//#include <sys/attribs.h>
 
 #include "ulib/ulib.h"
 #include "ulib/ulib_int.h"
@@ -15,7 +15,7 @@ int syscall_a, syscall_b, syscall_c;
 
 //private functions
 void u_cs_setup(void);
-
+/* This is in the bootloader
 unsigned int __attribute__((nomips16)) u_int_setup(unsigned int *errorepc) {
 
     //asm volatile ("di");
@@ -49,6 +49,7 @@ unsigned int __attribute__((nomips16)) u_int_setup(unsigned int *errorepc) {
     return status;
     
 }
+*/
 
 void u_cs_setup(void) {
     Pin p = {PIN_GROUP_A, BITS(0)};

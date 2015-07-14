@@ -1,4 +1,4 @@
-#include <sys/attribs.h>
+//#include <sys/attribs.h>
 #include "proc/p32mx250f128b.h"
 
 #include "ulib/ulib.h"

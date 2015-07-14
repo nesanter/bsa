@@ -1,5 +1,3 @@
-#include "ulib_int.h"
-
 .text
 .global _general_exception_handler
 .ent _general_exception_handler

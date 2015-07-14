@@ -4,17 +4,17 @@
 #include "ulib/ulib_int.h"
 #include "ulib/util.h"
 
-#include <sys/attribs.h>
-#include "proc/p32mx250f128b.h"
+//#include <sys/attribs.h>
+//#include "proc/p32mx250f128b.h"
 
 int entry(void);
 
-void main(void) {
-    int i;
+void runtime_entry(void) {
+//    int i;
 
-    unsigned int errorepc;
+//    unsigned int errorepc;
     
-    u_initialize(&errorepc);
+//    u_initialize(&errorepc);
 
     uart_setup();
     u_kprint_enable();
