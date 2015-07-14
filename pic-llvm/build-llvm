@@ -4,4 +4,4 @@
 cd out
 rm -f *
 clang -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -D__LANGUAGE_C__ -fno-stack-protector -Os -I ../include $(find ../src -type f -regex '.*[csS]')
-mipsel-unknown-elf-ar r bl-runtime.a *.o
+../../util/mipsel-unknown-elf-ar r bl-runtime.a *.o

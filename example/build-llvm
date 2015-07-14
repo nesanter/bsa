@@ -8,4 +8,4 @@ fi
 ./bl2 -m manifest -o output.bc < $BLCSRC && \
 llc -soft-float -mattr=+noabicalls -march=mipsel -mcpu=mips32r2 -relocation-model=static -filetype=obj output.bc || exit 1
 
-mipsel-unknown-elf-ld -O3 -obl-firmware -Truntime.ld output.o bl-runtime.a
+../util/mipsel-unknown-elf-ld -O3 -obl-firmware -Truntime.ld output.o bl-runtime.a

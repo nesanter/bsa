@@ -1,1 +1,2 @@
 mipsel-unknown-elf-ld filter=lfs diff=lfs merge=lfs -crlf
+mipsel-unknown-elf-ar filter=lfs diff=lfs merge=lfs -crlf
