@@ -3,7 +3,6 @@
 #include "ulib/ulib.h"
 #include "ulib/ulib_int.h"
 #include "proc/p32mx250f128b.h"
-#include "bootloader.h"
 
 /*
 void u_initialize(unsigned int *errorepc) {

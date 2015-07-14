@@ -16,8 +16,8 @@ void runtime_entry(void) {
     
 //    u_initialize(&errorepc);
 
-    uart_setup();
-    u_kprint_enable();
+//    uart_setup();
+//    u_kprint_enable();
 
     uart_print("Hello, world!\r\n");
 

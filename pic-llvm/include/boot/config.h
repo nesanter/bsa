@@ -18,7 +18,5 @@
 #pragma config FPLLODIV = DIV_2
 #pragma config FPBDIV = DIV_1
 
-#define SYSTEM_FREQ (40000000L)
-
 #endif	/* CONFIG_H */
 

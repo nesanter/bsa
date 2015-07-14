@@ -1,7 +1,7 @@
 #include "ulib/uart.h"
 #include "ulib/pins.h"
 #include "ulib/ulib.h"
-#include "config.h"
+#include "version.h"
 
 int uart_enabled = 0;
 
