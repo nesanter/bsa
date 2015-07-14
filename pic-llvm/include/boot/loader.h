@@ -32,7 +32,7 @@ typedef struct {
 #define EI_5 (1)
 #define EI_6 (EV_CURRENT)
 
-#define EF (0)
+#define EF_EXPECTED (0)
 
 
 typedef struct {

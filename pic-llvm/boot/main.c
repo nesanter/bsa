@@ -20,7 +20,12 @@ int main(void) {
         boot_print("\r\n");
     }
 
+    boot_transfer_init();
+    boot_transfer_enable();
+
     while (1) {
+        while (!transfer_ready);
+
 
     }
 }
