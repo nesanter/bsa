@@ -3,7 +3,7 @@
 .ent _general_exception_handler
 
 _general_exception_handler:
-    la $t0, u_exception_context
+    la $t0, boot_exception_context
     sw $gp, ($t0)
     sw $sp, 4($t0)
     sw $fp, 8($t0)
@@ -22,14 +22,14 @@ _general_exception_handler:
 
     mfc0 $a0, $14
 
-    jal k_syscall_handler
+    jal boot_syscall_handler
     nop
     
     mtc0 $v0, $14
 
     lw $ra, 12($sp)
 
-    la $t0, u_exception_context
+    la $t0, boot_exception_context
     lw $gp, ($t0)
     lw $sp, 4($t0)
     lw $fp, 8($t0)
@@ -40,7 +40,7 @@ _general_exception_handler:
 0:
     mfc0 $a2, $14
 
-    jal u_exception_handler
+    jal boot_exception_handler
     nop
     
     j .

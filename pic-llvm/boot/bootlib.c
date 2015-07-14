@@ -2,6 +2,8 @@
 
 #include "boot/bootlib.h"
 #include "proc/p32mx250f128b.h"
+#include "boot/handler.h"
+#include "version.h"
 
 /*  The bootloader enables UART1:
  *  9600 baud 81N, no interrupts
@@ -21,7 +23,7 @@ void boot_uart_init() {
 
     // pps
     U1RXR = 0x5; // RX
-    RPB34 = 0x1; // TX
+    RPB3R = 0x1; // TX
 
     // baud
     unsigned int baud = ((SYSTEM_FREQ / 9600) / 16) - 1;
@@ -41,9 +43,11 @@ void boot_uart_init() {
     
     U1STA = cur_status;
     U1MODE = cur_mode;
+
+    boot_print_enable();
 }
 
-void boot_uart_print(char *s) {
+void boot_print(char *s) {
     while (*s) {
         while (!(U1STA & 0x200)) {
             U1TXREG = *s++;
