@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ln -s ../reference-llvm/out/bl2
+ln -s ../pic-llvm/src/manifest
+ln -s ../pic-llvm/out/bl-runtime.a
+ln -s ../pic-llvm/linker/runtime.ld
