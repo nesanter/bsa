@@ -57,7 +57,7 @@
 "failure" { return FAILURE; }
 
  /* strings */
-\"[^"].*\" { yylval.text = strdup(yytext); return STRING; }
+\"(([^"])|(\\\"))*\" { yylval.text = strdup(escape_string(yytext)); return STRING; }
 
  /* numeric constants */
 [0-9a-fA-F]+h { yylval.llu = strtoull(yytext, NULL, 16); return NUMERIC; }

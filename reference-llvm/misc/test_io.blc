@@ -14,6 +14,6 @@ function foo(x) {
 }
 
 function bar() {
-    [write "Hello, world!", .console];
+    [write "\"Hello, world!\"\r\n", .console];
 }
 

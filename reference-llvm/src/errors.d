@@ -148,6 +148,13 @@ void error_shadowing(string ident) {
     error_action();
 }
 
+void error_unknown_escape_sequence(char c) {
+    write_error_prefix();
+    stderr.write("unknown escape sequence \\",c);
+    write_error_suffix();
+    error_action();
+}
+
 void warn_boolean_parameter() {
     write_warn_prefix();
     stderr.write("boolean parameter will be passed as numeric");

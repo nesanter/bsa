@@ -63,4 +63,6 @@ unsigned long params_add_string(unsigned long params_ref, char *s);
 unsigned long qident_create(char *ident);
 unsigned long qident_add(unsigned long qident_ref, char *ident);
 
+char *escape_string(char *s);
+
 #endif /* BL_H */
