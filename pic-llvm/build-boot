@@ -12,11 +12,11 @@ for FILE in $(find ../boot) ; do
     case $FILE in
         *.c)
             echo "Compiling $FILE"
-            (xc32-gcc -g -c -x c -std=gnu99 -mprocessor=$PROCESSOR -I../include $FILE || echo $FILE >> .error)&
+            (xc32-gcc -c -x c -std=gnu99 -mprocessor=$PROCESSOR -I../include $FILE || echo $FILE >> .error)&
             ;;
         *.S)
             echo "Assembling $FILE"
-            (xc32-gcc -g -c -x assembler -mprocessor=$PROCESSOR -mno-mips16 -mno-micromips -I../include $FILE -Wa,--defsym=__MPLAB_BUILD=1,--gdwarf-2 || echo $FILE >> .error)&
+            (xc32-gcc -c -x assembler -mprocessor=$PROCESSOR -mno-mips16 -mno-micromips -I../include $FILE -Wa,--defsym=__MPLAB_BUILD=1,--gdwarf-2 || echo $FILE >> .error)&
             ;;
         *)
             echo "Ignoring $FILE"
@@ -28,7 +28,7 @@ wait
 
 [ -f .error ] && { echo "Error during compile. [$(cat .error)]" ; exit 1 ; }
 
-xc32-gcc -g -mprocessor=$PROCESSOR -o $NAME.elf -Wl,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') && \
+xc32-gcc -mprocessor=$PROCESSOR -o $NAME.elf -Wl,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') && \
 xc32-bin2hex $NAME.elf
 
 #[ -f $NAME.a ] && rm $NAME.a
