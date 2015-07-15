@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sed -n 's/\/\/ \[manifest\][ \t]*\(.*\)/\1/p' src/runtime.c | tee out/manifest
