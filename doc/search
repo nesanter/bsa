@@ -1,0 +1,86 @@
+#!/bin/bash
+
+TEMP=$(getopt -n "$0" -o hg:p:f:d -l help,debug,group:,project:,file:,bydate -- "$@")
+[ $? -eq 0 ] || exit 1
+
+eval set -- "$TEMP"
+
+while true ; do
+    case "$1" in
+        -h|--help) HELP=1 ; shift ;;
+        -d|--bydate) BYDATE=1 ; shift ;;
+        -g|--group) [ -z "$GROUP" ] && GROUP="\($2\)" || GROUP="$GROUP\|\($2\)" ; shift 2 ;;
+        -p|--project)
+            case "$2" in
+                "all") PROJECT="\(compiler\)\|\(runtime\)\|\(bootloader\)" ;;
+                *) [ -z "$PROJECT" ] && PROJECT="\($2\)" || PROJECT="$PROJECT\|\($2\)" ;;
+            esac
+            shift 2 ;;
+        -f|--file) [ -z "$FILE" ] && FILE="\($2\)" || FILE="$FILE\|\($2\)"; shift 2 ;;
+        --debug) DEBUG=1 ; shift 1 ;;
+        --) shift ; break ;;
+        *) echo "Internal error" >&2 ; exit 1 ;;
+    esac
+done
+
+for arg do [ -z "$SEARCH" ] && SEARCH="$arg" || SEARCH="$SEARCH $arg" ; done
+
+if [ "$DEBUG" ] ; then
+    echo HELP \"$HELP\"
+    echo BYDATE \"$BYDATE\"
+    echo GROUP \"$GROUP\"
+    echo PROJECT \"$PROJECT\"
+    echo FILE \"$FILE\"
+    echo SEARCH \"$SEARCH\"
+    exit
+fi
+
+RESULTS=$(mktemp || { echo "Internal error" >&2 ; exit 2 ; })
+
+if [ "$HELP" ] ; then
+    echo "Syntax: search [-f|--file name] [-p|--project all|name] [-g|--group name]"
+    echo "               [-h|--help] [-d|--bydate] [keywords]"
+fi
+
+DOCDIR=$(dirname "${BASH_SOURCE[0]}")
+for DOC in $(find $DOCDIR -type f) ; do
+    if [ "$FILE" ] ; then
+        if [ -z "$(sed -n "/^Files:/,/^--/ { /$FILE/p }" $DOC)" ] ; then
+            continue
+        fi
+    fi
+    if [ "$GROUP" ] ; then
+        if [ -z "$(sed -n "/^Meta:/,/^--/ { /Groups:/ { /$GROUP/p } }" $DOC)" ] ; then
+            continue
+        fi
+    fi
+    if [ "$PROJECT" ] ; then
+        if [ -z "$(sed -n "/^Meta:/,/^--/ { /Project:/ { /'$PROJECT'/ p } }" $DOC)" ] ; then
+            continue
+        fi
+    fi
+    if [ "$SEARCH" ] ; then
+        if [ -z "$(sed -n "/^Body:/,/^--/ { /$SEARCH/p }" $DOC)" ] ; then
+            continue
+        fi
+    fi
+    if [ "$BYDATE" ] ; then
+        DATE="$(sed -n "/^Meta:/,/^--/ { s/Date: \(.*\)/\1/p }" $DOC)"
+        echo "$DOC $(date -d $DATE +%s)" >> $RESULTS
+    else
+        echo "$DOC" >> $RESULTS
+    fi
+    FOUND=1
+done
+
+if [ -z "$FOUND" ] ; then
+    echo "No matches" >&2
+    exit 1
+fi
+
+if [ "$BYDATE" ] ; then
+    sort -k 2 -nr $RESULTS | awk '{ print $1 }'
+else
+    sort -nr $RESULTS
+fi
+
