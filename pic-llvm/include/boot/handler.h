@@ -39,6 +39,8 @@ void __attribute__((nomips16)) boot_cs_low(void);
 
 typedef void __attribute__((interrupt)) (*handler_t)(void);
 
+void boot_set_vector_table_entry(unsigned int entry, handler_t handler);
+
 #else
 #error "runtime cannot access handler.h"
 #endif

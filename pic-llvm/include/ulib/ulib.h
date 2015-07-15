@@ -10,8 +10,6 @@
 
 #define BITS(n) (1L << n)
 
-void u_initialize(unsigned int *errorepc);
-
 /* ------------------------- UART ------------------------- */
 
 typedef enum {

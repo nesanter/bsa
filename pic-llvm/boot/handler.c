@@ -55,6 +55,9 @@ void boot_cs_setup(void) {
     IEC0SET = 0x00000006;
 }
 
+void boot_set_vector_table_entry(unsigned int entry, handler_t handler) {
+    __vector_table[entry] = handler;
+}
 
 void __attribute__((nomips16)) boot_cs_high(void) {
     IFS0SET = 0x00000002;
