@@ -1,0 +1,14 @@
+Packages required under ArchLinux:
+
+    Running the tools:
+        llvm
+
+    Additionally, for compiling bl2:
+        gdc
+
+    Additionally, for compiling the runtime:
+        clang
+
+    note: compiling the bootloader requires Microchip's xc32
+          which is not available as a package.
+
