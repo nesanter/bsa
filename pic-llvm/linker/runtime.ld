@@ -116,7 +116,8 @@ MEMORY
   config2                     : ORIGIN = 0xBFC00BF4, LENGTH = 0x4
   config1                     : ORIGIN = 0xBFC00BF8, LENGTH = 0x4
   config0                     : ORIGIN = 0xBFC00BFC, LENGTH = 0x4
-  kseg1_data_mem       (w)    : ORIGIN = 0xA0000800, LENGTH = 0x7800
+  vector_table_mem     (w)    : ORIGIN = 0xA0000800, LENGTH = 0x100
+  kseg1_data_mem       (w)    : ORIGIN = 0xA0000900, LENGTH = 0x7700
   sfrs                        : ORIGIN = 0xBF800000, LENGTH = 0x100000
   configsfrs                  : ORIGIN = 0xBFC00BF0, LENGTH = 0x10
 }
@@ -126,6 +127,7 @@ MEMORY
  * absolute-address output sections.
  *************************************************************************/
 
+PROVIDE (__vector_table = ORIGIN(vector_table_mem));
 
 SECTIONS
 {

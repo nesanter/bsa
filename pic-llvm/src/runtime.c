@@ -10,6 +10,8 @@
 #define DRV_TRUE (1)
 #define DRV_FALSE (0)
 
+extern handler_t volatile __vector_table[43];
+
 typedef int (*driver_write_fn)(int val, char *str);
 typedef int (*driver_read_fn)();
 
@@ -86,6 +88,9 @@ int ___fork_builtin(int (*fn)()) {
     return 0;
 }
 
+void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
+    __vector_table[entry] = handler;
+}
 
 /* driver functions */
 
