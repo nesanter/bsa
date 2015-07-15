@@ -7,6 +7,8 @@
 #include "boot/bootlib.h"
 #include "ulib/util.h"
 
+handler_t __attribute__((section(".vector_table"))) __vector_table[43];
+
 //#include "uart.h"
 int boot_print_enabled = 0;
 

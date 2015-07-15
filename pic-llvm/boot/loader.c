@@ -46,32 +46,25 @@ void boot_copy_zero_to_memory(unsigned int address, unsigned int nbytes) {
 int load_user_program(unsigned int *entry) {
     unsigned char *current_buffer = 0;
     int phase = 0, current_offset = 0, n, count = 0, i;
-    int read_sz, write_sz;
+    int read_sz, write_sz, transfer_size;
 
     elf32_header ehdr;
     elf32_pheader tmp;
     elf32_pheader phdr[8];
 
     int n_phdrs = 0;
+    
+    current_buffer = &transfer_buffer[1];
 
-    boot_transfer_enable(1);
     while (1) {
-        while (current_buffer == 0) {
-            if (transfer_ready & 1) {
-                current_buffer = transfer_buffer_1;
-                transfer_ready ^= 1;
-                if (!(transfer_ready & 2)) {
-                    boot_transfer_enable(2);
-                }
-            } else if (transfer_ready & 2) {
-                current_buffer = transfer_buffer_2;
-                transfer_ready ^= 2;
-                if (!(transfer_ready & 1)) {
-                    boot_transfer_enable(1);
-                }
-            }
+        boot_transfer_enable();
+        while (!transfer_ready);
+        transfer_ready = 0;
+        transfer_size = *(unsigned short*)transfer_buffer;
+        if (transfer_size == 0) {
+            boot_print("Warning: recieved transfer of empty block\r\n");
         }
-        current_offset += TRANSFER_BUFFER_SIZE;
+        current_offset += transfer_size;
         //process buffer
         switch (phase) {
             case 0: // read ELF header
@@ -148,6 +141,9 @@ int load_user_program(unsigned int *entry) {
                 }
                 // fall through
             case 4: // finish
+                boot_print("CRC ");
+                boot_print(tohex(boot_get_crc(), 8));
+                boot_print("\r\n");
                 return 0;
         }
     }

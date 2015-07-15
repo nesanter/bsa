@@ -37,6 +37,8 @@ extern unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int 
 void __attribute__((nomips16)) boot_cs_high(void);
 void __attribute__((nomips16)) boot_cs_low(void);
 
+typedef void __attribute__((interrupt)) (*handler_t)(void);
+
 #else
 #error "runtime cannot access handler.h"
 #endif

@@ -1,14 +1,22 @@
+#!/bin/bash
+
 PROCESSOR=32MX250F128B
 NAME=bl-bootloader
 
-export PATH=/opt/microchip/xc32/v1.33/bin:$PATH
+if [ -z "$1" ] ; then
+    XCVERSION=v1.33
+else
+    XCVERSION=$1
+fi
+
+export PATH=/opt/microchip/xc32/$XCVERSION/bin:$PATH
 
 mkdir -p out-boot
 cd out-boot
 
 [ -f .error ] && rm .error
 
-for FILE in $(find ../boot) ; do
+for FILE in $(find ../boot -type f) ; do
     case $FILE in
         *.c)
             echo "Compiling $FILE"
@@ -28,8 +36,8 @@ wait
 
 [ -f .error ] && { echo "Error during compile. [$(cat .error)]" ; exit 1 ; }
 
-xc32-gcc -mprocessor=$PROCESSOR -o $NAME.elf -Wl,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') && \
-xc32-bin2hex $NAME.elf
+xc32-gcc -mprocessor=$PROCESSOR -o $NAME.elf -Wl,-T../linker/bootloader.ld,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') && \
+xc32-bin2hex -v $NAME.elf
 
 #[ -f $NAME.a ] && rm $NAME.a
 #xc32-ar r $NAME.a *.o

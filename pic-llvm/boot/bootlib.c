@@ -5,12 +5,15 @@
 #include "boot/handler.h"
 #include "version.h"
 
+#define VIRT_OFFSET (0xA0000000)
+#define HANDLER_VECTOR_SECTION ".vector_31"
+
+int transfer_ready = 0;
+
 /*  The bootloader enables UART1:
  *  9600 baud 81N, no interrupts
  *  RX on B2, TX on B3 (physical pins 6 & 7)
  */
-
-int active_buffer = 1;
 
 void boot_uart_init() {
     // pin mode
@@ -50,17 +53,19 @@ void boot_uart_init() {
 }
 
 void boot_transfer_init() {
-    unsigned int dmacon = DMACON;
-    unsigned int dch1con = DCH1CON;
-    unsigned int dch1econ = DCH1ECON;
- 
+    /*
+    unsigned int bmxcon = BMXCON;
+    bmxcon = (bmxcon & 0xFFFFFFFC) | 0x00000002; // set arbitration mode to rotating priority
+    BMXCON = bmxcon;
+    */
+
     DMACONSET = 0x00008000; // DMA on
 
     DCH1INT = 0x00080000; // Interrupt on block transfer complete
-    DCH1SSA = (&U1RXR) - 0xA0000000; // Channel 1 source is UART1
-    DCH1DSA = (&transfer_buffer) - 0xA0000000; // Channel 1 dest is transfer_buffer
+    DCH1SSA = (unsigned int)((&U1RXR) - VIRT_OFFSET); // Channel 1 source is UART1
+    DCH1DSA = (unsigned int)((&transfer_buffer) - VIRT_OFFSET); // Channel 1 dest is transfer_buffer
     DCH1SSIZ = 1; // Source size is 1 byte
-    DCH1DSIZ = TRANSFER_BUFFER_SIZE; // Dest size is SIZE bytes
+    DCH1DSIZ = TRANSFER_BUFFER_SIZE_WITH_HEADER; // Dest size is SIZE bytes
     DCH1CSIZ = 1; // Cell size is 1 byte
 
     DCRCCON = 0x0001F80; // CRC in LFSR mode, 32-bit polynomial
@@ -71,15 +76,13 @@ void boot_transfer_init() {
     DCH1ECON = (_UART1_RX_IRQ << 8) & 0x8; // start transfer on RX interrupt
 }
 
-void boot_transfer_enable(int buffern) {
-    if (buffern == 1) {
-        active_buffer = 1;
-        DCH1DSA = (&transfer_buffer_1) - 0xA0000000;
-    } else {
-        active_buffer = 2;
-        DCH1DSA = (&transfer_buffer_2) - 0xA0000000;
-    }
+void boot_transfer_enable() {
+    DCH1DSA = (unsigned int)((&transfer_buffer) - VIRT_OFFSET);
     DCH1CONSET = 0x80;
+}
+
+unsigned int boot_get_crc() {
+    return DCRCDATA;
 }
 
 void boot_print(char *s) {
@@ -90,14 +93,16 @@ void boot_print(char *s) {
     }
 }
 
-void __ISR(_DMA_0_VECTOR, ipl2soft) transfer_handler() {
-    if (active_buffer == 1) {
-        transfer_ready |= 1;
-        active_buffer = 2;
-    } else {
-        transfer_ready |= 2;
-        active_buffer = 1;
-    }
+void __attribute((interrupt)) boot_transfer_handler() {
+    transfer_ready = 1;
 
     DCH1INTCLR = 0x4;
+}
+
+unsigned int flash_unlock_write_row(unsigned int row_addr) {
+    return 0;
+}
+
+unsigned int flash_unlock_erase(unsigned int page_addr) {
+    return 0;
 }
