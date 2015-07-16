@@ -1,0 +1,82 @@
+Files:
+    boot/main.h
+    boot/loader.h
+
+--------------
+
+Meta:
+    Title: Bootloader Commands
+    Date: 7/16/15
+    Project: bootloader
+    Groups: loading
+
+--------------
+
+Body:
+
+1.) What is the sequence of commands passed to the bootloader to program an image?
+
+    Once a serial connection is established (by default: /dev/ttyUSB0 9600 8N1),
+    the following communication occurs:
+
+        Step 1:
+            image loader sends '>'
+            bootloader replies with either:
+                '>' -- proceed to step 2 or 3
+                'm' -- read a newline-terminated message from the bootloader and
+                       repeat step 1
+
+        Step 2 (optional):
+            image loader sends 'V'
+            bootloader replies with 8-byte version string
+            if the response matches the internal version:
+                proceed to step 2
+            otherwise,
+                exit indicating failure
+
+        Step 3:
+            image loader sends 'L'
+            proceed to step 4
+        
+        Step 4:
+            if the bootloader replies with 'OK':
+                send a 2-byte block size, followed by 1024 bytes of image data
+                if there is image data left to send:
+                    repeat step 4
+                otherwise:
+                    proceed to step 5
+            if the bootloader replies with 'mi':
+                read a newline-terminated information message from the bootloader
+                repeat step 4
+            if the bootloader replies with 'me':
+                read a newline-terminated error message from the bootloader
+                repeat step 4
+            if the bootloader replies with 'no':
+                exit indicating failure
+
+        Step 5:
+            if the bootloader replies with 'OK ':
+                proceed to step 6
+            if the bootloader replies with 'CRC':
+                read a 4-byte integer and compare it with the calculated CRC
+                if they match:
+                    proceed to step 6
+                otherwise,
+                    exit indicating failure
+            if the bootloader replies with 'ERR':
+                read a newline-terminated error message from the bootloader
+                exit indicating failure
+
+        Step 6:
+            image loader sends 'R'
+            if the bootloader replies with 'R':
+                exit indicating success
+            otherwise,
+                exit indicating failure
+
+2.) What other commands does the bootloader support?
+
+    None at this time.
+
+--------------
+
