@@ -1,0 +1,34 @@
+Files:
+    boot/main.h
+    boot/handler.h
+    boot/loader.h
+    boot/bootlib.h
+
+--------------
+
+Meta:
+    Title: Signal LEDs
+    Date: 7/15/15
+    Project: bootloader runtime
+    Groups: hardware,diagnostic
+
+--------------
+
+Body:
+
+1.) What do the various LED colors mean?
+
+
+    signal          | meaning
+    ---------------------
+    RED             | reset switch is active
+    BLUE,           |
+        solid       | bootloader is idle (ready to load)
+        flashing    | if fast-fast-slow, internal bootloader error;
+                    |   otherwise, bootloader is loading user program
+    GREEN,          |
+         solid      | user program is running
+         flashing   | program loaded but hold signal is asserted
+
+--------------
+
