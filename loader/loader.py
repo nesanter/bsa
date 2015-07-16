@@ -1,19 +1,15 @@
 #!/usr/bin/python
 
-import serial, sys
+import serial, sys, binascii
 
 TRANSFER_SIZE = 1024
 BAUD_RATE = 9600
 PORT = "/dev/ttyUSB0"
+VERSION = "BETA0001"
 
 args = []
 
-if len(sys.argv) > 1 and sys.argv[1] == "-v":
-    verbose = True
-    args = sys.argv[2:]
-else:
-    verbose = False
-    args = sys.argv[1:]
+crc = None
 
 if len(args) == 0:
     print("Error: no input file", file=sys.stderr)
@@ -33,7 +29,6 @@ except Exception:
 
 ser.open()
 
-
 while True:
     ser.write(b">")
     response = ser.read(1)
@@ -45,7 +40,17 @@ while True:
         print("[INFO] ",ser.readline())
     else:
         # error
-        print("Error: unexpected response from bootloader")
+        print("Error: unexpected response from bootloader", file=sys.stderr)
+        exit(1)
+
+ser.write(b"V")
+response = ser.read(8)
+if response != VERSION:
+    print("Warning: bootloader version ", bootloader_version, " does not match loader version ",MIN_VERSION, file=sys.stderr)
+    yn = read("Continue anyways? [y/N] >")
+    if yn == "y" and yn == "Y":
+        pass
+    else:
         exit(1)
 
 ser.write(b"L")
@@ -57,6 +62,10 @@ while True:
         if done:
             break
         data = image.read(TRANSFER_SIZE)
+        if crc == None:
+            crc = binascii.crc32(data)
+        else:
+            crc = binascii.crc32(data, crc)
         ser.write(bytes([data.length // 256, data.length % 256]))
         ser.write(data)
         response = ser.read(2)
@@ -70,22 +79,30 @@ while True:
         print("[ERROR] ",ser.readline(), file=sys.stderr)
     elif response == b"NO":
         print("Loading failed", file=sys.stderr)
+        exit(1)
     else:
         # error
         print("Error: unexpected response from bootloader", file=sys.stderr)
         exit(1)
 
 response = ser.read(3)
+if response == b"OK ":
+    # skip CRC check
+    print("Skipping CRC check")
 if response == b"CRC":
     response = ser.read(4)
-    # theoretically, we would check the CRC here
-    print("[CRC] ",response)
+    response_crc = int.from_bytes(response, byteorder='little')
+    print("[CRC] ",response_crc)
+    if response_crc != crc:
+        print("Error: checksums do not match -- data transfer failed", file=sys.stderr)
+        exit(1)
+    print("CRC check passed")
 elif response == b"ERR":
     print("[FAIL] ", ser.readline(), file=sys.stderr)
     print("Loading failed", file=sys.stderr)
     exit(1)
 else:
-    print("Error: unexpected response from bootloader")
+    print("Error: unexpected response from bootloader", file=sys.stderr)
     exit(1)
 
 ser.write(b"R")
@@ -94,5 +111,5 @@ response = ser.read(1)
 if response == b"R":
     print("Loading complete")
 else:
-    print("Error: unexpected response from bootloader")
+    print("Error: unexpected response from bootloader", file=sys.stderr)
     exit(1)
