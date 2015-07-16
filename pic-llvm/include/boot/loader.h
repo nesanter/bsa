@@ -55,6 +55,8 @@ typedef struct {
 #define PT_PHDR (6)
 #define PT_MIPS_REGINFO (0x7000000)
 
+int load_user_program(unsigned int *entry, unsigned int *stack, unsigned int *gp);
+void __attribute__((noreturn)) start_user_program(unsigned int entry, unsigned int stack, unsigned int gp);
 
 #else
 #error "runtime cannot access loader.h"

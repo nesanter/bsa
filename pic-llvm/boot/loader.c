@@ -43,7 +43,7 @@ void boot_copy_zero_to_memory(unsigned int address, unsigned int nbytes) {
     boot_print("\r\n");
 }
 
-int load_user_program(unsigned int *entry) {
+int load_user_program(unsigned int *entry, unsigned int *user_gp, unsigned int *user_sp) {
     unsigned char *current_buffer = 0;
     int phase = 0, current_offset = 0, n, count = 0, i;
     int read_sz, write_sz, transfer_size;
@@ -150,3 +150,14 @@ int load_user_program(unsigned int *entry) {
 }
 
 
+void __attribute__((noreturn)) start_user_program(unsigned int entry, unsigned int stack, unsigned int gp) {
+    // set user sp and gp
+    // jump to entry
+    
+    asm volatile ("move $sp, %0; \
+                   move $gp, %1; \
+                   j %2" : "+r" (stack),
+                           "+r" (gp),
+                           "+r" (entry));
+    while (1);
+}

@@ -141,7 +141,23 @@ void __attribute__((nomips16)) boot_exception_handler(unsigned int code, unsigne
     }
     */
     
-    while (1);
+    PORTACLR = SIGNAL_USER;
+    PORTASET = SIGNAL_BOOT;
+
+    unsigned int count, current, overflow;
+    asm volatile ("mfc0 %0, $9" : "=r" (count));
+    while (1) {
+        if (count + 10000000 < count) {
+            overflow = 1;
+        } else {
+            overflow = 0;
+        }
+        count += 10000000;
+        do {
+            asm volatile ("mfc0 %0, $9" : "=r" (current));
+        } while ((overflow && (current > count) || (!overflow && current < count)));
+        PORTAINV = SIGNAL_USER | SIGNAL_BOOT;
+    }
 }
 
 /*

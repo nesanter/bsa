@@ -13,6 +13,8 @@ int transfer_ready = 0;
 /*  The bootloader enables UART1:
  *  9600 baud 81N, no interrupts
  *  RX on B2, TX on B3 (physical pins 6 & 7)
+ *
+ *  And signals BOOT (A0) and USER (A1)
  */
 
 void boot_uart_init() {
@@ -93,6 +95,15 @@ void boot_print(char *s) {
     }
 }
 
+void boot_read_blocking(char *buffer, unsigned int length) {
+    while (length) {
+        while ((U1STA & 0x1)) {
+            *buffer++ = U1RXREG;
+            length--;
+        }
+    }
+}
+
 void __attribute((interrupt(IPL2SOFT), nomips16)) boot_transfer_handler() {
     transfer_ready = 1;
 
@@ -105,4 +116,40 @@ unsigned int flash_unlock_write_row(unsigned int row_addr) {
 
 unsigned int flash_unlock_erase(unsigned int page_addr) {
     return 0;
+}
+
+void boot_signal_init() {
+    TRISACLR = 0x3;
+    ANSELACLR = 0x3;
+}
+
+void boot_signal_set(boot_signal sig, unsigned int on) {
+    if (on)
+        PORTASET = 0x1;
+    else
+        PORTACLR = 0x1;
+}
+
+void boot_internal_error() {
+    PORTACLR = SIGNAL_USER | SIGNAL_BOOT;
+    
+    int phase = 0, phases = 5;
+    unsigned int delay[5] = { 10000000, 1000000, 1000000, 1000000, 30000000 };
+
+    unsigned int count, current, overflow;
+    asm volatile ("mfc0 %0, $9" : "=r" (count));
+    while (1) {
+        if (count + delay[phase] < count) {
+            overflow = 1;
+        } else {
+            overflow = 0;
+        }
+        count += delay[phase];
+        do {
+            asm volatile ("mfc0 %0, $9" : "=r" (current));
+        } while ((overflow && (current > count) || (!overflow && current < count)));
+        PORTAINV = SIGNAL_BOOT;
+        phase++;
+    }
+ 
 }
