@@ -12,6 +12,9 @@ handler_t __attribute__((section(".vector_table"))) __vector_table[43];
 //#include "uart.h"
 int boot_print_enabled = 0;
 
+unsigned int handler_old_sp;
+unsigned char handler_stack[32];
+
 //private functions
 void boot_cs_setup(void);
 unsigned int __attribute__((nomips16)) boot_handler_setup(unsigned int *errorepc) {

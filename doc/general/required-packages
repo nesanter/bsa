@@ -1,3 +1,13 @@
+Meta:
+    Title: Required Packages
+    Date: 7/15/15
+    Project: runtime compiler boot
+    Groups: usage
+
+--------------
+
+Body:
+
 Packages required under ArchLinux:
 
     Running the tools:
@@ -11,4 +21,6 @@ Packages required under ArchLinux:
 
     note: compiling the bootloader requires Microchip's xc32
           which is not available as a package.
+
+--------------
 

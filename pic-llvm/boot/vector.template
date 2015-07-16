@@ -1,0 +1,12 @@
+	.extern __vector_dispatch_NUM
+	.section	.vector_NUM,code
+	.align	2
+	.set	nomips16
+	.ent	__vector_dispatch_NUM
+__vector_dispatch_NUM:
+    la $k0, __vector_table
+    lw $k0, 4*NUM($k0)
+	jr $k0
+	.end	__vector_dispatch_NUM
+	.size	__vector_dispatch_NUM, .-__vector_dispatch_NUM
+

@@ -93,7 +93,7 @@ void boot_print(char *s) {
     }
 }
 
-void __attribute((interrupt)) boot_transfer_handler() {
+void __attribute((interrupt(IPL2SOFT), nomips16)) boot_transfer_handler() {
     transfer_ready = 1;
 
     DCH1INTCLR = 0x4;

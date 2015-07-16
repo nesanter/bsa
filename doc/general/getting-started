@@ -1,0 +1,96 @@
+Files:
+    example/build-firmware
+    example/make-links
+    reference-llvm/build
+    reference-llvm/out/bl2
+    pic-llvm/gen-manifest
+    pic-llvm/gen-sources
+    pic-llvm/build-runtime
+    pic-llvm/build-bootloader
+    pic-llvm/out/manifest
+
+--------------
+
+Meta:
+    Title: Getting Started
+    Date: 7/15/15
+    Project: runtime compiler
+    Groups: usage,installing
+
+--------------
+
+Body:
+
+1.) What steps are required to prepare the Git source for ...
+
+    ...compiling a user program (.blc file)?
+
+        Install the required compiler packages (see doc/general/required-packages)
+        Change into the compiler project directory (reference-llvm/)
+        Run the build script (./build)
+        Optionally: add the new compiler to your path (it's in reference-llvm/out/bl2)
+        Run it on a source file (bl2 -o output.bc)
+            For detailed compiler usage and flags, see doc/compiler/usage
+
+    ...as above, with a fresh manifest file?
+        Change into the runtime project directory (pic-llvm/)
+        Run the manifest generator (./gen-manifest)
+        The manifest file is in pic-llvm/out/
+
+    ...running the user program on real hardware (pre-programmed with bootloader)?
+
+        Install the required runtime packages (see doc/general/required-packages)
+        Change into the runtime project directory (pic-llvm/)
+        Run the source generator (./gen-sources)
+        Run the build script (./build-runtime)
+        Follow the above steps to generate a compiler and manifest file
+        Change into the example directory (example/)
+        Run the link creator (./make-links)
+        Run the build script on a user program (.blc) file (./build-firmware file_name)
+        [TODO: info about loading the firmware]
+
+    ...as above, without rebuilding the runtime?
+        
+        Follow the steps starting with running ./build-firmware
+
+    ...prepare new hardware to run a user program (with the default bootloader)?
+
+        Install Microchip's Integrated Programming Environment (mplab_ipe)
+        Connect a programmer to the ICSP pins of the target hardware (physical pins 4 & 5)
+        Download the prebuilt hex file onto the hardware
+
+    ...as above, but manually compile the bootloader?
+
+        Install the required bootloader packages (see doc/general/required-packages)
+            Note: including Microchip's XC32 compiler
+        Change into the runtime project directory (pic-llvm/)
+        Run the build script (./build-bootloader vXYZ), where XYZ is your compiler version (e.g. 1.34)
+        Follow steps for the default bootloader but use the new hex file instead of the prebuilt one
+
+2.) What do the build files do, in more detail?
+
+    example/build-firmware: Combine the runtime with a user program in preparation for loading
+        This script must be run every time the user source changes
+
+        First, it calls the BSA compiler (bl2) on the specified source to create output.bc
+        Then, it runs the LLVM static compiler (llc) on the output bitcode to generate an object file
+        Then, it runs the MIPS linker (from util/) on the object file and runtime to create the firmware
+
+        The options -m manifest and -o output.bc tell bl2 to use the local manifest file and generate output.bc
+
+        The options -march=mipsel and -mcpu=mips32r2 tell llc what architecture and processor to compile for
+        The options -soft-float, -mattr=+noabicalls, and -relocation-model=static further define the architecture and ABI
+        The option -filetype=obj tells the compiler to produce an object file
+
+        The options -O3 and -Truntime.ld tell the linker to optimize the output and use the special linker script (from pic-llvm/linker)
+        The option -obl-firmware tells the linker what to name the output file
+
+    reference-llvm/build:
+
+    pic-llvm/build-runtime:
+
+    pic-llvm/build-bootloader:
+
+
+--------------
+
