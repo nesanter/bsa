@@ -1,2 +1,4 @@
 /out
+/out-boot
 /src/generated
+/boot/generated
