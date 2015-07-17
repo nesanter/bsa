@@ -102,7 +102,7 @@ void boot_flag_prompt() {
     }
 }
 
-int check_reset_reason() {
+int check_reset_reason(unsigned int epc) {
     unsigned int rcon = RCON;
 
     if (rcon & REASON_BROWN_OUT) {
@@ -111,6 +111,10 @@ int check_reset_reason() {
     }
     if (rcon & REASON_POWER_ON) {
         RCONCLR = REASON_POWER_ON;
+    }
+    if (rcon & REASON_MCLR) {
+        boot_print("t");
+        boot_print(tohex(epc,8));
     }
 
     return 0;
@@ -126,7 +130,7 @@ int main(void) {
 
     boot_signal_init();
 
-    check_reset_reason();
+    check_reset_reason(errorepc);
 //    boot_transfer_init();
 
     /*

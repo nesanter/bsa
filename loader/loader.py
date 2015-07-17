@@ -79,6 +79,9 @@ while True:
     elif response == b"m":
         # bootloader has a message to print
         print("[INFO] ",ser.readline())
+    elif response == b"t":
+        # bootloader has trace info
+        print("[TRACE] ",ser.read(8));
     else:
         # error
         print("Error: unexpected response from bootloader", file=sys.stderr)
