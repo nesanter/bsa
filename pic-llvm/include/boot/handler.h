@@ -28,7 +28,7 @@ void boot_print_enable(void);
 void boot_syscall(void);
 void __attribute__((nomips16)) boot_exception_handler(unsigned int code, unsigned int status, void *epc);
 
-extern unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int epc);
+//extern unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int epc);
 
 //char u_syscall_stack[0x1000];
 

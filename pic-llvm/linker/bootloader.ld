@@ -107,8 +107,7 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
  *************************************************************************/
 MEMORY
 {
-  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x23FC
-  boot_flags_mem        (r)   : ORIGIN = 0x9D0023FC, LENGTH = 0x4
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x2A00
   exception_mem               : ORIGIN = 0x9D01F000, LENGTH = 0x1000
   debug_exec_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x760
   kseg0_boot_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x0
@@ -181,11 +180,6 @@ SECTIONS
   {
       KEEP(*(.vector_table))
   } > vector_table_mem
-
-  .boot_flags :
-  {
-      KEEP(*(.boot_flags))
-  } > boot_flags_mem
 
   .vector_0 _ebase_address + 0x200 + ((_vector_spacing << 5) * 0) :
   {

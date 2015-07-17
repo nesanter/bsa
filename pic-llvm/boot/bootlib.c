@@ -124,8 +124,8 @@ unsigned int flash_unlock(nvm_op op) {
 
     NVMCONSET = 0x00040000;
 
-    NVMKEY = 0xAA996655;
-    NVMKEY = 0x556699AA;
+    NVMKEY = UNLOCK_KEY_A;
+    NVMKEY = UNLOCK_KEY_B;
 
     NVMCONSET = 0x00008000;
 
@@ -206,3 +206,32 @@ void boot_internal_error() {
     }
  
 }
+
+unsigned int physical_address(void *virt) {
+    if (virt > 0xBF800000)
+        return (unsigned int)(virt - 0xA0000000); //sfrs
+    if (virt > 0xBD000000)
+        return (unsigned int)(virt - 0xA0000000); //kseg1
+    if (virt > 0xA0000000)
+        return (unsigned int)(virt - 0xA0000000); //ram
+    if (virt > 0x9D000000)
+        return (unsigned int)(virt - 0x80000000); //kseg0
+    return 0; //error
+}
+
+void soft_reset() {
+    asm volatile ("di");
+    DMACONSET = 0x00001000; //suspend any DMA
+
+    SYSKEY = 0x00000000;
+    SYSKEY = UNLOCK_KEY_A;
+    SYSKEY = UNLOCK_KEY_B;
+
+    RSWRSTSET = 0x1;
+
+    unsigned int volatile dummy;
+    dummy = RSWRSTSET;
+
+    while (1);
+}
+

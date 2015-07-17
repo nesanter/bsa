@@ -5,6 +5,7 @@
 #include "proc/p32mx250f128b.h"
 #include "boot/handler.h"
 #include "boot/bootlib.h"
+#include "boot/flags.h"
 #include "ulib/util.h"
 
 handler_t __attribute__((section(".vector_table"))) __vector_table[43];
@@ -12,8 +13,10 @@ handler_t __attribute__((section(".vector_table"))) __vector_table[43];
 //#include "uart.h"
 int boot_print_enabled = 0;
 
-unsigned int handler_old_sp;
-unsigned char handler_stack[32];
+//unsigned int handler_old_sp;
+//unsigned char handler_stack[32];
+
+extern unsigned int boot_flags;
 
 //private functions
 void boot_cs_setup(void);
@@ -78,7 +81,37 @@ void boot_syscall(void) {
     asm volatile("syscall");
 }
 
-unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int epc) {
+unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int epc, unsigned int request) {
+    unsigned int boot_flags_masked;
+
+    switch (request & 0xF) {
+        default:
+        case SYSCALL_RESET:
+            soft_reset();
+            break;
+        case SYSCALL_GET_FLAGS:
+            boot_flags_masked = boot_flags & 0x0FFFFFFF;
+            asm volatile ("move $k0, %0": "+r" (boot_flags_masked));
+            break;
+        case SYSCALL_SET_FLAGS:
+            if ((boot_flags | (request >> 4)) != boot_flags) {
+                if (flash_write_word(boot_flags & (request >> 4), physical_address(&boot_flags))) {
+                    asm volatile ("li $k0, 1");
+                    break;
+                }
+            }
+            break;
+        case SYSCALL_CLEAR_FLAGS:
+            if ((boot_flags & ~(request >> 4)) != boot_flags) {
+                if (flash_write_word(boot_flags & (request >> 4), physical_address(&boot_flags))) {
+                    asm volatile ("li $k0, 1");
+                    break;
+                }
+            }
+            asm volatile ("li $k0, 0");
+            break;
+    }
+
     return epc + 4;
 }
 
@@ -140,7 +173,15 @@ void __attribute__((nomips16)) boot_exception_handler(unsigned int code, unsigne
         boot_soft_reset();
     }
     */
-    
+
+    if (boot_flags & BOOT_FLAG_HOLD_ON_ERROR) {
+        if (!(boot_flags & BOOT_FLAG_HOLD))
+            flash_write_word(boot_flags | BOOT_FLAG_HOLD, physical_address(&boot_flags));
+    }
+    if (boot_flags & BOOT_FLAG_RESET_ON_ERROR) {
+        soft_reset();
+    }
+
     PORTACLR = SIGNAL_USER;
     PORTASET = SIGNAL_BOOT;
 

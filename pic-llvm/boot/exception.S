@@ -21,6 +21,7 @@ _general_exception_handler:
     nop
 
     mfc0 $a0, $14
+    add $a1, $k1, $zero /* k0 is changed by exception, k1 is not */
 
     jal boot_syscall_handler
     nop

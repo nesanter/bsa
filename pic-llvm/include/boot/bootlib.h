@@ -36,9 +36,25 @@ unsigned int flash_write_word(unsigned int value, unsigned int dest_addr);
 unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr);
 unsigned int flash_unlock_erase(unsigned int page_addr);
 
+unsigned int physical_address(void *virt);
 
 #define PAGE_SIZE (1024)
 #define ROW_SIZE (128)
+
+typedef enum {
+    REASON_POWER_ON = 0x001,
+    REASON_BROWN_OUT = 0x002,
+    REASON_WATCHDOG = 0x008,
+    REASON_DEADMAN = 0x010,
+    REASON_SOFTWARE = 0x020,
+    REASON_MCLR = 0x080,
+    REASON_CONFIG_MISMATCH = 0x200,
+} reset_reason;
+
+#define UNLOCK_KEY_A (0xAA996655)
+#define UNLOCK_KEY_B (0x556699AA)
+
+void soft_reset();
 
 #else
 #error "runtime cannot access bootlib"
