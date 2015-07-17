@@ -25,6 +25,18 @@ void boot_signal_set(boot_signal sig, unsigned int on);
 
 void boot_internal_error();
 
+typedef enum {
+    NVM_WRITE_WORD = 0x8001,
+    NVM_WRITE_ROW = 0x8003,
+    NVM_PAGE_ERASE = 0x8004,
+    NVM_NOP = 0x8000
+} nvm_op;
+
+unsigned int flash_write_word(unsigned int value, unsigned int dest_addr);
+unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr);
+unsigned int flash_unlock_erase(unsigned int page_addr);
+
+
 #define PAGE_SIZE (1024)
 #define ROW_SIZE (128)
 

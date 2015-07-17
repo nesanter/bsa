@@ -1,6 +1,7 @@
 #define IS_BOOTLOADER
 
 #include "boot/config.h"
+#include "boot/flags.h"
 #include "version.h"
 #include "boot/bootlib.h"
 #include "boot/handler.h"
@@ -22,13 +23,17 @@
  *   BOOT/USER alternating -- a general exception has occured
  */
 
+unsigned int __attribute__((section(".boot_flags"))) boot_flags = BOOT_FLAG_HOLD | BOOT_FLAG_NOPROGRAM;
 
 int main(void) {
     unsigned int errorepc;
     boot_handler_setup(&errorepc);
     boot_uart_init();
+    
+    boot_print("booting...\r\n");
+
     boot_signal_init();
-    boot_transfer_init();
+//    boot_transfer_init();
 
     /*
     boot_print("BOOTLOADER ");
@@ -82,9 +87,9 @@ int main(void) {
 
         switch (cmd) {
             case 'L':
-                if (!load_user_program(&entry, &user_sp, &user_gp)) {
-                    start_user_program(entry, user_sp, user_gp);
-                }
+//                if (!load_user_program(&entry, &user_sp, &user_gp)) {
+//                    start_user_program(entry, user_sp, user_gp);
+//                }
                 boot_internal_error();
                 break;
             default:

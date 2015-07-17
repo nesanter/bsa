@@ -67,7 +67,11 @@ Body:
                 read a newline-terminated error message from the bootloader
                 exit indicating failure
 
-        Step 6:
+        Step 6 (optional):
+            image loader sends 'F' then 'h' to disable soft hold
+            bootloader replies with 'h'
+
+        Step 7:
             image loader sends 'R'
             if the bootloader replies with 'R':
                 exit indicating success
@@ -76,7 +80,8 @@ Body:
 
 2.) What other commands does the bootloader support?
 
-    None at this time.
+    Interaction with the bootloader's flags is performed with the 'F' command.
+    See doc/bootloader/flags for more information.
 
 --------------
 
