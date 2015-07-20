@@ -6,7 +6,6 @@
 #include "version.h"
 
 #define VIRT_OFFSET (0xA0000000)
-#define HANDLER_VECTOR_SECTION ".vector_31"
 
 int transfer_ready = 0;
 
@@ -29,7 +28,7 @@ void boot_uart_init() {
     ANSELB = anselb;
 
     // pps
-    U1RXR = 0x5; // RX
+    U1RXR = 0x4; // RX
     RPB3R = 0x1; // TX
 
     // baud
@@ -54,12 +53,20 @@ void boot_uart_init() {
     boot_print_enable();
 }
 
+void __attribute((interrupt(IPL2SOFT), nomips16)) boot_transfer_handler() {
+    transfer_ready = 1;
+
+    DCH1INTCLR = 0x4;
+}
+
 void boot_transfer_init() {
     /*
     unsigned int bmxcon = BMXCON;
     bmxcon = (bmxcon & 0xFFFFFFFC) | 0x00000002; // set arbitration mode to rotating priority
     BMXCON = bmxcon;
     */
+    
+    boot_set_vector_table_entry(31, &boot_transfer_handler);
 
     DMACONSET = 0x00008000; // DMA on
 
@@ -83,6 +90,10 @@ void boot_transfer_enable() {
     DCH1CONSET = 0x80;
 }
 
+void boot_transfer_shutdown() {
+    boot_set_vector_table_entry(31, 0);
+}
+
 unsigned int boot_get_crc() {
     return DCRCDATA;
 }
@@ -104,18 +115,63 @@ void boot_read_blocking(char *buffer, unsigned int length) {
     }
 }
 
-void __attribute((interrupt(IPL2SOFT), nomips16)) boot_transfer_handler() {
-    transfer_ready = 1;
 
-    DCH1INTCLR = 0x4;
+unsigned int flash_unlock(nvm_op op) {
+    unsigned int int_status;
+    asm volatile ("di %0" : "=r" (int_status));
+
+    NVMCON = op;
+
+    NVMCONSET = 0x00040000;
+
+    NVMKEY = UNLOCK_KEY_A;
+    NVMKEY = UNLOCK_KEY_B;
+
+    NVMCONSET = 0x00008000;
+
+    while (NVMCON & 0x00008000);
+
+    if (int_status & 0x00000001)
+        asm volatile ("ei");
+    else
+        asm volatile ("di");
+
+    NVMCONCLR = 0x00040000;
+
+    return (NVMCON & 0x00003000);
 }
 
-unsigned int flash_unlock_write_row(unsigned int row_addr) {
-    return 0;
+unsigned int flash_write_word(unsigned int value, unsigned int dest_addr) {
+    if (dest_addr < 0x1002400 || dest_addr >= 0x1DF000 || dest_addr & 0x3) {
+        return 1;
+    }
+    NVMDATA = value;
+    NVMADDR = dest_addr;
+
+    return flash_unlock(NVM_WRITE_WORD);
+}
+
+unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr) {
+    if (src_addr >= 0x8000 || src_addr & 0x3) {
+        return 1;
+    }
+    if (dest_addr < 0x1D002400 || dest_addr >= 0x1D1F000 || dest_addr & 0x1FF) {
+        return 1;
+    }
+    
+    NVMADDR = dest_addr;
+    NVMSRCADDR = src_addr;
+
+    return flash_unlock(NVM_WRITE_ROW);
 }
 
 unsigned int flash_unlock_erase(unsigned int page_addr) {
-    return 0;
+    if (page_addr < 0x1D002400 || page_addr >= 0x1DF000 || page_addr & 0xFFF) {
+        return 1;
+    }
+    NVMADDR = page_addr;
+
+    return flash_unlock(NVM_PAGE_ERASE);
 }
 
 void boot_signal_init() {
@@ -125,31 +181,57 @@ void boot_signal_init() {
 
 void boot_signal_set(boot_signal sig, unsigned int on) {
     if (on)
-        PORTASET = 0x1;
+        PORTASET = sig;
     else
-        PORTACLR = 0x1;
+        PORTACLR = sig;
 }
 
 void boot_internal_error() {
     PORTACLR = SIGNAL_USER | SIGNAL_BOOT;
     
     int phase = 0, phases = 5;
-    unsigned int delay[5] = { 10000000, 1000000, 1000000, 1000000, 30000000 };
+    unsigned int delay[5] = { 1000000, 1000000, 1000000, 1000000, 3000000 };
 
-    unsigned int count, current, overflow;
-    asm volatile ("mfc0 %0, $9" : "=r" (count));
+    unsigned int count;
+    asm volatile ("mtc0 $zero, $9");
     while (1) {
-        if (count + delay[phase] < count) {
-            overflow = 1;
-        } else {
-            overflow = 0;
-        }
-        count += delay[phase];
         do {
-            asm volatile ("mfc0 %0, $9" : "=r" (current));
-        } while ((overflow && (current > count) || (!overflow && current < count)));
+            asm volatile ("mfc0 %0, $9" : "=r" (count));
+        } while (count < delay[phase]);
+        asm volatile ("mtc0 $zero, $9");
         PORTAINV = SIGNAL_BOOT;
         phase++;
+        if (phase == phases)
+            phase = 0;
     }
  
 }
+
+unsigned int physical_address(void *virt) {
+    if (virt > 0xBF800000)
+        return (unsigned int)(virt - 0xA0000000); //sfrs
+    if (virt > 0xBD000000)
+        return (unsigned int)(virt - 0xA0000000); //kseg1
+    if (virt > 0xA0000000)
+        return (unsigned int)(virt - 0xA0000000); //ram
+    if (virt > 0x9D000000)
+        return (unsigned int)(virt - 0x80000000); //kseg0
+    return 0; //error
+}
+
+void soft_reset() {
+    asm volatile ("di");
+    DMACONSET = 0x00001000; //suspend any DMA
+
+    SYSKEY = 0x00000000;
+    SYSKEY = UNLOCK_KEY_A;
+    SYSKEY = UNLOCK_KEY_B;
+
+    RSWRSTSET = 0x1;
+
+    unsigned int volatile dummy;
+    dummy = RSWRSTSET;
+
+    while (1);
+}
+

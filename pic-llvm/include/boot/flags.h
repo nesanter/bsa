@@ -1,0 +1,18 @@
+#ifndef BOOT_FLAGS_H
+#define BOOT_FLAGS_H
+
+enum {
+    SYSCALL_RESET = 0x0,
+    SYSCALL_GET_FLAGS = 0x1,
+    SYSCALL_SET_FLAGS = 0x2,
+    SYSCALL_CLEAR_FLAGS = 0x3
+};
+
+enum {
+    BOOT_FLAG_NOPROGRAM = 0x1,
+    BOOT_FLAG_HOLD = 0x2,
+    BOOT_FLAG_HOLD_ON_ERROR = 0x4,
+    BOOT_FLAG_RESET_ON_ERROR = 0x8
+};
+
+#endif /* BOOT_FLAGS_H */

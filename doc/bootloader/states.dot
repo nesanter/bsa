@@ -1,0 +1,39 @@
+digraph bootloader {
+    rankdir="LR";
+    node [label=""];
+    on_boot -> entry [label="boot"];
+    on_boot [shape=plaintext];
+    entry -> normal_boot [label="normal"];
+    entry -> exceptional_boot [label="exceptional"];
+    exceptional_boot -> exceptional_boot_handler;
+    exceptional_boot_handler -> exceptional_boot_handler_reboot [label="reset"];
+    normal_boot -> no_program [label="NP set"];
+    normal_boot -> hold_before_run [label="NP clear"];
+    no_program -> program_loaded [label="load program"];
+    program_loaded -> program_failure [label="failure"];
+    program_loaded -> hold_before_run [label="success"];
+    program_failure -> signal_program_failure [label="(set NP)"];
+    signal_program_failure -> program_failure_reboot;
+    program_failure_reboot [label="reboot",shape=triangle]
+    hold_before_run -> run_user_program [label="H clear & run"];
+    hold_before_run -> hold_before_run [label="H set | hold"];
+    run_user_program [shape=triangle,label="run"];
+    run_user_program -> user_program_exited [label="exit"];
+    run_user_program -> print_runtime_exception [label="exception"];
+    print_runtime_exception -> hold_after_exception;
+    hold_after_exception -> print_runtime_exception_again;
+    hold_after_exception -> roe_reboot [label="ROE set"];
+    roe_reboot [shape=triangle,label="reboot"];
+    print_runtime_exception_again -> hold_after_exception;
+    user_program_exited -> { hold_after_user_program_exit, program_loaded };
+    hold_after_user_program_exit -> program_loaded;
+
+    "*" -> exceptional_reboot [label="NMI"];
+    "*" -> reset_reboot [label="reset"];
+    reset_reboot [shape=triangle,label="reboot"];
+    "*" -> hold_after_be [label="BEV"];
+    "*" [shape=plaintext];
+    hold_after_be -> exceptional_reboot [label="reset"];
+    exceptional_reboot [shape=triangle,label="reboot"];
+}
+
