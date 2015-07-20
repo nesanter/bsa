@@ -1,0 +1,29 @@
+pkgname="bsa-tools"
+pkgver="1.0rc4"
+pkgrel="1"
+arch=('x86_64')
+pkgdesc="BSA compiler and runtime image"
+depends=('llvm')
+makedepends=('gdc' 'clang')
+
+build() {
+
+    git clone "git@github.com:nesanter/bsa.git"
+
+    cd "${srcdir}/bsa/reference-llvm"
+    ./build
+
+    cd "${srcdir}/bsa/pic-llvm"
+    ./gen-sources
+    ./build-runtime
+    ./gen-manifest
+}
+
+package() {
+    mkdir -p "${pkgdir}/usr/local/bin"
+    install "${srcdir}/bsa/reference-llvm/out/bl2" "${pkgdir}/usr/local/bin"
+    install -d "${srcdir}/bsa/util" "${pkgdir}/usr/local/bin"
+    mkdir -p "${pkgdir}/usr/local/share/bsa-tools"
+    cp "${srcdir}/bsa/pic-llvm/out/bl-runtime.a" "${pkgdir}/usr/local/share/bsa-tools"
+    cp "${srcdir}/bsa/pic-llvm/out/manifest" "${pkgdir}/usr/local/share/bsa-tools"
+}
