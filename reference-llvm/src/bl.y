@@ -12,6 +12,8 @@
     unsigned long refid;
 }
 
+%define parse.error verbose
+
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
