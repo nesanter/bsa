@@ -1165,6 +1165,9 @@ extern (C) {
             fn.values[null] = current_function;
             fn.arg_types = args.types;
         } else {
+            if (fn.type != SymbolType.FUNCTION) {
+                error_function_shadows_different_type(text(ident));
+            }
             if (fn.arg_types.length != args.types.length) {
 //                stderr.writeln("error: inconsistent use of function ",text(ident), " (line ",yylineno,")");
 //                generic_error();

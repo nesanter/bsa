@@ -148,6 +148,13 @@ void error_function_mismatch_with_prior_use(string ident) {
     error_action();
 }
 
+void error_function_shadows_different_type(string ident) {
+    write_error_prefix();
+    stderr.write("identifier ", ident, " was previously declared with a different type");
+    write_error_suffix();
+    error_action();
+}
+
 void error_shadowing(string ident) {
     write_error_prefix();
     stderr.write(ident, " shadows");
