@@ -21,7 +21,9 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL POUND
-%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE TRUE FALSE
+%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
+%token SCOPE ALWAYS SUCCESS FAILURE
+%token TRUE FALSE
 
 %precedence PAREN
 %left OR
@@ -75,6 +77,7 @@ statement: SEMI /* "empty" statement */
          | yield_statement SEMI
 /*         | return_statement SEMI */
          | fork_statement SEMI
+         | sync_statement SEMI
          ;
 
 if_statement: IF LPAREN expression RPAREN { $<refid>$ = statement_if_begin($3); } LBRACE body RBRACE { statement_if_break($<refid>5); } else_statement { $$ = statement_if_end($<refid>5, $10); }
@@ -114,6 +117,11 @@ return_statement: RETURN { statement_return_void(); }
 */
 
 fork_statement: FORK IDENT { statement_fork($2); }
+              ;
+
+sync_statement: SYNC_BOTH { statement_sync(1, 1); }
+              | SYNC_READ { statement_sync(1, 0); }
+              | SYNC_WRITE { statement_sync(0, 1); }
               ;
 
 assign_statement: IDENT EQUAL expression { statement_assign($1, $3); }

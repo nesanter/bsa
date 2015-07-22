@@ -51,6 +51,9 @@
 "yield" { return YIELD; }
  /* "return" { return RETURN; }*/
 "fork" { return FORK; }
+"sync" { return SYNC_BOTH; }
+"sync_r" { return SYNC_READ; }
+"sync_w" { return SYNC_WRITE; }
 "scope" { return SCOPE; }
 "always" { return ALWAYS; }
 "success" { return SUCCESS; }
