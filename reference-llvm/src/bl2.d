@@ -56,6 +56,10 @@ extern (C) {
         error_yyerror(text(s));
 //        stderr.writeln("Error (\033[1;34mline ",yylineno,"\033[0m): \033[1;31m",text(s), "\033[0m");
     }
+
+    void flex_error(char *c, int length) {
+        error_lexical(to!string(c[0..length]));
+    }
 }
 
 bool dump_on_error = false;

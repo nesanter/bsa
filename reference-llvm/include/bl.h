@@ -2,6 +2,7 @@
 #define BL_H
 
 void yyerror(char *s, ...);
+void flex_error(char *s, int length);
 int error_occured;
 
 unsigned long expr_atom_ident(char *s);

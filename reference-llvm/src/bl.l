@@ -66,12 +66,16 @@
 
  /* textual identifiers */
 [a-zA-Z][a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
+_+.?[a-zA-Z0-9]+[a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
 
  /* whitespace */
 [ \t\n]+
 
+ /* specific errors */
+_+ { flex_error(yytext, yyleng); }
+
  /* catch-all */
-. { fprintf(stderr, "Lexical error: unexpected symbol (line %d)\n", yylineno); }
+. { flex_error(yytext, yyleng); }
 
 %%
 

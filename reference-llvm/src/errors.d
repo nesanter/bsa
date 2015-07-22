@@ -45,6 +45,13 @@ void error_yyerror(string msg) {
     write_error_suffix();
 }
 
+void error_lexical(string bad) {
+    write_error_prefix();
+    stderr.write("lexical error, unexpected symbol '", bad, "'");
+    write_error_suffix();
+    error_action();
+}
+
 void error_internal() {
     if (color_errors)
         stderr.writeln("[\033[1;31minternal error\033[0m]");
