@@ -137,10 +137,17 @@ extern (C) {
 //            return ulong.max;
         }
         auto res = new Expression;
-        res.value = sym.values[sym.last_block];
-        res.is_bool = sym.is_bool;
-        if (res.value.is_const())
-            res.const_is_sym = sym;
+
+        if (sym.is_global && sym.parent != current_function) {
+            res.value = current_builder.load(sym.global_value);
+            res.is_bool = false;
+            sym.parent = current_function;
+        } else {
+            res.value = sym.values[sym.last_block];
+            res.is_bool = sym.is_bool;
+            if (res.value.is_const())
+                res.const_is_sym = sym;
+        }
         return res.reference();
     }
 
@@ -1185,6 +1192,14 @@ extern (C) {
             warn_boolean_return();
             current_value = current_builder.select(current_value, true_numeric_value, false_numeric_value);
         }
+
+        foreach (sym; SymbolTable.symbols) {
+            if (sym.is_global && sym.parent == current_function) {
+                current_builder.store(sym.values[current_block], sym.global_value);
+                sym.parent = null;
+            }
+        }
+
         current_builder.ret(current_value);
         flush_symbols(current_function);
     }
@@ -1295,6 +1310,18 @@ extern (C) {
         auto q = QualifiedIdentifier.lookup(qident_ref);
         q.idents ~= text(ident);
         return q.reference();
+    }
+
+    /* Global */
+
+    void global_create(char *ident, int value) {
+        auto sym = create_symbol(text(ident));
+
+        sym.is_global = true;
+        sym.type = SymbolType.VARIABLE;
+
+        sym.global_value = Value.create_global_variable(current_module, numeric_type, text(ident));
+        sym.global_value.set_initializer(Value.create_const_int(numeric_type, value));
     }
 }
 

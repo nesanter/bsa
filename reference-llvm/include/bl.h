@@ -65,4 +65,6 @@ unsigned long qident_add(unsigned long qident_ref, char *ident);
 
 char *escape_string(char *s);
 
+void global_create(char *ident, int value);
+
 #endif /* BL_H */

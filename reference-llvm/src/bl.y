@@ -7,6 +7,7 @@
 
 %union {
     uint64_t llu;
+    int32_t d;
     char *text;
     unsigned long refid;
 }
@@ -29,6 +30,7 @@
 %precedence UNARY
 
 %type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
+%type <d> constant_atom constant_expression
 
 %%
 
@@ -44,7 +46,7 @@ function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0
                   | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); }
                   ;
 
-global_def: IDENT EQUAL constant_expression SEMI
+global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3); }
           ;
 
 args: %empty { $$ = args_empty(); }
@@ -132,27 +134,27 @@ expression: atom { $$ = $1; }
           | PLUS expression %prec UNARY { $$ = expr_op_pos($2); }
           ;
 
-constant_expression: constant_atom
-          | LPAREN constant_expression RPAREN
-          | constant_expression OR constant_expression
-          | constant_expression XOR constant_expression
-          | constant_expression AND constant_expression
-          | constant_expression EQUAL_EQUAL constant_expression
-          | constant_expression LANGLE constant_expression
-          | constant_expression RANGLE constant_expression
-          | constant_expression LANGLE_EQUAL constant_expression
-          | constant_expression RANGLE_EQUAL constant_expression
-          | constant_expression PLUS constant_expression
-          | constant_expression MINUS constant_expression
-          | constant_expression STAR constant_expression
-          | constant_expression FSLASH constant_expression
-          | constant_expression PERCENT constant_expression
-          | NOT constant_expression %prec UNARY
-          | MINUS constant_expression %prec UNARY
-          | PLUS constant_expression %prec UNARY
+constant_expression: constant_atom { $$ = $1; }
+          | LPAREN constant_expression RPAREN { $$ = $2; }
+          | constant_expression OR constant_expression { $$ = (($1 != 0) || ($3 != 0)) ? 1 : 0; }
+          | constant_expression XOR constant_expression { $$ = ((($1 != 0) ? 1 : 0) != (($3 != 0) ? 1 : 0)) ? 1 : 0; }
+          | constant_expression AND constant_expression { $$ = (($1 != 0) && ($3 != 0)) ? 1 : 0; }
+          | constant_expression EQUAL_EQUAL constant_expression { $$ = ($1 == $3) ? 1 : 0; }
+          | constant_expression LANGLE constant_expression { $$ = ($1 < $3) ? 1 : 0; }
+          | constant_expression RANGLE constant_expression { $$ = ($1 > $3) ? 1 : 0; }
+          | constant_expression LANGLE_EQUAL constant_expression { $$ = ($1 <= $3) ? 1 : 0; }
+          | constant_expression RANGLE_EQUAL constant_expression { $$ = ($1 >= $3) ? 1 : 0; }
+          | constant_expression PLUS constant_expression { $$ = $1 + $3; }
+          | constant_expression MINUS constant_expression { $$ = $1 - $3; }
+          | constant_expression STAR constant_expression { $$ = $1 * $3; }
+          | constant_expression FSLASH constant_expression { $$ = $1 / $3; }
+          | constant_expression PERCENT constant_expression { $$ = $1 % $3; }
+          | NOT constant_expression %prec UNARY { $$ = ($2 != 0) ? 0 : 1; }
+          | MINUS constant_expression %prec UNARY { $$ = -$2; }
+          | PLUS constant_expression %prec UNARY { $$ = $2; }
           ;
 
-constant_atom: NUMERIC
+constant_atom: NUMERIC { $$ = $1; }
              ;
 
 atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }

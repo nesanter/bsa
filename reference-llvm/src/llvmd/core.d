@@ -172,6 +172,8 @@ extern (C) {
 
        LLVMValueRef LLVMConstInt(LLVMTypeRef IntTy, ulong N, int SignExtend);
        LLVMValueRef LLVMConstString(const char *Str, uint Length, uint DontNullTerminate);
+
+       LLVMValueRef LLVMAddGlobal(LLVMModuleRef M, LLVMTypeRef Ty, const char * Name);
        LLVMValueRef LLVMConstNull(LLVMTypeRef Ty);
 
        void LLVMReplaceAllUsesWith(LLVMValueRef OldVal, LLVMValueRef NewVal);
@@ -192,6 +194,8 @@ extern (C) {
        void LLVMSetOperand(LLVMValueRef User, uint Index, LLVMValueRef Val);
 
        void LLVMDumpValue(LLVMValueRef Val);
+
+       void LLVMSetInitializer(LLVMValueRef GlobalVar, LLVMValueRef ConstantVal);
     
        LLVMOpcode LLVMGetInstructionOpcode(LLVMValueRef Inst);
 
@@ -288,6 +292,10 @@ class Value {
         return new Value(LLVMConstString(toStringz(s), cast(uint)s.length, 1));
     }
 
+    static Value create_global_variable(Module m, Type type, string s = null) {
+        return new Value(LLVMAddGlobal(m.mod, type.type, toStringz(s)));
+    }
+
     static Value create_const_null(Type t) {
         return new Value(LLVMConstNull(t.type));
     }
@@ -339,6 +347,10 @@ class Value {
         foreach (i, ind; indices)
             rawvals[i] = ind.val;
         return new Value(LLVMConstGEP(val, rawvals.ptr, cast(uint)rawvals.length));
+    }
+
+    void set_initializer(Value v) {
+        LLVMSetInitializer(val, v.val);
     }
 
     bool is_constant_string() {
@@ -418,6 +430,9 @@ extern (C) {
         LLVMValueRef LLVMBuildBr(LLVMBuilderRef, LLVMBasicBlockRef Dest);
         LLVMValueRef LLVMBuildCondBr(LLVMBuilderRef, LLVMValueRef If, LLVMBasicBlockRef Then, LLVMBasicBlockRef Else);
         LLVMValueRef LLVMBuildCall(LLVMBuilderRef, LLVMValueRef Fn, LLVMValueRef *Args, uint NumArgs, const char *Name);
+
+        LLVMValueRef LLVMBuildLoad(LLVMBuilderRef, LLVMValueRef PointerVal, const char * Name);
+        void LLVMBuildStore(LLVMBuilderRef, LLVMValueRef Val, LLVMValueRef Ptr);
 
         LLVMValueRef LLVMBuildPhi(LLVMBuilderRef, LLVMTypeRef T, const char *Name);
 
@@ -557,6 +572,14 @@ class Builder {
             raw_vals[i] = p.val;
         }
         return new Value(LLVMBuildCall(builder, fn.val, raw_vals.ptr, cast(uint)raw_vals.length, toStringz(name)));
+    }
+
+    Value load(Value ptr, string name = null) {
+        return new Value(LLVMBuildLoad(builder, ptr.val, toStringz(name)));
+    }
+
+    void store(Value val, Value ptr) {
+        LLVMBuildStore(builder, val.val, ptr.val);
     }
 
     Value phi(Type type, string name = null) {

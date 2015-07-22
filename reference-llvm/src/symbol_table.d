@@ -35,6 +35,7 @@ class Symbol {
     string ident;
 
     bool is_global;
+    Value global_value;
     Value parent;
     bool is_bool;
 
