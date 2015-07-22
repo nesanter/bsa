@@ -1,9 +1,11 @@
-%option noyywrap yylineno
+cioption noyywrap yylineno
 
 %{
     #include "bl.h"
     #include "bl.tab.h"
 %}
+
+%s SCOPETYPE
 
 %%
 
@@ -54,10 +56,10 @@
 "sync" { return SYNC_BOTH; }
 "sync_r" { return SYNC_READ; }
 "sync_w" { return SYNC_WRITE; }
-"scope" { return SCOPE; }
-"always" { return ALWAYS; }
-"success" { return SUCCESS; }
-"failure" { return FAILURE; }
+"scope" { BEGIN(SCOPETYPE); return SCOPE; }
+<SCOPETYPE>"always" { BEGIN(INITIAL); return ALWAYS; }
+<SCOPETYPE>"success" { BEGIN(INITIAL); return SUCCESS; }
+<SCOPETYPE>"failure" { BEGIN(INITIAL); return FAILURE; }
 
  /* strings */
 \"(([^"])|(\\\"))*\" { yylval.text = strdup(escape_string(yytext)); return STRING; }

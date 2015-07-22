@@ -50,7 +50,7 @@ function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
 
 function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
-                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); }
+/*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); } */
                   ;
 
 global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3); }
@@ -58,9 +58,9 @@ global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3); }
 
 args: %empty { $$ = args_empty(); }
     | IDENT { $$ = args_create($1, 0); }
-    | POUND IDENT { $$ = args_create($2, 1); }
+/*    | POUND IDENT { $$ = args_create($2, 1); } */
     | args COMMA IDENT { $$ = args_add($1, $3, 0); }
-    | args COMMA POUND IDENT { $$ = args_add($1, $4, 1); }
+/*    | args COMMA POUND IDENT { $$ = args_add($1, $4, 1); } */
     ;
 
 body: statement
@@ -96,7 +96,7 @@ while_statement: WHILE LPAREN expression RPAREN { $<refid>$ = statement_while_be
 while_statement: WHILE { $<refid>$ = statement_while_begin(); } LBRACE body RBRACE { $<refid>$ = statement_while_begin_do($<refid>2); } DO LBRACE body RBRACE { statement_while_end($<refid>6); }
                ;
 
-scope_statement: SCOPE scope_type LBRACE body RBRACE
+scope_statement: SCOPE LPAREN scope_type RPAREN LBRACE body RBRACE
                ;
 
 scope_type: ALWAYS
