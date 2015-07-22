@@ -1,7 +1,7 @@
 #ifndef BL_H
 #define BL_H
 
-void yyerror(char *s, ...);
+void yyerror(const char *s, ...);
 void flex_error(char *s, int length);
 int error_occured;
 

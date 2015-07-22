@@ -52,7 +52,7 @@ extern (C) {
     int yyparse();
     extern __gshared FILE* yyin;
 
-    void yyerror(char *s, ...) {
+    void yyerror(const char *s, ...) {
         error_yyerror(text(s));
 //        stderr.writeln("Error (\033[1;34mline ",yylineno,"\033[0m): \033[1;31m",text(s), "\033[0m");
     }

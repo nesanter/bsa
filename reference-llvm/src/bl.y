@@ -3,6 +3,9 @@
     #include <stdlib.h>
     #include <stdint.h>
     #include "bl.h"
+
+    // forward declare to suppress error
+    int yylex();
 %}
 
 %union {
