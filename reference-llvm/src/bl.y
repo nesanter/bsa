@@ -20,15 +20,10 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
-<<<<<<< HEAD
 %token DOT SEMI COMMA EQUAL AT
-%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE TRUE FALSE
-=======
-%token DOT SEMI COMMA EQUAL POUND
 %token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
->>>>>>> 805cd968ec93b94c288f48f67652440ad40cedd5
 
 %precedence PAREN
 %left OR
@@ -56,12 +51,8 @@ function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
 
 function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
-<<<<<<< HEAD
                   | FUNCTION attributes IDENT LPAREN args RPAREN { function_begin($3, $5, $2); }
-/*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 0); } */
-=======
 /*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); } */
->>>>>>> 805cd968ec93b94c288f48f67652440ad40cedd5
                   ;
 
 attributes: AT IDENT { $$ = attribute_value(0, $2); }

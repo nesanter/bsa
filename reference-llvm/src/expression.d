@@ -87,7 +87,7 @@ class SystemCall {
         this.args = args;
         this.string_arg = string_arg;
         this.string_arg_replaces_arg = string_arg_replaces_arg;
-        Type[] arg_types;
+        Type[] arg_types = [eh_ptr_type];
         foreach (n; 0 .. args)
             arg_types ~= numeric_type;
 
@@ -130,7 +130,7 @@ void init(string manifest_file) {
     system_calls["read"] = new SystemCall("___read_builtin", 1, false);
 
     yield_fn = current_module.add_function("___yield_builtin", Type.function_type(numeric_type, []));
-    fork_fn = current_module.add_function("___fork_builtin", Type.function_type(numeric_type, [Type.pointer_type(Type.function_type(numeric_type, []))]));
+    fork_fn = current_module.add_function("___fork_builtin", Type.function_type(numeric_type, [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
 
     if (manifest_file.length > 0)
         current_manifest = Manifest.load(File(manifest_file, "r"));
@@ -275,9 +275,9 @@ extern (C) {
                 }
                 strv = current_builder.global_string_ptr(str);
             }
-            res.value = current_builder.call(call.fn, praw ~ strv);
+            res.value = current_builder.call(call.fn, [current_eh] ~ praw ~ strv);
         } else {
-            res.value = current_builder.call(call.fn, praw);
+            res.value = current_builder.call(call.fn, [current_eh] ~ praw);
         }
 
         return res.reference();
@@ -1163,7 +1163,7 @@ extern (C) {
             fn = create_symbol(text(ident));
             fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
-            fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, []));
+            fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, [eh_ptr_type]));
         } else {
             if (fn.arg_types.length != 0) {
 //                stderr.writeln("error: cannot fork function with arguments ", text(ident), " (line ",yylineno,")");
@@ -1171,7 +1171,7 @@ extern (C) {
                 error_fork_function_with_arguments(text(ident));
             }
         }
-        current_builder.call(fork_fn, [fn.values[null]]);
+        current_builder.call(fork_fn, [current_eh, fn.values[null]]);
         current_value = void_value;
     }
 
