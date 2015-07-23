@@ -20,7 +20,7 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
-%token DOT SEMI COMMA EQUAL POUND
+%token DOT SEMI COMMA EQUAL AT
 %token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
@@ -36,8 +36,9 @@
 %right NOT
 %precedence UNARY
 
+%type <llu> attributes
 %type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
-%type <d> constant_atom constant_expression
+%type <d> constant_atom constant_expression scope_type
 
 %%
 
@@ -50,8 +51,13 @@ function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
 
 function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
+                  | FUNCTION attributes IDENT LPAREN args RPAREN { function_begin($3, $5, $2); }
 /*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); } */
                   ;
+
+attributes: AT IDENT { $$ = attribute_value(0, $2); }
+          | attributes AT IDENT { $$ = attribute_value($1, $3); }
+          ;
 
 global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3); }
           ;
@@ -96,12 +102,17 @@ while_statement: WHILE LPAREN expression RPAREN { $<refid>$ = statement_while_be
 while_statement: WHILE { $<refid>$ = statement_while_begin(); } LBRACE body RBRACE { $<refid>$ = statement_while_begin_do($<refid>2); } DO LBRACE body RBRACE { statement_while_end($<refid>6); }
                ;
 
-scope_statement: SCOPE LPAREN scope_type RPAREN LBRACE body RBRACE
+/*
+scope_statement: SCOPE LPAREN scope_type RPAREN { statement_scope_begin($3); } LBRACE body RBRACE { statement_scope_end(); }
+               ;
+*/
+
+scope_statement: SCOPE LPAREN scope_type RPAREN IDENT { statement_scope($3, $5); }
                ;
 
-scope_type: ALWAYS
-          | SUCCESS
-          | FAILURE
+scope_type: ALWAYS { $$ = HANDLER_ALWAYS; }
+          | SUCCESS { $$ = HANDLER_SUCCESS; }
+          | FAILURE { $$ = HANDLER_FAILURE; }
           ;
 
 block_statement: BLOCK IDENT
