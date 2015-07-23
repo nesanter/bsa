@@ -48,7 +48,13 @@ void statement_yield();
 
 void statement_fork(char *ident);
 
+<<<<<<< HEAD
 void function_begin(char *ident, unsigned long args_ref, int no_eh);
+=======
+void statement_sync(int read, int write);
+
+void function_begin(char *ident, unsigned long args_ref, int returns_object);
+>>>>>>> 805cd968ec93b94c288f48f67652440ad40cedd5
 void function_end();
 
 unsigned long attribute_value(unsigned long cur, char *ident);

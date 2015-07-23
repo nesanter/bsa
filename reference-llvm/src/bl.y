@@ -20,8 +20,15 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
+<<<<<<< HEAD
 %token DOT SEMI COMMA EQUAL AT
 %token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE TRUE FALSE
+=======
+%token DOT SEMI COMMA EQUAL POUND
+%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
+%token SCOPE ALWAYS SUCCESS FAILURE
+%token TRUE FALSE
+>>>>>>> 805cd968ec93b94c288f48f67652440ad40cedd5
 
 %precedence PAREN
 %left OR
@@ -49,8 +56,12 @@ function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
 
 function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
+<<<<<<< HEAD
                   | FUNCTION attributes IDENT LPAREN args RPAREN { function_begin($3, $5, $2); }
 /*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 0); } */
+=======
+/*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); } */
+>>>>>>> 805cd968ec93b94c288f48f67652440ad40cedd5
                   ;
 
 attributes: AT IDENT { $$ = attribute_value(0, $2); }
@@ -81,6 +92,7 @@ statement: SEMI /* "empty" statement */
          | yield_statement SEMI
 /*         | return_statement SEMI */
          | fork_statement SEMI
+         | sync_statement SEMI
          ;
 
 if_statement: IF LPAREN expression RPAREN { $<refid>$ = statement_if_begin($3); } LBRACE body RBRACE { statement_if_break($<refid>5); } else_statement { $$ = statement_if_end($<refid>5, $10); }
@@ -99,7 +111,7 @@ while_statement: WHILE LPAREN expression RPAREN { $<refid>$ = statement_while_be
 while_statement: WHILE { $<refid>$ = statement_while_begin(); } LBRACE body RBRACE { $<refid>$ = statement_while_begin_do($<refid>2); } DO LBRACE body RBRACE { statement_while_end($<refid>6); }
                ;
 
-scope_statement: SCOPE scope_type LBRACE body RBRACE
+scope_statement: SCOPE LPAREN scope_type RPAREN LBRACE body RBRACE
                ;
 
 scope_type: ALWAYS
@@ -120,6 +132,11 @@ return_statement: RETURN { statement_return_void(); }
 */
 
 fork_statement: FORK IDENT { statement_fork($2); }
+              ;
+
+sync_statement: SYNC_BOTH { statement_sync(1, 1); }
+              | SYNC_READ { statement_sync(1, 0); }
+              | SYNC_WRITE { statement_sync(0, 1); }
               ;
 
 assign_statement: IDENT EQUAL expression { statement_assign($1, $3); }

@@ -1175,6 +1175,17 @@ extern (C) {
         current_value = void_value;
     }
 
+    void statement_sync(int read, int write) {
+        foreach (sym; SymbolTable.symbols) {
+            if (sym.is_global && sym.parent == current_function) {
+                if (write)
+                    current_builder.store(sym.values[current_block], sym.global_value);
+                if (read)
+                    sym.parent = null;
+            }
+        }
+    }
+
     /* Functions */
 
     Value make_eh(Value parent) {
