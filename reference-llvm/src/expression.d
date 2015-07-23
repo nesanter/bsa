@@ -18,7 +18,7 @@ bool[3] current_function_has_handlers;
 Type object_type, numeric_type, bool_type, string_type, eh_type, eh_ptr_type, ex_info_type;
 Value void_value, false_value, true_value,
       false_numeric_value, true_numeric_value,
-      eh_default_flags;
+      eh_default_flags, null_eh;
 
 Value yield_fn, fork_fn;
 
@@ -134,6 +134,7 @@ void init(string manifest_file) {
     true_numeric_value = Value.create_const_int(numeric_type, 1);
     false_numeric_value = Value.create_const_int(numeric_type, 0);
     eh_default_flags = Value.create_const_int(numeric_type, 0);
+    null_eh = Value.create_const_null(eh_ptr_type);
 
 
 //    write_function = current_module.add_function("___write_builtin", Type.function_type(numeric_type, [numeric_type]));
@@ -288,9 +289,17 @@ extern (C) {
                 }
                 strv = current_builder.global_string_ptr(str);
             }
-            res.value = current_builder.call(call.fn, [current_eh] ~ praw ~ strv);
+            if (current_eh is null) {
+                res.value = current_builder.call(call.fn, [null_eh] ~ praw ~ strv);
+            } else {
+                res.value = current_builder.call(call.fn, [current_eh] ~ praw ~ strv);
+            }
         } else {
-            res.value = current_builder.call(call.fn, [current_eh] ~ praw);
+            if (current_eh is null) {
+                res.value = current_builder.call(call.fn, [null_eh] ~ praw);
+            } else {
+                res.value = current_builder.call(call.fn, [current_eh] ~ praw);
+            }
         }
 
         return res.reference();
