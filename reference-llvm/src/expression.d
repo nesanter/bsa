@@ -11,10 +11,12 @@ Value current_function;
 BasicBlock current_block;
 
 Value current_value;
+Value current_eh;
 
-Type object_type, numeric_type, bool_type, string_type;
+Type object_type, numeric_type, bool_type, string_type, eh_type, eh_ptr_type;
 Value void_value, false_value, true_value,
-      false_numeric_value, true_numeric_value;
+      false_numeric_value, true_numeric_value,
+      eh_default_flags;
 
 Value yield_fn, fork_fn;
 
@@ -23,6 +25,16 @@ SystemCall[string] system_calls;
 IfElse active_ifelse;
 
 Manifest current_manifest;
+
+enum FunctionAttribute {
+    NONE = 0UL,
+    NOSCOPE = 1UL,
+    NONEXISTANT = 0xFFFFFFFFFFFFFFFFUL
+}
+enum function_attributes = [
+    "none" : FunctionAttribute.NONE,
+    "noscope" : FunctionAttribute.NOSCOPE
+];
 
 class Expression {
     mixin ReferenceHandler;
@@ -93,12 +105,22 @@ void init(string manifest_file) {
     numeric_type = Type.int_type(32);
     bool_type = Type.int_type(1);
     object_type = Type.struct_type([], false);
+    eh_type = Type.named_struct_type("eh_t");
+    eh_type.set_body([
+        Type.pointer_type(eh_type),
+        Type.int_type(32),
+        Type.pointer_type(Type.function_type(Type.void_type(), [])),
+        Type.pointer_type(Type.function_type(Type.void_type(), [])),
+        Type.pointer_type(Type.function_type(Type.void_type(), []))
+    ], false);
+    eh_ptr_type = Type.pointer_type(eh_type);
     string_type = Type.pointer_type(Type.int_type(8));
     void_value = Value.create_const_int(numeric_type, 0);
     true_value = Value.create_const_int(bool_type, 1);
     false_value = Value.create_const_int(bool_type, 0);
     true_numeric_value = Value.create_const_int(numeric_type, 1);
     false_numeric_value = Value.create_const_int(numeric_type, 0);
+    eh_default_flags = Value.create_const_int(numeric_type, 0);
 
 
 //    write_function = current_module.add_function("___write_builtin", Type.function_type(numeric_type, [numeric_type]));
@@ -141,7 +163,7 @@ extern (C) {
         if (sym.is_global && sym.parent != current_function) {
             res.value = current_builder.load(sym.global_value);
             res.is_bool = false;
-            sym.parent = current_function;
+//            sym.parent = current_function;
         } else {
             res.value = sym.values[sym.last_block];
             res.is_bool = sym.is_bool;
@@ -679,7 +701,7 @@ extern (C) {
             fn = create_symbol(text(ident));
             fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
-            Type[] types;
+            Type[] types = [eh_ptr_type];
             foreach (n; 0 .. p.values.length)
                 types ~= numeric_type;
             fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, types));
@@ -691,7 +713,7 @@ extern (C) {
                 error_inconsistent_function(text(ident));
             }
         }
-        current_value = current_builder.call(fn.values[null], p.values);
+        current_value = current_builder.call(fn.values[null], [current_eh] ~ p.values);
 
         foreach (i,s; p.const_syms) {
             if (s !is null) {
@@ -711,6 +733,7 @@ extern (C) {
 
         sym.type = SymbolType.VARIABLE;
 
+        sym.parent = current_function;
         sym.values[current_block] = rhs.value;
         sym.is_bool = rhs.is_bool;
         sym.last_block = current_block;
@@ -1154,11 +1177,20 @@ extern (C) {
 
     /* Functions */
 
-    void function_begin(char *ident, ulong args_ref, int returns_object) {
+    Value make_eh(Value parent) {
+        auto eh = current_builder.alloca(eh_type);
+        auto pptr = current_builder.struct_gep(eh, 0);
+        current_builder.store(parent, pptr);
+        auto fptr = current_builder.struct_gep(eh, 1);
+        current_builder.store(eh_default_flags, fptr);
+        return eh;
+    }
+
+    void function_begin(char *ident, ulong args_ref, int no_eh) {
         auto args = Arguments.lookup(args_ref);
         auto fn = find_symbol(text(ident));
         if (fn is null) {
-            current_function = current_module.add_function(text(ident), Type.function_type(numeric_type, args.types));
+            current_function = current_module.add_function(text(ident), Type.function_type(numeric_type, [eh_ptr_type] ~ args.types));
             fn = create_symbol(text(ident));
             fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
@@ -1180,10 +1212,16 @@ extern (C) {
         current_block = current_function.append_basic_block("entry");
         current_builder.position_at_end(current_block);
 
+        if (no_eh) {
+            current_eh = current_function.get_param(0);
+        } else {
+            current_eh = make_eh(current_function.get_param(0));
+        }
+
         current_value = void_value;
 
         foreach (i, sym; args.symbols) {
-            sym.values[current_block] = current_function.get_param(cast(uint)i);
+            sym.values[current_block] = current_function.get_param(cast(uint)i+1);
             sym.parent = current_function;
             sym.last_block = current_block;
         }
@@ -1205,6 +1243,16 @@ extern (C) {
 
         current_builder.ret(current_value);
         flush_symbols(current_function);
+    }
+
+    /* Attributes */
+
+    ulong attribute_value(ulong old, char *ident) {
+        ulong attr = function_attributes.get(text(ident), FunctionAttribute.NONEXISTANT);
+        if (attr == FunctionAttribute.NONEXISTANT) {
+            error_no_such_attribute(text(ident));
+        }
+        return old | attr;
     }
 
     /* Arguments */

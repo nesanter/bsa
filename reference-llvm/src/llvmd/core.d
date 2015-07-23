@@ -51,6 +51,11 @@ extern (C) {
 
         int LLVMVerifyModule(LLVMModuleRef M, LLVMVerifierFailureAction Action, char **OutMessage);
         void LLVMDisposeModule(LLVMModuleRef M);
+
+        struct LLVMOpaqueContext;
+        alias LLVMOpaqueContext* LLVMContextRef;
+
+        LLVMContextRef LLVMGetGlobalContext();
 }
 
 class Module {
@@ -119,7 +124,11 @@ extern (C) {
         LLVMTypeRef LLVMIntType(uint NumBits);
         LLVMTypeRef LLVMFunctionType(LLVMTypeRef ReturnType, LLVMTypeRef *ParamTypes, uint ParamCount, int IsVarArg);
         LLVMTypeRef LLVMStructType(LLVMTypeRef *ElementTypes, uint ElementCount, int Packed);
+        LLVMTypeRef LLVMStructCreateNamed(LLVMContextRef C, const char * Name);
         LLVMTypeRef LLVMPointerType(LLVMTypeRef ElementType, uint AddressSpace);
+        LLVMTypeRef LLVMVoidType();
+
+        void LLVMStructSetBody(LLVMTypeRef StructTy, LLVMTypeRef *ElementTypes, uint ElementCount, int Packed);
 
         void LLVMDumpType(LLVMTypeRef Ty);
 }
@@ -150,8 +159,24 @@ class Type {
         return new Type(LLVMStructType(els.ptr, cast(uint)els.length, packed ? 1 : 0));
     }
 
+    static Type named_struct_type(string name) {
+        return new Type(LLVMStructCreateNamed(LLVMGetGlobalContext(), toStringz(name)));
+    }
+
     static Type pointer_type(Type base) {
         return new Type(LLVMPointerType(base.type, 0));
+    }
+
+    static Type void_type() {
+        return new Type(LLVMVoidType());
+    }
+
+    void set_body(Type[] element_types, bool packed) {
+        LLVMTypeRef[] els = new LLVMTypeRef[](element_types.length);
+        foreach (i, et; element_types)
+            els[i] = et.type;
+
+        LLVMStructSetBody(type, els.ptr, cast(uint)els.length, packed ? 1 : 0);
     }
 
     void dump() {
@@ -434,6 +459,9 @@ extern (C) {
         LLVMValueRef LLVMBuildLoad(LLVMBuilderRef, LLVMValueRef PointerVal, const char * Name);
         void LLVMBuildStore(LLVMBuilderRef, LLVMValueRef Val, LLVMValueRef Ptr);
 
+        LLVMValueRef LLVMBuildStructGEP(LLVMBuilderRef, LLVMValueRef Pointer, uint Idx, const char * Name);
+        LLVMValueRef LLVMBuildAlloca(LLVMBuilderRef, LLVMTypeRef Ty, const char * Name);
+
         LLVMValueRef LLVMBuildPhi(LLVMBuilderRef, LLVMTypeRef T, const char *Name);
 
         void LLVMAddIncoming(LLVMValueRef PhiNode, LLVMValueRef *IncomingValues, LLVMBasicBlockRef *IncomingBlocks, uint count);
@@ -580,6 +608,14 @@ class Builder {
 
     void store(Value val, Value ptr) {
         LLVMBuildStore(builder, val.val, ptr.val);
+    }
+
+    Value alloca(Type type, string name = null) {
+        return new Value(LLVMBuildAlloca(builder, type.type, toStringz(name)));
+    }
+
+    Value struct_gep(Value ptr, uint index, string name = null) {
+        return new Value(LLVMBuildStructGEP(builder, ptr.val, index, toStringz(name)));
     }
 
     Value phi(Type type, string name = null) {

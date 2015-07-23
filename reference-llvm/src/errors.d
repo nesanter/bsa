@@ -169,6 +169,13 @@ void error_unknown_escape_sequence(char c) {
     error_action();
 }
 
+void error_no_such_attribute(string attr) {
+    write_error_prefix();
+    stderr.write("unknown function attribute @",attr);
+    write_error_suffix();
+    error_action();
+}
+
 void warn_boolean_parameter() {
     write_warn_prefix();
     stderr.write("boolean parameter will be passed as numeric");

@@ -20,7 +20,7 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
-%token DOT SEMI COMMA EQUAL POUND
+%token DOT SEMI COMMA EQUAL AT
 %token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SCOPE ALWAYS SUCCESS FAILURE TRUE FALSE
 
 %precedence PAREN
@@ -34,6 +34,7 @@
 %right NOT
 %precedence UNARY
 
+%type <llu> attributes
 %type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
 %type <d> constant_atom constant_expression
 
@@ -48,17 +49,22 @@ function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
 
 function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
-                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); }
+                  | FUNCTION attributes IDENT LPAREN args RPAREN { function_begin($3, $5, $2); }
+/*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 0); } */
                   ;
+
+attributes: AT IDENT { $$ = attribute_value(0, $2); }
+          | attributes AT IDENT { $$ = attribute_value($1, $3); }
+          ;
 
 global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3); }
           ;
 
 args: %empty { $$ = args_empty(); }
     | IDENT { $$ = args_create($1, 0); }
-    | POUND IDENT { $$ = args_create($2, 1); }
+/*    | POUND IDENT { $$ = args_create($2, 1); } */
     | args COMMA IDENT { $$ = args_add($1, $3, 0); }
-    | args COMMA POUND IDENT { $$ = args_add($1, $4, 1); }
+/*    | args COMMA POUND IDENT { $$ = args_add($1, $4, 1); } */
     ;
 
 body: statement

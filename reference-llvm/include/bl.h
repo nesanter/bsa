@@ -48,8 +48,10 @@ void statement_yield();
 
 void statement_fork(char *ident);
 
-void function_begin(char *ident, unsigned long args_ref, int returns_object);
+void function_begin(char *ident, unsigned long args_ref, int no_eh);
 void function_end();
+
+unsigned long attribute_value(unsigned long cur, char *ident);
 
 unsigned long args_empty();
 unsigned long args_create(char *ident, int is_object);
