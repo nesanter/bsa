@@ -1,4 +1,4 @@
-cioption noyywrap yylineno
+%option noyywrap yylineno
 
 %{
     #include "bl.h"

@@ -723,10 +723,10 @@ extern (C) {
             fn = create_symbol(text(ident));
             fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
-            Type[] types = [eh_ptr_type];
+            Type[] types;
             foreach (n; 0 .. p.values.length)
                 types ~= numeric_type;
-            fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, types));
+            fn.values[null] = current_module.add_function(text(ident), Type.function_type(numeric_type, [eh_ptr_type] ~ types));
             fn.arg_types = types;
         } else {
             if (fn.arg_types.length != p.values.length) {
@@ -1487,6 +1487,10 @@ extern (C) {
                 error_scope_not_handler();
             }
         }
+        auto epflags = current_builder.struct_gep(current_eh, 1);
+        auto flags = current_builder.load(epflags);
+        auto newflags = current_builder.or(flags, Value.create_const_int(numeric_type, 1 << type));
+        current_builder.store(newflags, epflags);
         auto fptr = current_builder.struct_gep(current_eh, type + 2);
         current_function_has_handlers[type] = true;
         current_builder.store(fn.values[null], fptr);

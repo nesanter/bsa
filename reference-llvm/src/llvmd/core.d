@@ -450,6 +450,7 @@ extern (C) {
         void LLVMDisposeBuilder(LLVMBuilderRef Builder);
 
         LLVMValueRef LLVMBuildAnd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildOr(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildAdd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildSub(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildMul(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
@@ -520,6 +521,10 @@ class Builder {
 
     Value and(Value lhs, Value rhs, string name = null) {
         return new Value(LLVMBuildAnd(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value or(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildOr(builder, lhs.val, rhs.val, toStringz(name)));
     }
     
     Value add(Value lhs, Value rhs, string name = null) {
