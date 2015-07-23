@@ -38,7 +38,7 @@
 
 %type <llu> attributes
 %type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
-%type <d> constant_atom constant_expression
+%type <d> constant_atom constant_expression scope_type
 
 %%
 
@@ -102,12 +102,17 @@ while_statement: WHILE LPAREN expression RPAREN { $<refid>$ = statement_while_be
 while_statement: WHILE { $<refid>$ = statement_while_begin(); } LBRACE body RBRACE { $<refid>$ = statement_while_begin_do($<refid>2); } DO LBRACE body RBRACE { statement_while_end($<refid>6); }
                ;
 
-scope_statement: SCOPE LPAREN scope_type RPAREN LBRACE body RBRACE
+/*
+scope_statement: SCOPE LPAREN scope_type RPAREN { statement_scope_begin($3); } LBRACE body RBRACE { statement_scope_end(); }
+               ;
+*/
+
+scope_statement: SCOPE LPAREN scope_type RPAREN IDENT { statement_scope($3, $5); }
                ;
 
-scope_type: ALWAYS
-          | SUCCESS
-          | FAILURE
+scope_type: ALWAYS { $$ = HANDLER_ALWAYS; }
+          | SUCCESS { $$ = HANDLER_SUCCESS; }
+          | FAILURE { $$ = HANDLER_FAILURE; }
           ;
 
 block_statement: BLOCK IDENT

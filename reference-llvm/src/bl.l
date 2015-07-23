@@ -71,7 +71,7 @@ cioption noyywrap yylineno
 
  /* textual identifiers */
 [a-zA-Z][a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
-_+.?[a-zA-Z0-9]+[a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
+_(_)?(\.)?[a-zA-Z0-9]+[a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
 
  /* whitespace */
 [ \t\n]+

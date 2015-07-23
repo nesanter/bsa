@@ -71,6 +71,7 @@ int main(string[] args) {
     string output_file;
     string manifest_file;
     bool print_ir;
+    bool no_entry;
 
     try {
         getopt(args,
@@ -79,7 +80,8 @@ int main(string[] args) {
                 "d", &print_ir,
                 "show-error-ir", &dump_on_error,
                 "color", &color_errors,
-                "strict", &conditional_definitions_are_errors
+                "strict", &conditional_definitions_are_errors,
+                "lib", &no_entry
               );
     } catch (Exception e) {
         stderr.writeln(e.msg);
@@ -105,6 +107,12 @@ int main(string[] args) {
 
     if (unimplemented_functions()) {
         return 1;
+    }
+
+    if (entry_function is null && !no_entry) {
+        error_no_entry();
+    } else if (entry_function !is null && no_entry) {
+        error_lib_with_entry();
     }
 
     if (output_file.length > 0) {

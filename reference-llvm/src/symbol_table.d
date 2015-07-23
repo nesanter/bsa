@@ -38,6 +38,7 @@ class Symbol {
     Value global_value;
     Value parent;
     bool is_bool;
+    bool is_handler;
 
     SymbolType type;
     //Value value;

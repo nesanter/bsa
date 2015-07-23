@@ -130,6 +130,8 @@ extern (C) {
 
         void LLVMStructSetBody(LLVMTypeRef StructTy, LLVMTypeRef *ElementTypes, uint ElementCount, int Packed);
 
+        LLVMTypeRef LLVMGetReturnType(LLVMTypeRef FunctionTy);
+
         void LLVMDumpType(LLVMTypeRef Ty);
 }
 
@@ -179,6 +181,10 @@ class Type {
         LLVMStructSetBody(type, els.ptr, cast(uint)els.length, packed ? 1 : 0);
     }
 
+    Type get_return_type() {
+        return new Type(LLVMGetReturnType(type));
+    }
+
     void dump() {
         LLVMDumpType(type);
     }
@@ -221,7 +227,9 @@ extern (C) {
        void LLVMDumpValue(LLVMValueRef Val);
 
        void LLVMSetInitializer(LLVMValueRef GlobalVar, LLVMValueRef ConstantVal);
-    
+
+       LLVMValueRef LLVMAddAlias(LLVMModuleRef M, LLVMTypeRef Ty, LLVMValueRef Aliasee, const char * Name);
+
        LLVMOpcode LLVMGetInstructionOpcode(LLVMValueRef Inst);
 
        enum LLVMOpcode {
@@ -323,6 +331,10 @@ class Value {
 
     static Value create_const_null(Type t) {
         return new Value(LLVMConstNull(t.type));
+    }
+
+    static Value add_alias(Module m, Type type, Value aliasee, string name = null) {
+        return new Value(LLVMAddAlias(m.mod, type.type, aliasee.val, toStringz(name)));
     }
 
     static void replace_all(Value old, Value replacement) {
@@ -437,6 +449,7 @@ extern (C) {
         void LLVMPositionBuilderBefore(LLVMBuilderRef Builder, LLVMValueRef Inst);
         void LLVMDisposeBuilder(LLVMBuilderRef Builder);
 
+        LLVMValueRef LLVMBuildAnd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildAdd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildSub(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildMul(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
@@ -505,6 +518,9 @@ class Builder {
         LLVMPositionBuilderBefore(builder, inst.val);
     }
 
+    Value and(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildAnd(builder, lhs.val, rhs.val, toStringz(name)));
+    }
     
     Value add(Value lhs, Value rhs, string name = null) {
         return new Value(LLVMBuildAdd(builder, lhs.val, rhs.val, toStringz(name)));

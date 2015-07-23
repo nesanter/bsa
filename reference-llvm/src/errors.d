@@ -176,6 +176,62 @@ void error_no_such_attribute(string attr) {
     error_action();
 }
 
+void error_handler_attr_unexpected() {
+    write_error_prefix();
+    stderr.write("unexpected function attribute @handler based on previous usage");
+    write_error_suffix();
+    error_action();
+}
+
+void error_handler_attr_expected() {
+    write_error_prefix();
+    stderr.write("expected function attribute @handler based on previous usage");
+    write_error_suffix();
+    error_action();
+}
+
+void error_multiple_entry() {
+    write_error_prefix();
+    stderr.write("multiple functions declared attribute @entry");
+    write_error_suffix();
+    error_action();
+}
+
+void error_no_entry() {
+    write_error_prefix();
+    stderr.write("no function declared with attribute @entry");
+    write_error_suffix();
+    error_action();
+}
+
+void error_lib_with_entry() {
+    write_error_prefix();
+    stderr.write("entry function present but -lib specified");
+    write_error_suffix();
+    error_action();
+}
+
+void error_entry_with_arguments() {
+    write_error_prefix();
+    stderr.write("entry function declared with arguments");
+    write_error_suffix();
+    error_action();
+}
+
+void error_scope_forbidden() {
+    write_error_prefix();
+    stderr.write("scope statements are forbidden in this context");
+    write_error_suffix();
+    error_action();
+}
+
+void error_scope_not_handler() {
+    write_error_prefix();
+    stderr.write("scope statements may only be used with @handler functions");
+    write_error_suffix();
+    error_action();
+}
+
 void warn_boolean_parameter() {
     write_warn_prefix();
     stderr.write("boolean parameter will be passed as numeric");

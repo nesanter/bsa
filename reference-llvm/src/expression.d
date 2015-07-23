@@ -7,13 +7,15 @@ import std.stdio;
 Module current_module;
 Builder current_builder;
 
+Value entry_function;
 Value current_function;
 BasicBlock current_block;
 
 Value current_value;
 Value current_eh;
+bool[3] current_function_has_handlers;
 
-Type object_type, numeric_type, bool_type, string_type, eh_type, eh_ptr_type;
+Type object_type, numeric_type, bool_type, string_type, eh_type, eh_ptr_type, ex_info_type;
 Value void_value, false_value, true_value,
       false_numeric_value, true_numeric_value,
       eh_default_flags;
@@ -26,14 +28,24 @@ IfElse active_ifelse;
 
 Manifest current_manifest;
 
+enum HandlerNumber {
+    ALWAYS = 0,
+    SUCCESS = 1,
+    FAILURE = 2
+}
+
 enum FunctionAttribute {
     NONE = 0UL,
-    NOSCOPE = 1UL,
+    PARENTSCOPE = 1UL,
+    HANDLER = 2UL,
+    ENTRY = 4UL,
     NONEXISTANT = 0xFFFFFFFFFFFFFFFFUL
 }
 enum function_attributes = [
     "none" : FunctionAttribute.NONE,
-    "noscope" : FunctionAttribute.NOSCOPE
+    "parentscope" : FunctionAttribute.PARENTSCOPE,
+    "handler" : FunctionAttribute.HANDLER,
+    "entry" : FunctionAttribute.ENTRY
 ];
 
 class Expression {
@@ -105,13 +117,14 @@ void init(string manifest_file) {
     numeric_type = Type.int_type(32);
     bool_type = Type.int_type(1);
     object_type = Type.struct_type([], false);
+    ex_info_type = numeric_type;
     eh_type = Type.named_struct_type("eh_t");
     eh_type.set_body([
         Type.pointer_type(eh_type),
         Type.int_type(32),
-        Type.pointer_type(Type.function_type(Type.void_type(), [])),
-        Type.pointer_type(Type.function_type(Type.void_type(), [])),
-        Type.pointer_type(Type.function_type(Type.void_type(), []))
+        Type.pointer_type(Type.function_type(Type.void_type(), [])), //always
+        Type.pointer_type(Type.function_type(Type.void_type(), [])), //success
+        Type.pointer_type(Type.function_type(Type.void_type(), [ex_info_type])) //failure
     ], false);
     eh_ptr_type = Type.pointer_type(eh_type);
     string_type = Type.pointer_type(Type.int_type(8));
@@ -1197,12 +1210,17 @@ extern (C) {
         return eh;
     }
 
-    void function_begin(char *ident, ulong args_ref, int no_eh) {
+    void function_begin(char *ident, ulong args_ref, ulong attr) {
         auto args = Arguments.lookup(args_ref);
         auto fn = find_symbol(text(ident));
         if (fn is null) {
-            current_function = current_module.add_function(text(ident), Type.function_type(numeric_type, [eh_ptr_type] ~ args.types));
             fn = create_symbol(text(ident));
+            if (attr & FunctionAttribute.HANDLER) {
+                fn.is_handler = true;
+                current_function = current_module.add_function(text(ident), Type.function_type(Type.void_type(), args.types));
+            } else {
+                current_function = current_module.add_function(text(ident), Type.function_type(numeric_type, [eh_ptr_type] ~ args.types));
+            }
             fn.is_global = true;
             fn.type = SymbolType.FUNCTION;
             fn.values[null] = current_function;
@@ -1210,6 +1228,12 @@ extern (C) {
         } else {
             if (fn.type != SymbolType.FUNCTION) {
                 error_function_shadows_different_type(text(ident));
+            }
+            if (attr & FunctionAttribute.HANDLER && !fn.is_handler) {
+                error_handler_attr_unexpected();
+            }
+            if (!(attr & FunctionAttribute.HANDLER) && fn.is_handler) {
+                error_handler_attr_expected();
             }
             if (fn.arg_types.length != args.types.length) {
 //                stderr.writeln("error: inconsistent use of function ",text(ident), " (line ",yylineno,")");
@@ -1222,17 +1246,31 @@ extern (C) {
         fn.implemented = true;
         current_block = current_function.append_basic_block("entry");
         current_builder.position_at_end(current_block);
+    
+        current_function_has_handlers = [0,0,0];
 
-        if (no_eh) {
+        if (attr & FunctionAttribute.HANDLER) {
+            current_eh = null;
+        } else if (attr & FunctionAttribute.PARENTSCOPE) {
             current_eh = current_function.get_param(0);
         } else {
             current_eh = make_eh(current_function.get_param(0));
         }
 
+        if (attr & FunctionAttribute.ENTRY) {
+            if (entry_function) {
+                error_multiple_entry();
+            }
+            if (fn.arg_types.length != 0) {
+                error_entry_with_arguments();
+            }
+            entry_function = Value.add_alias(current_module, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type])), current_function, "___entry");
+        }
+
         current_value = void_value;
 
         foreach (i, sym; args.symbols) {
-            sym.values[current_block] = current_function.get_param(cast(uint)i+1);
+            sym.values[current_block] = current_function.get_param(cast(uint)i+(fn.is_handler ? 0 : 1));
             sym.parent = current_function;
             sym.last_block = current_block;
         }
@@ -1252,8 +1290,37 @@ extern (C) {
             }
         }
 
-        current_builder.ret(current_value);
+        if (current_function_has_handlers[HandlerNumber.ALWAYS]) {
+            function_handler_check(HandlerNumber.ALWAYS);
+        }
+        if (current_function_has_handlers[HandlerNumber.SUCCESS]) {
+            function_handler_check(HandlerNumber.SUCCESS);
+        }
+
+        if (current_function.type.get_return_type().get_return_type().same(Type.void_type())) {
+            current_builder.ret_void();
+        } else {
+            current_builder.ret(current_value);
+        }
         flush_symbols(current_function);
+
+    }
+
+    void function_handler_check(int type) {
+        auto epflags = current_builder.struct_gep(current_eh, 1);
+        auto flags = current_builder.load(epflags);
+        auto bit = current_builder.and(flags, Value.create_const_int(numeric_type, (1 << type)));
+        auto bb_handler = current_function.append_basic_block("handler_"~to!string(type));
+        auto bb_posthandler = current_function.append_basic_block(null);
+        auto cond = current_builder.icmp_ne(bit, false_numeric_value);
+        auto br = current_builder.cond_br(cond, bb_handler, bb_posthandler);
+        current_builder.position_at_end(bb_handler);
+        auto epfn = current_builder.struct_gep(current_eh, 2+type);
+        auto fn = current_builder.load(epfn);
+        current_builder.call(fn, []);
+        current_builder.br(bb_posthandler);
+        current_block = bb_posthandler;
+        current_builder.position_at_end(bb_posthandler);
     }
 
     /* Attributes */
@@ -1384,6 +1451,36 @@ extern (C) {
 
         sym.global_value = Value.create_global_variable(current_module, numeric_type, text(ident));
         sym.global_value.set_initializer(Value.create_const_int(numeric_type, value));
+    }
+
+    /* Scope */
+
+    void statement_scope(int type, char *ident) {
+        if (current_eh is null) {
+            error_scope_forbidden();
+        }
+        current_value = void_value;
+        auto fn = find_symbol(text(ident));
+        if (fn is null) {
+            fn = create_symbol(text(ident));
+/*            fn.is_global = true; */
+            fn.is_handler = true;
+            fn.type = SymbolType.FUNCTION;
+            if (type == HandlerNumber.FAILURE) {
+                fn.values[null] = current_module.add_function(text(ident), Type.function_type(Type.void_type(), [ex_info_type]));
+                fn.arg_types = [ex_info_type];
+            } else {
+                fn.values[null] = current_module.add_function(text(ident), Type.function_type(Type.void_type(), []));
+                fn.arg_types = [];
+            }
+        } else {
+            if (!fn.is_handler) {
+                error_scope_not_handler();
+            }
+        }
+        auto fptr = current_builder.struct_gep(current_eh, type + 2);
+        current_function_has_handlers[type] = true;
+        current_builder.store(fn.values[null], fptr);
     }
 }
 

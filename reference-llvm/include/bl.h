@@ -46,9 +46,17 @@ void statement_while_end(unsigned long loop_ref);
 
 void statement_yield();
 
+enum {
+    HANDLER_ALWAYS = 0,
+    HANDLER_SUCCESS = 1,
+    HANDLER_FAILURE = 2
+};
+
+void statement_scope(int type, char * ident);
+
 void statement_fork(char *ident);
 
-void function_begin(char *ident, unsigned long args_ref, int no_eh);
+void function_begin(char *ident, unsigned long args_ref, unsigned long attr);
 void statement_sync(int read, int write);
 
 void function_end();
