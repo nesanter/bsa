@@ -1,0 +1,25 @@
+Files:
+    pic-llvm/src/bl.l
+
+--------------
+
+Meta:
+    Title: Valid Identifiers
+    Date: 7/22/15
+    Project: runtime
+    Groups: peripheral,hardware
+
+--------------
+
+Body:
+
+1.) What identifiers are considered valid for variable and function names?
+
+    Identifiers are composed of a sequence of alphanumeric, underscore,
+    and period characters with the following rules:
+        An identifier must have at least one alphabetic character [a-zA-Z]
+        An identifier must not begin with a period or a digit [.0-9]
+        An identifier must not begin with more than two underscores
+
+--------------
+
