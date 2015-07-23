@@ -70,8 +70,8 @@ cioption noyywrap yylineno
 [0-9]+(d)? { yylval.llu = strtoull(yytext, NULL, 10); return NUMERIC; }
 
  /* textual identifiers */
-[a-zA-Z][a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
-_(_)?(\.)?[a-zA-Z0-9]+[a-zA-Z0-9._]* { yylval.text = strdup(yytext); return IDENT; }
+[a-zA-Z][a-zA-Z0-9_]* { yylval.text = strdup(yytext); return IDENT; }
+_(_)?[a-zA-Z0-9]+[a-zA-Z0-9_]* { yylval.text = strdup(yytext); return IDENT; }
 
  /* whitespace */
 [ \t\n]+
