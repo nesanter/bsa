@@ -63,6 +63,7 @@ Lskip_save:
 
 Lentry:
 
+    add a0, 0 /* set eh_t* */
     lw sp, 36(a1)
     lw t0, 44(a1)
 
