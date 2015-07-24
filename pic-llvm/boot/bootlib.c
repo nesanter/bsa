@@ -100,7 +100,7 @@ unsigned int boot_get_crc() {
 
 void boot_print(char *s) {
     while (*s) {
-        while (!(U1STA & 0x200)) {
+        while (!(U1STA & 0x200) && *s) {
             U1TXREG = *s++;
         }
     }
