@@ -5,7 +5,7 @@ struct __attribute__((packed)) context {
     int s0, s1, s2, s3, s4, s5, s6, s7, gp;
     void *sp;
     int fp;
-    int (ra*)(void);
+    int (ra*)(void *);
 };
 
 enum task_state {
@@ -37,7 +37,7 @@ struct task_attributes {
 };
 
 void context_switch(struct context *save, struct context *restore, unsigned int return_value, unsigned int is_entry);
-int create_task(int (*fn)(void), struct task_attributes attributes);
+int create_task(int (*fn)(void *), struct task_attributes attributes);
 int schedule_task();
 
 void scheduler_loop();

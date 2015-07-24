@@ -143,8 +143,8 @@ void init(string manifest_file) {
     system_calls["write"] = new SystemCall("___write_builtin", 2, true, true);
     system_calls["read"] = new SystemCall("___read_builtin", 1, false);
 
-    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(numeric_type, []));
-    fork_fn = current_module.add_function("___fork_builtin", Type.function_type(numeric_type, [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
+    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), []));
+    fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
 
     if (manifest_file.length > 0)
         current_manifest = Manifest.load(File(manifest_file, "r"));

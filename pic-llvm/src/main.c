@@ -4,11 +4,12 @@
 //#include "ulib/ulib_int.h"
 #include "ulib/util.h"
 #include "exception.h"
+#include "task.h"
 
 //#include <sys/attribs.h>
 //#include "proc/p32mx250f128b.h"
 
-int ___entry(struct eh_t *eh);
+int ___entry(void *);
 
 void runtime_entry(void) {
 //    int i;
@@ -22,11 +23,11 @@ void runtime_entry(void) {
 
     uart_print("Hello, world!\r\n");
 
-    struct eh_t eh = { 0, 0 };
+    struct task_attributes attr = { TASK_SIZE_LARGE };
+    create_task(&___entry, attr);
+    schedule_task();
 
-    ___entry(&eh);
-
-    uart_print("done!\r\n");
+    /* unreachable */
 
     while (1);
 }

@@ -87,7 +87,10 @@ void ___yield_builtin() {
         scheduler_loop();
 }
 
-void ___fork_builtin(int (*fn)()) {
+/* technically, the second argument is a int (*)(struct eh_t *)
+ * in reality, it doesn't matter
+ */
+void ___fork_builtin(struct eh_t *eh, int (*fn)(void*)) {
     struct task_attributes attr  = { TASK_SIZE_LARGE };
     if (create_task(fn, attr)) {
         // error situation
