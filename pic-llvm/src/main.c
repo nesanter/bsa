@@ -3,11 +3,12 @@
 #include "ulib/ulib.h"
 //#include "ulib/ulib_int.h"
 #include "ulib/util.h"
+#include "exception.h"
 
 //#include <sys/attribs.h>
 //#include "proc/p32mx250f128b.h"
 
-int entry(void);
+int ___entry(struct eh_t *eh);
 
 void runtime_entry(void) {
 //    int i;
@@ -21,11 +22,12 @@ void runtime_entry(void) {
 
     uart_print("Hello, world!\r\n");
 
-    entry();
+    struct eh_t eh = { 0, 0 };
+
+    ___entry(&eh);
 
     uart_print("done!\r\n");
 
     while (1);
 }
-
 
