@@ -90,6 +90,7 @@ class While {
 }
 
 class SystemCall {
+    bool is_read, is_write;
     ulong args;
     Value fn;
     bool string_arg, string_arg_replaces_arg;
@@ -247,9 +248,9 @@ extern (C) {
             error_not_in_manifest(qname);
         }
 
-        ushort[2] qn = current_manifest.entries[qname];
+        auto ent = current_manifest.entries[qname];
 
-        Value[] praw = [Value.create_const_int(numeric_type, (qn[0] | (qn[1] << 16)))];
+        Value[] praw = [Value.create_const_int(numeric_type, ent.index)];
         string[] prawstr;
 
         foreach (v; p.values) {
@@ -261,7 +262,14 @@ extern (C) {
                 praw ~= v;
             }
         }
-        
+
+        if (!ent.syscall_allowed(text(ident))) {
+            error_intrinsic_not_allowed_for_target(text(ident), qname);
+        }
+        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 0)) {
+            error_intrinsic_args_not_allowed_for_target(text(ident), qname);
+        }
+
         if (prawstr.length > 0 && call.string_arg_replaces_arg) {
             praw ~= Value.create_const_int(numeric_type, 0);
         }
@@ -277,6 +285,8 @@ extern (C) {
 //            generic_error();
             error_intrinsic_unhandled_string(text(ident));
         }
+        
+
 
         if (call.string_arg) {
             Value strv;

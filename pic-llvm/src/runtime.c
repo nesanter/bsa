@@ -22,13 +22,13 @@ struct driver {
     unsigned int fn_count;
 };
 
-// [manifest] .console               0   0
-// [manifest] .console.tx            0   1
-// [manifest] .console.tx.block      0   2
-// [manifest] .console.rx.block      0   3
-// [manifest] .console.rx.ready      0   4
-// [manifest] .console.rx            0   5
-// [manifest] .console.tx.ready      0   6
+// [manifest] .console               0   0   ws
+// [manifest] .console.tx            0   1   w
+// [manifest] .console.tx.block      0   2   rw
+// [manifest] .console.rx.block      0   3   rw
+// [manifest] .console.rx.ready      0   4   r
+// [manifest] .console.rx            0   5   r
+// [manifest] .console.tx.ready      0   6   r
 
 const driver_write_fn all_write_fns[] = {
     /* .console */
