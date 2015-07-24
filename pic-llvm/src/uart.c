@@ -55,7 +55,7 @@ int uart_tx(char c) {
 
 void uart_print(char *s) {
     while (*s) {
-        while (!u_uartx_get_tx_full(UART1)) {
+        while (!u_uartx_get_tx_full(UART1) && *s) {
             u_uartx_tx_register_write(UART1, *s++);
         }
     }
