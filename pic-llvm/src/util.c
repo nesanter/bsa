@@ -44,3 +44,16 @@ char *todecimal(int n) {
         return ptr + 1;
     }
 }
+
+void *memset(void *s, int c, unsigned int n) {
+    unsigned int fill = (c << 24 | c << 16 | c << 8 | c);
+    void *sorig = s;
+    while (n-- & (~(sizeof(unsigned int)-1))) {
+        *(unsigned int*)s = fill;
+        s += sizeof(unsigned int);
+    }
+    while (n--) {
+        *(unsigned char*)s++ = (unsigned char)n;
+    }
+    return sorig;
+}

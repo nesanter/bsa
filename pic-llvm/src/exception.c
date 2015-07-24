@@ -1,13 +1,16 @@
 #include "exception.h"
 
+#define EH_FLAG_ALWAYS (1)
+#define EH_FLAG_FAILURE (4)
+
 struct eh_t * current_eh_t;
 
-void set_current_eh_t(void *ptr) {
+void set_current_eh_t(struct eh_t *ptr) {
     current_eh_t = ptr;
 }
 
 int throw_exception(int info) {
-    if (current_eh_t) {
+    while (current_eh_t) {
         if (current_eh_t->flags & EH_FLAG_ALWAYS) {
             current_eh_t->always_handler();
         }
@@ -19,15 +22,14 @@ int throw_exception(int info) {
             // propogate
             current_eh_t = current_eh_t->parent;
         }
-    } else {
-        // unhandled
-#if EXCEPTION_ACTION == "kill"
-#elif EXCEPTION_ACTION == "enter_at_handler"
-#elif EXCEPTION_ACTION == "resume"
-#else
-#error "EXCEPTION_ACTION must be one of [kill, enter_at_handler, resume]"
-#endif
-        return EXCEPTION_UNHANDLED;
     }
+    // unhandled
+#if EXCEPTION_ACTION == EXCEPTION_ACTION_KILL
+#elif EXCEPTION_ACTION == EXCEPTION_ACTION_AT_HANDLER
+#elif EXCEPTION_ACTION == EXCEPTION_RESUME
+#else
+#error "EXCEPTION_ACTION must be one of EXCEPTION_ACTION_[KILL|AT_HANDLER|RESUME]"
+#endif
+    return EXCEPTION_UNHANDLED;
 }
 

@@ -1,7 +1,14 @@
 #ifndef EXCEPTION_H
 #define EXCEPTION_H
 
-#define EXCEPTION_ACTION "resume"
+#define EXCEPTION_ACTION_RESUME (0)
+#define EXCEPTION_ACTION_AT_HANDLER (1)
+#define EXCEPTION_ACTION_KILL (2)
+
+#define EXCEPTION_ACTION EXCEPTION_ACTION_RESUME
+
+#define EXCEPTION_HANDLED (0)
+#define EXCEPTION_UNHANDLED (1)
 
 struct eh_t {
     struct eh_t *parent;
