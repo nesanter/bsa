@@ -18,5 +18,8 @@
 #pragma config FPLLODIV = DIV_2
 #pragma config FPBDIV = DIV_1
 
+#pragma config CP = OFF
+#pragma config PWP = OFF
+
 #endif	/* CONFIG_H */
 

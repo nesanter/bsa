@@ -24,7 +24,7 @@
  *   BOOT/USER alternating -- a general exception has occured
  */
 
-unsigned int boot_flags = BOOT_FLAG_HOLD | BOOT_FLAG_NOPROGRAM;
+unsigned int const volatile __attribute((section(".boot_flags"))) boot_flags = BOOT_FLAG_HOLD | BOOT_FLAG_NOPROGRAM | BOOT_FLAG_HOLD_ON_ERROR;
 
 void boot_flag_prompt() {
     char cmd;

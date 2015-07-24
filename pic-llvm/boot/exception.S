@@ -132,10 +132,11 @@ _general_exception_handler:
     nop
 */
 .end _general_exception_handler
-
+/*
 .bss
 .global u_exception_context
 u_exception_context:
 .space 20
+*/
 
 

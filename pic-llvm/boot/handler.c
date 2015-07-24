@@ -16,7 +16,7 @@ int boot_print_enabled = 0;
 //unsigned int handler_old_sp;
 //unsigned char handler_stack[32];
 
-extern unsigned int boot_flags;
+extern unsigned int __attribute((section(".boot_flags"))) boot_flags;
 
 //private functions
 void boot_cs_setup(void);

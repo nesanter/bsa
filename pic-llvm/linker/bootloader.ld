@@ -123,9 +123,9 @@ MEMORY
 }
 
 EXTERN (_runtime_prog_start)
-PROVIDE (_runtime_prog_start = 0x9D002000);
+PROVIDE (_runtime_prog_start = ORIGIN(kseg0_program_mem) + LENGTH(kseg0_program_mem));
 EXTERN( _runtime_data_start)
-PROVIDE (_runtime_data_start = 0xA0000900);
+PROVIDE (_runtime_data_start = ORIGIN(kseg1_data_mem) + LENGTH(kseg1_data_mem));
 EXTERN (_vector_table_address)
 PROVIDE (_vector_table_address = 0xA0000800);
 
@@ -501,6 +501,11 @@ SECTIONS
      KEEP(*(.vector_63))
   } > exception_mem
   ASSERT (_vector_spacing == 0 || SIZEOF(.vector_63) <= (_vector_spacing << 5), "function at exception vector 63 too large")
+
+  .boot_flags :
+  {
+      KEEP(*(.boot_flags))
+  } > kseg0_program_mem
 
   /*  The startup code is in the .reset.startup section.
    *  Keep this here for backwards compatibility with older
