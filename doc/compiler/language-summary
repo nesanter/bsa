@@ -1,0 +1,162 @@
+Files:
+    pic-llvm/src/bl.l
+
+--------------
+
+Meta:
+    Title: Language Summary
+    Date: 7/23/15
+    Project: runtime
+    Groups: usage
+
+--------------
+
+Body:
+
+1.) Briefly, what is the structure of a source file?
+
+    A source file consists of zero or more of the following toplevel features:
+        Function declarations
+        Global declarations
+
+    A function declaration consists of a header followed by a body.
+
+    A global declaration consists of an identifier, an equals sign, and a
+    constant expression terminated with a semicolon, e.g.
+        foo = (7 + 2);
+
+    A function header consists of the "function" keyword followed by zero or
+    more attributes followed by the function identifier and a comma-seperated
+    argument list in parentheses (which may be of zero length), e.g.
+        function foo()
+        function @attr1 bar(x,y,z)
+
+    A body consists of one or more of the following:
+        Empty statements
+        Expression statements
+        Assignment statements
+        If statements
+        While-do statements
+        Fork statements
+        Yield statements
+        Scope statements
+        Sync statements
+
+    Of these, empty, expression, assignment, fork, yield, sync, and scope are
+    semicolon terminated, simple statements.
+    If and while-do statements are compound statements and are not semicolon
+    terminated.
+    The value of a body is the value of its last statement.
+
+    Empty statements consist solely of a semicolon and have void value.
+
+    Expression statements consist of an expression followed by a semicolon
+    and have the same value as their expression.
+
+    Assignment statements consist of an identifier followed by an equals sign
+    followd by an expression and a semicolon, and have the same value as
+    their expression.
+
+    Fork statements consist of the "fork" keyword, an identifier, and a semicolon
+    and have void value.
+
+    Yield statements consist of the "yield" keyword and a semicolon and have
+    void value.
+
+    Scope statements consist of the "scope" keyword, the scope type (either
+    "always", "success", or "failure") in parentheses, an identifier, and a
+    semicolon and have void value.
+
+    Sync statements consist of the "sync", "sync_r", or "sync_w" keyword
+    and have void value.
+
+    If statements consist of the "if" keyword, an expression in parentheses,
+    a body contained by braces and optionally an "else" keyword followed
+    by either another body in braces or another if statement. If statements
+    have the value of the last statement in the taken branch.
+
+    While-do statements consist of the "while" keyword, a body in braces,
+    the "do" keyword and another body in braces. They have void value.
+
+    An expression consists of an atom, an expression in parentheses, a unary
+    operator and an expression, or two expressions joined by a binary operator.
+
+    A unary operator is one of:
+        not
+        + -
+
+    A binary operator is one of:
+        * / %
+        + -
+        < > <= >=
+        ==
+        and
+        xor
+        or
+
+    An atom is one of:
+        A numeric literal
+        An identifier
+        A function call
+        A system call
+        The keyword "true"
+        The keyword "false"
+
+    A numeric literal is one of:
+        A decimal number, optionally ending with a 'd'
+        A binary number ending with a 'b'
+        A hexadecimal number ending with an 'h'
+        A character enclosed in single quotes
+
+    A function call consists of an identifier followed by a possibly empty
+    parameter list in parentheses.
+
+    A system call consists of an intrinsic identifier (e.g. read or write)
+    followed by either a numeric parameter and zero of more string parameters,
+    comma seperated and terminated and a qualified target identifier, all
+    enclosed in brackets.
+
+2.) How does precedence and associativity work?
+
+    The above list of operators gives them in precedence order, with unary
+    operators having greater precedence than binary. All unary operators are
+    right-associative and all binary are left-associative.
+
+    Some practical examples:
+
+        not x == true <-> (not x) == true
+        not x and not y or not x or y <-> ((not x) and (not y)) or (not x) or y
+        x + 2 == y or z == 0 <-> ((x + 2) == y) or (z == 0)
+
+3.) What about boolean values?
+
+     Boolean values are a special type of numeric value that exist only within
+     the body of a function, that is, functions do not return boolean values
+     or accept them as arguments.
+
+     Boolean result from the following circumstances:
+        The binary comparison operators
+        "true" and "false"
+
+    Logical operations (and, or, xor, and not) may only involve boolean values.
+    The equality operator may involve a mix of boolean and numeric values.
+    Arithmetic operations may only involve numeric values.
+
+    For the purpose of the equality operator involving a numeric and a boolean
+    value, the numeric value is considered "false" if it is zero and "true"
+    otherwise.
+
+    Boolean parameters passed to functions are converted from "true" and "false"
+    to "1" and "0", respectively, as are boolean return values.
+
+    Notably, this means that the following is invalid:
+
+        function foo() { true; }
+        function bar() { not foo(); }
+
+    because the value of foo() is numeric. The correct way to write bar is:
+        
+        function bar() { foo() == false; }
+
+--------------
+
