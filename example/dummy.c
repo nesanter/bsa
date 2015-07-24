@@ -1,12 +1,23 @@
 #include <stdio.h>
 
-int entry();
+struct eh_t {
+    struct eh_t *parent;
+    unsigned int flags;
+    void (*always_handler)();
+    void (*success_handler)();
+    void (*failure_handler)(int info);
+};
+
+int ___entry(struct eh_t *eh);
 
 int main(int argc, char **argv) {
-    return entry();
+
+    struct eh_t eh = { 0, 0 };
+
+    return ___entry(&eh);
 }
 
-int ___write_builtin(int target, int value, char *str) {
+int ___write_builtin(struct eh_t *eh, int target, int value, char *str) {
     if (str) {
         printf("write [%d, %d] %d %s\n", target & 0xFFFF, (target & 0xFFFF0000) >> 16, value, str);
     } else {
@@ -15,7 +26,7 @@ int ___write_builtin(int target, int value, char *str) {
     return 1;
 }
 
-int ___read_builtin(int target) {
+int ___read_builtin(struct eh_t *eh, int target) {
     printf("read [%d, %d]\n", target & 0xFFFF, (target & 0xFFFF0000) >> 16);
     
     return 1;
