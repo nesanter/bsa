@@ -65,6 +65,11 @@
 \"(([^"])|(\\\"))*\" { yylval.text = strdup(escape_string(yytext)); return STRING; }
 
  /* numeric constants */
+'\\n' { yylval.llu = '\n'; return NUMERIC; }
+'\\r' { yylval.llu = '\r'; return NUMERIC; }
+'\\t' { yylval.llu = '\t'; return NUMERIC; }
+'\\0' { yylval.llu = '\0'; return NUMERIC; }
+'\\e' { yylval.llu = 0x1B; return NUMERIC; }
 '.' { yylval.llu = yytext[1]; return NUMERIC; }
 [0-9a-fA-F]+h { yylval.llu = strtoull(yytext, NULL, 16); return NUMERIC; }
 [01]+b { yylval.llu = strtoull(yytext, NULL, 2); return NUMERIC; }
