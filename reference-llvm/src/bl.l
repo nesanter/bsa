@@ -65,6 +65,7 @@
 \"(([^"])|(\\\"))*\" { yylval.text = strdup(escape_string(yytext)); return STRING; }
 
  /* numeric constants */
+'.' { yylval.llu = yytext[1]; return NUMERIC; }
 [0-9a-fA-F]+h { yylval.llu = strtoull(yytext, NULL, 16); return NUMERIC; }
 [01]+b { yylval.llu = strtoull(yytext, NULL, 2); return NUMERIC; }
 [0-9]+(d)? { yylval.llu = strtoull(yytext, NULL, 10); return NUMERIC; }
