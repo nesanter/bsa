@@ -4,6 +4,7 @@
 #include "ulib/uart.h"
 #include "ulib/util.h"
 #include "exception.h"
+#include "task.h"
 
 #define DRV_SUCCESS (1)
 #define DRV_FAILURE (0)
@@ -81,12 +82,16 @@ int ___read_builtin(struct eh_t *eh, unsigned int target) {
     }
 }
 
-int ___yield_builtin(void) {
-    return 0;
+void ___yield_builtin() {
+    if (schedule_task())
+        scheduler_loop();
 }
 
-int ___fork_builtin(int (*fn)()) {
-    return 0;
+void ___fork_builtin(int (*fn)()) {
+    struct task_attributes attr  = { TASK_SIZE_LARGE };
+    if (create_task(fn, attr)) {
+        // error situation
+    }
 }
 
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
