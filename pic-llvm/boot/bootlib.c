@@ -136,9 +136,20 @@ unsigned int flash_unlock(nvm_op op) {
     else
         asm volatile ("di");
 
-    NVMCONCLR = 0x00040000;
+    NVMCONCLR = 0x00004000;
 
     return (NVMCON & 0x00003000);
+}
+
+unsigned int flash_write_word_unsafe(unsigned int value, unsigned int dest_addr) {
+    if (dest_addr & 0x3) {
+        return 1;
+    }
+
+    NVMDATA = value;
+    NVMADDR = dest_addr;
+
+    return flash_unlock(NVM_WRITE_WORD);
 }
 
 unsigned int flash_write_word(unsigned int value, unsigned int dest_addr) {
@@ -208,13 +219,13 @@ void boot_internal_error() {
 }
 
 unsigned int physical_address(void *virt) {
-    if (virt > 0xBF800000)
+    if (virt >= 0xBF800000)
         return (unsigned int)(virt - 0xA0000000); //sfrs
-    if (virt > 0xBD000000)
+    if (virt >= 0xBD000000)
         return (unsigned int)(virt - 0xA0000000); //kseg1
-    if (virt > 0xA0000000)
+    if (virt >= 0xA0000000)
         return (unsigned int)(virt - 0xA0000000); //ram
-    if (virt > 0x9D000000)
+    if (virt >= 0x9D000000)
         return (unsigned int)(virt - 0x80000000); //kseg0
     return 0; //error
 }

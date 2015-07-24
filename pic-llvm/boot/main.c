@@ -173,7 +173,7 @@ int main(void) {
                 }
                 break;
             case '?':
-                boot_print("mOK\r\n");
+                boot_print("mBootloader OK\r\n");
                 break;
             case 'F':
                 boot_flag_prompt();
