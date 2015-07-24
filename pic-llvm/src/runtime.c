@@ -3,6 +3,7 @@
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
+#include "exception.h"
 
 #define DRV_SUCCESS (1)
 #define DRV_FAILURE (0)
@@ -56,7 +57,7 @@ const struct driver drivers[] = {
     { &all_write_fns[0], &all_read_fns[0], 2 }
 };
 
-int ___write_builtin(unsigned int target, int val, char *str) {
+int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
     unsigned short low = target & 0xFFFF;
     unsigned short high = (target & 0xFFFF0000) > 16;
 
@@ -68,7 +69,7 @@ int ___write_builtin(unsigned int target, int val, char *str) {
     }
 }
 
-int ___read_builtin(unsigned int target) {
+int ___read_builtin(struct eh_t *eh, unsigned int target) {
     unsigned short low = target & 0xFFFF;
     unsigned short high = (target & 0xFFFF0000) > 16;
 
