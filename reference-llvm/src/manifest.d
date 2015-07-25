@@ -3,12 +3,33 @@ import std.string;
 import std.conv;
 
 class Manifest {
-    ushort[2][string] entries;
+    entry[string] entries;
+
+    struct entry {
+        uint index;
+        bool[string] accepted_calls;
+        bool accept_string, accept_value;
+
+        bool syscall_allowed(string call) {
+            if (!accepted_calls.get(call, false)) {
+                return false;
+            }
+            return true;
+        }
+
+        bool syscall_arguments_allowed(bool has_string_arg, bool has_value_arg) {
+            if (has_string_arg && !accept_string || has_value_arg && !accept_value) {
+                return false;
+            }
+            return true;
+        }
+    }
 
     static Manifest load(File f) {
         auto man = new Manifest;
         ulong linenum = 0;
         foreach (ln; f.byLine) {
+            entry ent;
             linenum++;
             ln = stripLeft(ln);
             if (ln.length == 0)
@@ -37,18 +58,59 @@ class Manifest {
             }
             ln = stripLeft(ln[b.length..$]);
             if (ln.length > 0) {
-                stderr.writeln("Malformed manifest entry (line ",linenum,")");
-                continue;
+                ulong n = 0;
+                string[] attributes = [""];
+                foreach (ch; ln) {
+                    if (ch == ',') {
+                        attributes ~= [""];
+                    } else if (ch == ' ' || ch == '\t') {
+                        //ignore
+                    } else {
+                        attributes[$-1] ~= ch;
+                    }
+                }
+                foreach (attr; attributes) {
+                    switch (attr) {
+                        default:
+                            stderr.writeln("Manifest: unknown attribute '", attr, "' in entry (line ",linenum,")");
+                            break;
+                        case "r":
+                            ent.accepted_calls["read"] = true;
+                            break;
+                        case "w":
+                            ent.accepted_calls["write"] = true;
+                            break;
+                        case "rw":
+                            ent.accepted_calls["read"] = true;
+                            ent.accepted_calls["write"] = true;
+                            break;
+                        case "s":
+                        case "sv":
+                            ent.accept_string = true;
+                            ent.accept_value = true;
+                            break;
+                        case "v":
+                        case "!sv":
+                            ent.accept_string = false;
+                            ent.accept_value = true;
+                            break;
+                        case "s!v":
+                            ent.accept_string = true;
+                            ent.accept_value = false;
+                            break;
+                    }
+                }
             }
             if (qident in man.entries) {
                 stderr.writeln("Duplicate manifest entry (line ",linenum,")");
                 continue;
             }
             try {
-                man.entries[qident] = [to!ushort(a), to!ushort(b)];
+                ent.index = (to!ushort(a) << 16) | to!ushort(b);
             } catch (Exception e) {
                 stderr.writeln("Invalid manifest entry (line ",linenum,")");
             }
+            man.entries[qident] = ent;
         }
         return man;
     }

@@ -92,6 +92,20 @@ void error_not_in_manifest(string name) {
     error_action();
 }
 
+void error_intrinsic_not_allowed_for_target(string intrinsic, string target) {
+    write_error_prefix();
+    stderr.write(target, " is not a valid target for system intrinsic ",intrinsic);
+    write_error_suffix();
+    error_action();
+}
+
+void error_intrinsic_args_not_allowed_for_target(string intrinsic, string target) {
+    write_error_prefix();
+    stderr.write(target, " is not a valid target for this invocation of system intrinsic ",intrinsic);
+    write_error_suffix();
+    error_action();
+}
+
 void error_intrinsic_parameter_count(string intrinsic) {
     write_error_prefix();
     stderr.write("incorrect number of parameters for system intrinsic ",intrinsic);
