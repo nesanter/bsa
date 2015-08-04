@@ -1,10 +1,13 @@
 #include "task.h"
+#include "ulib/uart.h"
 
 
-const unsigned int TOTAL_STACK_SPACE = 0x4000;
-const unsigned int TASK_SLOT_SIZE = 0x100;
-const unsigned int TOTAL_STACK_SLOTS = (TOTAL_STACK_SPACE / TASK_SLOT_SIZE);
-const unsigned int MAX_TASKS = 16;
+enum {
+    TOTAL_STACK_SPACE = 0x4000,
+    TASK_SLOT_SIZE = 0x100,
+    TOTAL_STACK_SLOTS = (TOTAL_STACK_SPACE / TASK_SLOT_SIZE),
+    MAX_TASKS = 16,
+};
 unsigned int SMALL_TASK_SLOTS = 2;
 unsigned int LARGE_TASK_SLOTS = 4;
 
@@ -57,7 +60,7 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
         if (task_stack_slots[i] == 0) {
             found++;
             if (found == needed) {
-                stack_ptr = task_stack - (0x100 * (i-found));
+                stack_ptr = task_stack + (0x100 * i);
                 for (unsigned int j = 0; j < found; j++) {
                     task_stack_slots[i+j] = new_task;
                 }
@@ -105,7 +108,12 @@ int schedule_task() {
         }
     }
 
-    struct context *old_context = &current_task->context;
+    struct context *old_context;
+    if (current_task)
+        &current_task->context;
+    else
+        old_context = 0;
+
     current_task = next_task;
 
     if (current_task) {
@@ -132,11 +140,17 @@ void scheduler_loop() {
         asm volatile ("wait");
     }
     // there are no tasks left, return to bootloader
+#ifdef HARD_RUNTIME
+    uart_print("[all tasks ended]");
+    while (1);
+#else
     asm volatile ("syscall");
+#endif
 }
 
 void task_exit() {
-
+    current_task->state = TASK_STATE_EMPTY;
+    schedule_task();
 }
 
 

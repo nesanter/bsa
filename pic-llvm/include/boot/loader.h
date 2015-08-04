@@ -3,6 +3,7 @@
 
 #ifdef IS_BOOTLOADER
 
+
 typedef struct {
     unsigned char   e_ident[16];
     unsigned short  e_type;
@@ -33,7 +34,6 @@ typedef struct {
 #define EI_6 (EV_CURRENT)
 
 #define EF_EXPECTED (0)
-
 
 typedef struct {
     unsigned int    p_type;

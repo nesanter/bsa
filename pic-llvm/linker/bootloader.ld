@@ -107,7 +107,9 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
  *************************************************************************/
 MEMORY
 {
-  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x2A00
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x3000
+  initializer_map_mem   (r)   : ORIGIN = 0xBD003000, LENGTH = 0x400
+  kseg0_rt_program_mem  (rx)  : ORIGIN = 0x9D003400, LENGTH = 0x1BC00
   exception_mem               : ORIGIN = 0x9D01F000, LENGTH = 0x1000
   debug_exec_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x760
   kseg0_boot_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x0
@@ -116,18 +118,21 @@ MEMORY
   config2                     : ORIGIN = 0xBFC00BF4, LENGTH = 0x4
   config1                     : ORIGIN = 0xBFC00BF8, LENGTH = 0x4
   config0                     : ORIGIN = 0xBFC00BFC, LENGTH = 0x4
-  kseg1_data_mem       (w!x)  : ORIGIN = 0xA0000000, LENGTH = 0x800
-  vector_table_mem     (w!x)  : ORIGIN = 0xA0000800, LENGTH = 0x100
+  kseg1_data_mem       (w!x)  : ORIGIN = 0xA0000000, LENGTH = 0x400
+  vector_table_mem     (w!x)  : ORIGIN = 0xA0000400, LENGTH = 0x100
+  kseg1_rt_data_mem    (w!x)  : ORIGIN = 0xA0000500, LENGTH = 0x7B00 
   sfrs                        : ORIGIN = 0xBF800000, LENGTH = 0x100000
   configsfrs                  : ORIGIN = 0xBFC00BF0, LENGTH = 0x10
 }
 
-EXTERN (_runtime_prog_start)
-PROVIDE (_runtime_prog_start = ORIGIN(kseg0_program_mem) + LENGTH(kseg0_program_mem));
-EXTERN( _runtime_data_start)
-PROVIDE (_runtime_data_start = ORIGIN(kseg1_data_mem) + LENGTH(kseg1_data_mem));
+EXTERN (runtime_prog_start runtime_prog_end)
+PROVIDE (runtime_prog_start = ORIGIN(kseg0_rt_program_mem));
+PROVIDE (runtime_prog_end = ORIGIN(kseg0_rt_program_mem) + LENGTH(kseg0_rt_program_mem));
+EXTERN( runtime_data_start runtime_data_end)
+PROVIDE (runtime_data_start = ORIGIN(kseg1_rt_data_mem));
+PROVIDE (runtime_data_end = ORIGIN(kseg1_rt_data_mem) + LENGTH(kseg1_rt_data_mem));
 EXTERN (_vector_table_address)
-PROVIDE (_vector_table_address = 0xA0000800);
+PROVIDE (_vector_table_address = ORIGIN(vector_table_mem));
 
 /*************************************************************************
  * Configuration-word sections. Map the config-pragma input sections to
@@ -504,8 +509,14 @@ SECTIONS
 
   .boot_flags :
   {
+      . = ALIGN(4);
       KEEP(*(.boot_flags))
   } > kseg0_program_mem
+
+  .initializer_map :
+  {
+      KEEP(*(.initializer_map))
+  } > initializer_map_mem
 
   /*  The startup code is in the .reset.startup section.
    *  Keep this here for backwards compatibility with older
@@ -747,6 +758,17 @@ SECTIONS
   . = ALIGN(4) ;
   _end = . ;
   _bss_end = . ;
+
+  .rt_program :
+  {
+      *(.rt_program)
+  } > kseg0_rt_program_mem
+
+  .rt_data :
+  {
+      *(.transfer_buffer)
+      *(.rt_data)
+  } > kseg1_rt_data_mem
   /*
    *  The heap and stack are best-fit allocated by the linker after other
    *  data and bss sections have been allocated.

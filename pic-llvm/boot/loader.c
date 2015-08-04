@@ -4,6 +4,15 @@
 #include "boot/bootlib.h"
 #include "ulib/util.h"
 
+extern int transfer_ready;
+extern unsigned char __attribute__((section(".transfer_buffer"))) transfer_buffer[TRANSFER_BUFFER_SIZE_WITH_HEADER];
+
+#define INITIALIZER_MAP_SIZE (0x100)
+
+unsigned int __attribute__((section(".initializer_map"))) initializer_map[INITIALIZER_MAP_SIZE];
+extern void* runtime_data_start;
+void *initializer_data_start;
+
 int verify_elf_header(elf32_header *ehdr) {
     if (ehdr->e_ident[0] != EI_0 ||
         ehdr->e_ident[1] != EI_1 ||
@@ -27,23 +36,60 @@ int verify_elf_header(elf32_header *ehdr) {
     return 0;
 }
 
-void boot_copy_to_memory(unsigned int address, unsigned char *data, unsigned int nbytes) {
-    boot_print("Copying 0x");
-    boot_print(tohex(nbytes, 8));
-    boot_print(" bytes to 0x");
-    boot_print(tohex(address, 8));
-    boot_print("\r\n");
+// this routine expects physical addresses
+int boot_copy_page_to_program_memory(unsigned int address, unsigned int data_address) {
+    int erase_res = flash_page_erase(address);
+    if (erase_res)
+        return erase_res;
+
+    for (int i = 0; i < ROWS_PER_PAGE; i++) {
+        int write_res = flash_write_row(data_address, address);
+        if (write_res)
+            return write_res;
+        data_address += ROW_SIZE;
+        address += ROW_SIZE;
+    }
 }
 
-void boot_copy_zero_to_memory(unsigned int address, unsigned int nbytes) {
-    boot_print("Zeroing 0x");
-    boot_print(tohex(nbytes, 8));
-    boot_print(" bytes at 0x");
-    boot_print(tohex(address, 8));
-    boot_print("\r\n");
+// offset/length are in words
+int boot_map_set_words_uninitialized(unsigned int offset, unsigned int length) {
+    unsigned int start, end, res;
+    if (length < (32 - (offset & 0x1F))) {
+        // entirely within one entry
+        return flash_write_word(~(((1 << length) - 1) << (offset & 0x1F)), physical_address(&initializer_map[offset >> 5]));
+    }
+    if (offset & 0x1F) {
+        // partial first entry
+        res = flash_write_word(~(0xFFFFFFFF << (offset & 0x1F)), physical_address(&initializer_map[offset >> 5]));
+        if (res)
+            return res;
+        start = (offset & 0x1F) + 1;
+        end = offset + length;
+    } else {
+        start = offset;
+        end = offset + length;
+    }
+
+    for (unsigned int i = (start >> 5); i < (end >> 5); i++) {
+        res = flash_write_word(0, physical_address(&initializer_map[i]));
+        if (res)
+            return res;
+    }
+
+    if (end & 0x1F) {
+        // partial last entry
+        return flash_write_word(0xFFFFFFFF << (end & 0x1F), physical_address(&initializer_map[offset >> 5]));
+    }
+
+    return 0;
+}
+
+int prepare_user_space() {
+    flash_page_erase(physical_address(initializer_map));
 }
 
 int load_user_program(unsigned int *entry, unsigned int *user_gp, unsigned int *user_sp) {
+    /*
     unsigned char *current_buffer = 0;
     int phase = 0, current_offset = 0, n, count = 0, i;
     int read_sz, write_sz, transfer_size;
@@ -147,8 +193,26 @@ int load_user_program(unsigned int *entry, unsigned int *user_gp, unsigned int *
                 return 0;
         }
     }
+    */
+    return 0;
 }
 
+void initialize_user_data() {
+    unsigned int *src, *dst;
+    dst = runtime_data_start;
+    src = initializer_data_start;
+
+    for (int i = 0 ; i < INITIALIZER_MAP_SIZE ; i++) {
+        unsigned int map = initializer_map[i];
+        for (unsigned int b = 1; b > 0; b <<= 1) {
+            if (map & b) {
+                *dst++ = *src++;
+            } else {
+                *dst++ = 0;
+            }
+        }
+    }
+}
 
 void __attribute__((noreturn)) start_user_program(unsigned int entry, unsigned int stack, unsigned int gp) {
     // set user sp and gp
