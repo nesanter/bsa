@@ -266,7 +266,7 @@ extern (C) {
         if (!ent.syscall_allowed(text(ident))) {
             error_intrinsic_not_allowed_for_target(text(ident), qname);
         }
-        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 0)) {
+        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 1)) {
             error_intrinsic_args_not_allowed_for_target(text(ident), qname);
         }
 
