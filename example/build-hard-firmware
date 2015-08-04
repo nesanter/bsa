@@ -1,0 +1,16 @@
+#!/bin/bash
+if [ -n "$1" ] ; then
+    BLCSRC=$1
+else
+    BLCSRC=test.blc
+fi
+
+./bl2 -d -m manifest -o output.bc < $BLCSRC && \
+llc -soft-float -mattr=+noabicalls -mattr=+o32 -march=mipsel -mcpu=mips32r2 -relocation-model=static -filetype=asm output.bc || exit 1
+
+sed -i '/\.nan/d' output.s
+
+cd ../pic-llvm
+./build-hard-runtime
+
+#../util/mipsel-unknown-elf-ld -O3 -obl-firmware -Truntime.ld output.o bl-runtime.a
