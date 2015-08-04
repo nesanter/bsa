@@ -136,13 +136,9 @@ int schedule_task() {
         if (next_task->state == TASK_STATE_NEW) {
             uart_print("[scheduled new task]\r\n");
             next_task->state = TASK_STATE_RUNNING;
-            uart_print(tohex(next_task->context.ra,8));
-            uart_print("\r\n");
             context_switch(&next_task->context, &task_exit);
         } else {
             uart_print("[scheduled old task]\r\n");
-            uart_print(tohex(next_task->context.ra,8));
-            uart_print("\r\n");
             next_task->state = TASK_STATE_RUNNING;
             context_switch(&next_task->context, 0);
         }
