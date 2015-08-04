@@ -44,8 +44,14 @@ void runtime_entry(void) {
 #ifdef HARD_RUNTIME
 int main(void) {
     //perform setup normally done by bootloader
+    TRISA = 0;
+    TRISB = 0;
+    ANSELA = 0;
+    ANSELB = 0;
+    PORTA = 0;
+    PORTB = 0;
     uart_setup();
-    void *ignore;
+    unsigned int ignore;
     boot_print_enable();
     boot_handler_setup(&ignore);
     uart_print("[booting hard runtime]\r\n");

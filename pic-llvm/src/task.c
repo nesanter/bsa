@@ -171,6 +171,13 @@ void scheduler_loop() {
 void task_exit() {
     uart_print("[task exit]\r\n");
     current_task->state = TASK_STATE_EMPTY;
+
+    for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
+        if (task_stack_slots[i] == current_task) {
+            task_stack_slots[i] = 0;
+        }
+    }
+
     if (schedule_task())
         scheduler_loop();
 }

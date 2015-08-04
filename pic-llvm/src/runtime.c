@@ -34,6 +34,9 @@ struct driver {
 // [manifest] .console.rx.ready      0   4   r
 // [manifest] .console.rx            0   5   r
 // [manifest] .console.tx.ready      0   6   r
+// [manifest] .led                   1   0   rw,v
+// [manifest] .led.select            1   1   rw,v
+// [manifest] .system.delay          2   0   w,v
 
 const driver_write_fn all_write_fns[] = {
     /* .console */
@@ -44,8 +47,11 @@ const driver_write_fn all_write_fns[] = {
     0, // 0.4
     0, // 0.5
     0, // 0.6
+
     &drv_led_write, // 1.0
     &drv_led_select_write, // 1.1
+
+    &drv_sys_delay_write, // 2.0
 };
 
 const driver_read_fn all_read_fns[] = {
@@ -61,11 +67,14 @@ const driver_read_fn all_read_fns[] = {
 
     &drv_led_read, // 1.0
     &drv_led_select_read, // 1.1
+
+    0,
 };
 
 const struct driver drivers[] = {
     { &all_write_fns[0], &all_read_fns[0], 7 },
-    { &all_write_fns[7], &all_read_fns[7], 2 }
+    { &all_write_fns[7], &all_read_fns[7], 2 },
+    { &all_write_fns[9], &all_read_fns[9], 1 },
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -88,10 +97,6 @@ int ___read_builtin(struct eh_t *eh, unsigned int target) {
     if (fn) {
         return fn();
     } else {
-        uart_print(tohex(low, 8));
-        uart_print("\r\n");
-        uart_print(tohex(high, 8));
-        uart_print("\r\noops\r\n");
         return 0;
     }
 }
@@ -248,4 +253,16 @@ int drv_led_select_read() {
 
 int drv_led_read() {
     return pin_test(selected_led);
+}
+
+int drv_sys_delay_write(int val, char *str) {
+    unsigned int start, cur;
+    asm volatile ("mfc0 %0, $9" : "=r"(start));
+    start += val;
+
+    do {
+        asm volatile ("mfc0 %0, $9" : "=r"(cur));
+    } while (cur < start);
+
+    return DRV_SUCCESS;
 }
