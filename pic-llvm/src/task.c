@@ -1,5 +1,6 @@
 #include "task.h"
 #include "ulib/uart.h"
+#include "ulib/util.h"
 
 
 enum {
@@ -15,7 +16,7 @@ struct task_info *current_task = 0;
 struct task_info task_list[MAX_TASKS];
 
 void *task_stack[TOTAL_STACK_SPACE / 0x4];
-struct task_info *task_stack_slots[(TOTAL_STACK_SPACE / 0x100)];
+struct task_info *task_stack_slots[(TOTAL_STACK_SPACE / TASK_SLOT_SIZE)];
 
 void create_new_context(struct context *context, int (*entry)(void*), void *sp) {
     context->s0 = 0;
@@ -26,7 +27,13 @@ void create_new_context(struct context *context, int (*entry)(void*), void *sp) 
     context->s5 = 0;
     context->s6 = 0;
     context->s7 = 0;
+#ifdef HARD_RUNTIME
+    unsigned int gp;
+    asm volatile ("add %0, $gp, $zero" : "=r"(gp));
+    context->gp = gp;
+#else
     context->gp = 0;
+#endif
     context->sp = sp;
     context->fp = 0;
     context->ra = entry;
@@ -49,24 +56,31 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
     new_task->parent = current_task;
     new_task->depth = (current_task ? current_task->depth + 1 : 0);
 
-    void *stack_ptr;
+    void *stack_ptr = 0;
     unsigned int found, needed;
     if (attributes.size == TASK_SIZE_SMALL)
         needed = SMALL_TASK_SLOTS;
     else
         needed = LARGE_TASK_SLOTS;
 
-    for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / 0x100); i++) {
+    for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
         if (task_stack_slots[i] == 0) {
             found++;
             if (found == needed) {
                 stack_ptr = task_stack + (0x100 * i);
                 for (unsigned int j = 0; j < found; j++) {
-                    task_stack_slots[i+j] = new_task;
+                    task_stack_slots[i-j] = new_task;
                 }
                 break;
             }
+        } else {
+            found = 0;
         }
+    }
+
+    if (!stack_ptr) {
+        uart_print("[out of stack space]\r\n");
+        return 1;
     }
 
     create_new_context(&new_task->context, fn, stack_ptr);
@@ -108,21 +122,29 @@ int schedule_task() {
         }
     }
 
+    /*
     struct context *old_context;
     if (current_task)
         &current_task->context;
     else
         old_context = 0;
+    */
 
     current_task = next_task;
 
     if (current_task) {
         if (next_task->state == TASK_STATE_NEW) {
+            uart_print("[scheduled new task]\r\n");
             next_task->state = TASK_STATE_RUNNING;
-            context_switch(old_context, &next_task->context, &task_exit);
+            uart_print(tohex(next_task->context.ra,8));
+            uart_print("\r\n");
+            context_switch(&next_task->context, &task_exit);
         } else {
+            uart_print("[scheduled old task]\r\n");
+            uart_print(tohex(next_task->context.ra,8));
+            uart_print("\r\n");
             next_task->state = TASK_STATE_RUNNING;
-            context_switch(old_context, &next_task->context, 0);
+            context_switch(&next_task->context, 0);
         }
         return -1; // unreachable
     } else if (any_tasks) {
@@ -133,15 +155,17 @@ int schedule_task() {
 }
 
 void scheduler_loop() {
+    uart_print("[entering scheduler loop]\r\n");
     int res;
     while (schedule_task() == 1) {
         // there are still tasks, but none are schedulable
         // enter "idle" mode (OSCCON<4> has already been cleared by bootloader)
-        asm volatile ("wait");
+        uart_print("[idleing]\r\n");
+//        asm volatile ("wait");
     }
     // there are no tasks left, return to bootloader
 #ifdef HARD_RUNTIME
-    uart_print("[all tasks ended]");
+    uart_print("[all tasks ended]\r\n");
     while (1);
 #else
     asm volatile ("syscall");
@@ -149,8 +173,10 @@ void scheduler_loop() {
 }
 
 void task_exit() {
+    uart_print("[task exit]\r\n");
     current_task->state = TASK_STATE_EMPTY;
-    schedule_task();
+    if (schedule_task())
+        scheduler_loop();
 }
 
 

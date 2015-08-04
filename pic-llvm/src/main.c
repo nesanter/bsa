@@ -11,6 +11,7 @@
 #ifdef HARD_RUNTIME
 #define IS_BOOTLOADER
 #include "boot/config.h"
+#include "boot/handler.h"
 #undef IS_BOOTLOADER
 #endif
 
@@ -44,6 +45,9 @@ void runtime_entry(void) {
 int main(void) {
     //perform setup normally done by bootloader
     uart_setup();
+    void *ignore;
+    boot_print_enable();
+    boot_handler_setup(&ignore);
     uart_print("[booting hard runtime]\r\n");
     
     // not needed, OSCCON<4> defaults to cleared

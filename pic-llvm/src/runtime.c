@@ -14,6 +14,8 @@
 #define DRV_TRUE (1)
 #define DRV_FALSE (0)
 
+extern struct task_info *current_task;
+
 extern handler_t volatile __vector_table[43];
 
 typedef int (*driver_write_fn)(int val, char *str);
@@ -67,8 +69,8 @@ const struct driver drivers[] = {
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
-    unsigned short low = target & 0xFFFF;
-    unsigned short high = (target & 0xFFFF0000) > 16;
+    unsigned int low = target & 0xFFFF;
+    unsigned int high = (target & 0xFFFF0000) >> 16;
 
     driver_write_fn fn = drivers[low].write_fns[high];
     if (fn) {
@@ -80,20 +82,34 @@ int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
 
 int ___read_builtin(struct eh_t *eh, unsigned int target) {
     unsigned int low = target & 0xFFFF;
-    unsigned int high = (target & 0xFFFF0000) > 16;
+    unsigned int high = (target & 0xFFFF0000) >> 16;
 
     driver_read_fn fn = drivers[low].read_fns[high];
     if (fn) {
         return fn();
     } else {
-        uart_print("oops\r\n");
+        uart_print(tohex(low, 8));
+        uart_print("\r\n");
+        uart_print(tohex(high, 8));
+        uart_print("\r\noops\r\n");
         return 0;
     }
 }
 
 void ___yield_builtin() {
-    if (schedule_task())
+    /*
+    void *ra;
+    asm volatile ("add %0, $ra, $zero" : "=r"(ra));
+    */
+    uart_print("[saving old task]\r\n");
+    context_save(&current_task->context, &&restore);
+    current_task->state = TASK_STATE_SOFT_BLOCKED;
+    uart_print("[yielding]\r\n");
+    if (schedule_task()) {
         scheduler_loop();
+    }
+restore:
+    return;
 }
 
 /* technically, the second argument is a int (*)(struct eh_t *)
@@ -103,6 +119,7 @@ void ___fork_builtin(struct eh_t *eh, int (*fn)(void*)) {
     struct task_attributes attr  = { TASK_SIZE_LARGE };
     if (create_task(fn, attr)) {
         // error situation
+        uart_print("[error during fork]\r\n");
     }
 }
 
@@ -162,7 +179,6 @@ int drv_console_rx_read() {
 }
 
 int drv_console_tx_ready() {
-    uart_print("here");
     if (u_uartx_get_tx_full(UART1)) {
         return DRV_FAILURE;
     } else {
