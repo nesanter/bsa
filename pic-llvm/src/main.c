@@ -55,6 +55,11 @@ int main(void) {
     boot_print_enable();
     boot_handler_setup(&ignore);
     uart_print("[booting hard runtime]\r\n");
+
+    TRISBSET = BITS(15) | BITS(14);
+    TRISASET = BITS(2) | BITS(3) | BITS(4);
+
+    while (!(PORTB & BITS(15)));
     
     // not needed, OSCCON<4> defaults to cleared
     /*

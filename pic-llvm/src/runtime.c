@@ -36,7 +36,9 @@ struct driver {
 // [manifest] .console.tx.ready      0   6   r
 // [manifest] .led                   1   0   rw,v
 // [manifest] .led.select            1   1   rw,v
-// [manifest] .system.delay          2   0   w,v
+// [manifest] .sw                    2   0   r
+// [manifest] .sw.select             2   1   rw,v
+// [manifest] .system.delay          3   0   w,v
 
 const driver_write_fn all_write_fns[] = {
     /* .console */
@@ -51,7 +53,10 @@ const driver_write_fn all_write_fns[] = {
     &drv_led_write, // 1.0
     &drv_led_select_write, // 1.1
 
-    &drv_sys_delay_write, // 2.0
+    0,
+    &drv_sw_select_write, // 2.1
+
+    &drv_sys_delay_write, // 3.0
 };
 
 const driver_read_fn all_read_fns[] = {
@@ -68,13 +73,17 @@ const driver_read_fn all_read_fns[] = {
     &drv_led_read, // 1.0
     &drv_led_select_read, // 1.1
 
+    &drv_sw_read, // 2.0
+    &drv_sw_select_read, // 2.1
+
     0,
 };
 
 const struct driver drivers[] = {
     { &all_write_fns[0], &all_read_fns[0], 7 },
     { &all_write_fns[7], &all_read_fns[7], 2 },
-    { &all_write_fns[9], &all_read_fns[9], 1 },
+    { &all_write_fns[9], &all_read_fns[9], 2 },
+    { &all_write_fns[11], &all_read_fns[11], 1 },
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -253,6 +262,44 @@ int drv_led_select_read() {
 
 int drv_led_read() {
     return pin_test(selected_led);
+}
+
+Pin selected_sw = { PIN_GROUP_A, BITS(2) };
+
+int drv_sw_select_write(int val, char *str) {
+    switch (val) {
+        case 0: selected_sw.group = PIN_GROUP_A;
+                selected_sw.pin = BITS(2);
+                break;
+        case 1: selected_sw.group = PIN_GROUP_A;
+                selected_sw.pin = BITS(3);
+                break;
+        case 2: selected_sw.group = PIN_GROUP_A;
+                selected_sw.pin = BITS(4);
+                break;
+        case 3: selected_sw.group = PIN_GROUP_B;
+                selected_sw.pin = BITS(14);
+                break;
+        default: break;
+    }
+    return DRV_SUCCESS;
+}
+
+int drv_sw_select_read() {
+    if (selected_sw.group == PIN_GROUP_A) {
+        switch (selected_sw.pin) {
+            case BITS(2): return 0;
+            case BITS(3): return 1;
+            case BITS(4): return 2;
+            default: break;
+        }
+    } else {
+        return 3;
+    }
+}
+
+int drv_sw_read() {
+    return pin_test(selected_sw);
 }
 
 int drv_sys_delay_write(int val, char *str) {
