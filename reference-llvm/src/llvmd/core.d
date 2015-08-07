@@ -390,6 +390,19 @@ class Value {
         LLVMSetInitializer(val, v.val);
     }
 
+    void add_incoming(Value[] vals, BasicBlock[] blocks) {
+        assert(vals.length == blocks.length);
+        LLVMValueRef[] rawvals = new LLVMValueRef[](vals.length);
+        LLVMBasicBlockRef[] rawblocks = new LLVMBasicBlockRef[](blocks.length);
+
+        foreach (i; 0 .. vals.length) {
+            rawvals[i] = vals[i].val;
+            rawblocks[i] = blocks[i].basic_block;
+        }
+
+        LLVMAddIncoming(val, rawvals.ptr, rawblocks.ptr, cast(uint)rawvals.length);
+    }
+
     bool is_constant_string() {
         return LLVMIsConstantString(val) != 0;
     }
@@ -422,12 +435,14 @@ extern (C) {
 }
 
 class BasicBlock {
+    protected static BasicBlock[] all_bbs;
     static ulong bb_count;
     ulong index;
 
     protected LLVMBasicBlockRef basic_block;
 
     protected this(LLVMBasicBlockRef basic_block) {
+        BasicBlock.all_bbs ~= this;
         this.basic_block = basic_block;
         this.index = bb_count++;
     }
@@ -435,6 +450,10 @@ class BasicBlock {
     Value first_instruction() {
         auto inst = LLVMGetFirstInstruction(basic_block);
         return new Value(inst);
+    }
+
+    static BasicBlock[] all() {
+        return all_bbs;
     }
 }
 
