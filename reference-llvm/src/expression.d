@@ -1006,6 +1006,21 @@ extern (C) {
 
         current_block = loop.test;
 
+        foreach (sym; SymbolTable.symbols) {
+            if (sym.type != SymbolType.VARIABLE || sym.is_global)
+                continue;
+
+            Value p;
+            if (sym.is_bool)
+                p = current_builder.phi(bool_type);
+            else
+                p = current_builder.phi(numeric_type);
+
+            p.add_incoming([sym.values[sym.last_block]], [loop.before]);
+            sym.values[loop.test] = p;
+            sym.last_block = loop.test;
+        }
+
         /*
         foreach (sym; SymbolTable.symbols) {
             if (sym.type != SymbolType.VARIABLE)
@@ -1037,9 +1052,67 @@ extern (C) {
 
         current_builder.br(loop.test);
 
-        auto syms1 = find_symbols_in_block(loop.test);
-        auto syms2 = find_symbols_in_block(loop.during);
+//        auto syms1 = find_symbols_in_block(loop.test);
+//        auto syms2 = find_symbols_in_block(loop.during);
+//        auto syms1 = find_symbols_in_blocks(loop.test, loop.during);
+//        auto syms2 = find_symbols_in_blocks(loop.during, loop.after);
 
+        auto syms = find_symbols_in_blocks(loop.test, loop.after);
+       
+        foreach (sym; syms) {
+            if (loop.test in sym.values) {
+                sym.values[loop.test].add_incoming([sym.values[sym.last_block]], [current_block]);
+                sym.last_block = loop.test;
+            }
+        }
+
+        /*
+        Value[] phi_values;
+        Value[Value] replacements;
+        BasicBlock[] phi_blocks = [loop.before, current_block];
+        current_builder.position_before(loop.test.first_instruction());
+
+        foreach (sym; syms) {
+            phi_values = [];
+            foreach (bl; phi_blocks) {
+                auto v = sym.values.get(bl, void_value);
+                ulong min = 0;
+                if (v == void_value) {
+                    foreach (k, va; sym.values) {
+                        if (k.index >= min && k.index < bl.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+                        warn_conditionally_defined(sym.ident);
+                        continue;
+                    }
+                }
+                phi_values ~= v;
+            }
+            Type t = null;
+            foreach (v; phi_values) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    warn_unexpected_error();
+                    error_indeterminate_statement_type();
+                }
+            }
+            Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
+            sym.values[loop.test] = newval;
+
+            foreach (v; phi_values) {
+                replacements[v] = newval;
+            }
+
+            sym.last_block = loop.test;
+            sym.is_bool = t.same(bool_type);
+        }
+        */
+
+        /*
         auto syms = syms1.dup;
 
         foreach (sym2; syms2) {
@@ -1054,15 +1127,17 @@ extern (C) {
                 syms ~= sym2;
             }
         }
+        */
 
+        /*
         Value[] phi_values;
-        BasicBlock[] phi_blocks = [loop.before, current_block];
+        BasicBlock[] phi_blocks = [loop.before, loop.during];
 
         current_builder.position_before(loop.test.first_instruction());
 
         Value[Value] replacements;
         
-        foreach (sym; syms) {
+        foreach (sym; syms1 ~ syms2) {
             phi_values = [];
             foreach (bl; phi_blocks) {
 //                phi_values ~= sym.values.get(bl, void_value);
@@ -1079,6 +1154,7 @@ extern (C) {
 //                        stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
 //                        generic_error();
                         warn_conditionally_defined(sym.ident);
+                        continue;
                     }
                 }
                 phi_values ~= v;
@@ -1095,7 +1171,10 @@ extern (C) {
                 }
             }
             Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
-            sym.values[loop.after] = newval;
+            sym.values[loop.during] = newval;
+//            sym.values[loop.after] = sym.values[loop.test];
+            sym.values[loop.test] = newval;
+//            sym.values[loop.after] = newval;
             ulong min = 0;
             BasicBlock prev_block = null;
             foreach (bl, va; sym.values) {
@@ -1106,16 +1185,61 @@ extern (C) {
             }
             replacements[sym.values[prev_block]] = newval;
             
-            sym.last_block = loop.after;
+            sym.last_block = loop.test;
             sym.is_bool = t.same(bool_type);
 
-            /*
-            if (sym.dummy[loop.test] !is null) {
-                Value.replace_all(sym.dummy[loop.test], sym.values[loop.after]);
-            }
-            */
         }
+        */
 
+        /*
+        current_builder.position_at_end(loop.after);
+        phi_blocks = [loop.before, loop.test];
+
+        foreach (sym; syms1 ~ syms2) {
+            phi_values = [];
+            foreach (bl; phi_blocks) {
+                auto v = sym.values.get(bl, void_value);
+                ulong min = 0;
+                if (v == void_value) {
+                    foreach (k, va; sym.values) {
+                        if (k.index >= min && k.index <= loop.test.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+                        warn_conditionally_defined(sym.ident);
+                        continue;
+                    }
+                }
+                phi_values ~= v;
+            }
+            Type t = null;
+            foreach (v; phi_values) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    warn_unexpected_error();
+                    error_indeterminate_statement_type();
+                }
+            }
+            Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
+            sym.values[loop.after] = newval;
+            ulong min = 0;
+            BasicBlock prev_block = null;
+            foreach (bl, va; sym.values) {
+                if (bl.index >= min && bl.index <= loop.test.index) {
+                    min = bl.index;
+                    prev_block = bl;
+                }
+                replacements[sym.values[prev_block]] = newval;
+                sym.last_block = loop.after;
+                sym.is_bool = t.same(bool_type);
+            }
+        }
+        */
+
+        /*
         Value inst = loop.test.first_instruction();
 
         while (inst !is null) {
@@ -1125,16 +1249,16 @@ extern (C) {
                     Value operand = inst.get_operand(i);
                     if (operand.is_const()) {
                         bool stop = false;
-                        foreach (sym; syms1) {
+                        foreach (sym; syms) {
                             foreach (usage; sym.associated_const_usages.get(loop.test, [])) {
                                 if (usage.inst.same(inst) && usage.pos == i) {
-                                    inst.set_operand(i, sym.values[loop.after]);
+                                    inst.set_operand(i, sym.values[loop.test]);
                                     stop = true;
                                     break;
                                 }
                             }
-                            if (stop)
-                                break;
+//                            if (stop)
+//                                break;
                         }
                     } else {
                         foreach (k,v; replacements) {
@@ -1158,17 +1282,23 @@ extern (C) {
                 foreach (i; 0 .. inst.get_num_operands()) {
                     Value operand = inst.get_operand(i);
                     if (operand.is_const()) {
-                        foreach (sym; syms2) {
+                        bool stop = false;
+                        foreach (sym; syms) {
                             foreach (usage; sym.associated_const_usages.get(loop.during, [])) {
                                 if (usage.inst.same(inst) && usage.pos == i) {
-                                    inst.set_operand(i, sym.values[loop.after]);
+                                    inst.set_operand(i, sym.values[loop.during]);
+                                    stop = true;
+                                    break;
                                 }
                             }
+//                            if (stop)
+//                                break;
                         }
                     } else {
                         foreach (k,v; replacements) {
                             if (operand.same(k)) {
                                 inst.set_operand(i, v);
+                                break;
                             }
                         }
                     }
@@ -1176,9 +1306,26 @@ extern (C) {
             }
 
             inst = inst.next_instruction();
-        }        
+        }
+        */
 
         current_builder.position_at_end(loop.after);
+
+        /*
+        foreach (sym; syms2) {
+            sym.values[loop.after] = sym.values[loop.during];
+        }
+        foreach (sym; syms1) {
+            sym.values[loop.after] = sym.values[loop.test];
+        }*/
+        /*
+        foreach (sym; syms) {
+            sym.values[loop.after] = sym.values[loop.test];
+            sym.last_block = loop.after;
+        }
+        */
+        
+
         current_value = void_value;
 
         current_block = loop.after;
