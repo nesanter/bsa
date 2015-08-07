@@ -98,6 +98,9 @@ class Manifest {
                             ent.accept_string = true;
                             ent.accept_value = false;
                             break;
+                        case "b":
+                            ent.accepted_calls["block"] = true;
+                            break;
                     }
                 }
             }
