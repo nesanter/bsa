@@ -13,10 +13,11 @@ syn keyword scopeKeyword scope contained
 syn keyword constKeyword true false
 
 syn match numeric '[a-zA-Z_]\@<![0-9]\+' skipwhite
+syn match char '\'\(\(.\)\|\(\\[rnte0]\)\)\''
 syn match attribute '@[a-zA-Z]\+' contained
-syn region syscall_region matchgroup=syscall start='\[[a-zA-Z_]\+' end='\]' contains=numeric contained
+syn region syscall_region matchgroup=syscall start='\[[a-zA-Z_]\+' end='\]' contains=numeric,char,string contained
 
-syn region body start="{" end="}" contains=basicKeywords,scopeKeyword,numeric,constKeyword,body,syscall,syscall_region,comment transparent
+syn region body start="{" end="}" contains=basicKeywords,scopeKeyword,numeric,char,constKeyword,body,syscall,syscall_region,comment transparent
 syn region string start="\"" end="\""
 
 syn match comment '//.*$'
@@ -29,6 +30,7 @@ hi def link scopeKeyword Keyword
 hi def link constKeyword Constant
 hi def link string String
 hi def link numeric Constant
+hi def link char Constant
 hi def link comment Comment
 hi def link syscall Special
 hi def link attribute Identifier
