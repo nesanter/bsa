@@ -36,12 +36,15 @@
 "<=" { return LANGLE_EQUAL; }
 "<" { return LANGLE; }
 "==" { return EQUAL_EQUAL; }
+"!=" { return BANG_EQUAL; }
 
  /* keywords */
 "not" { return NOT; }
 "and" { return AND; }
 "or" { return OR; }
 "xor" { return XOR; }
+"is" { return IS; }
+"!is" { return BANG_IS; }
 "true" { return TRUE; }
 "false" { return FALSE; }
 "function" { return FUNCTION; }
