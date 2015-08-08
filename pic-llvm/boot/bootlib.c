@@ -144,7 +144,7 @@ unsigned int __attribute__((nomips16)) flash_unlock(nvm_op op) {
 
 //    NVMCONSET = 0x00040000;
     
-    unsigned int * nvmkeyaddr = &NVMKEY;
+    unsigned int volatile * nvmkeyaddr = &NVMKEY;
 
     unsigned int t0, t1;
     asm volatile ("mfc0 %0, $9" : "=r"(t0));
