@@ -19,10 +19,6 @@ extern struct task_info *current_task;
 
 extern handler_t volatile __vector_table[43];
 
-typedef int (*driver_write_fn)(int val, char *str);
-typedef int (*driver_read_fn)();
-typedef int (*driver_block_fn)();
-
 struct driver {
     const driver_write_fn *write_fns;
     const driver_read_fn *read_fns;
@@ -148,10 +144,18 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
 
     driver_block_fn fn = drivers[low].block_fns[high];
     if (fn) {
-        return fn();
+        if (fn()) {
+            context_save(&current_task->context, &&restore);
+            if (schedule_task())
+                scheduler_loop();
+        } else {
+            return 0;
+        }
     } else {
         return 0;
     }
+restore:
+    return 1;
 }
 
 void ___yield_builtin() {
@@ -446,6 +450,7 @@ int drv_timer_period_read() {
 }
 
 int drv_console_rx_block() {
+    current_task->state = TASK_STATE_HARD_BLOCKED;
     
 }
 
@@ -455,5 +460,11 @@ int drv_console_sw_block() {
 
 int drv_console_timer_block() {
     
+}
+
+/* block utilities */
+
+int block_util_match_data(struct task_info * task, unsigned int info) {
+    return info == task->block_data;
 }
 

@@ -182,4 +182,21 @@ void task_exit() {
         scheduler_loop();
 }
 
+void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data) {
+    task->state = TASK_STATE_HARD_BLOCKED;
+    task->reason = reason;
+    task->block_data = data;
+    task->block_fn = block_fn;
+}
+
+void unblock_tasks(enum block_reason reason, unsigned int info) {
+    for (unsigned int i = 0 ; i < MAX_TASKS; i++) {
+        if (task_list[i].reason == reason) {
+            if (task_list[i].block_fn(&task_list[i], info)) {
+                task_list[i].state = TASK_STATE_READY;
+                task_list[i].reason = REASON_UNBLOCKED;
+            }
+        }
+    }
+}
 
