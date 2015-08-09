@@ -37,7 +37,7 @@ wait
 
 [ -f .error ] && { echo "Error during compile. [$(cat .error)]" ; exit 1 ; }
 
-xc32-gcc -mprocessor=$PROCESSOR -o $NAME.elf -DHARD_RUNTIME -Wl,-T../linker/hard-runtime.ld,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') -I../include ../boot/exception.S ../boot/handler.c $USERPROGRAM && \
+xc32-gcc -mprocessor=$PROCESSOR -o $NAME.elf -DHARD_RUNTIME -Wl,-T../linker/hard-runtime.ld,--defsym=__MPLAB_BUILD=1,-Map="$NAME.map" $(find . -name '*.o') -I../include ../boot/exception.S ../boot/handler.c ../boot/generated/* ../boot/handler_wrapper.S $USERPROGRAM && \
 xc32-bin2hex -v $NAME.elf
 
 #[ -f $NAME.a ] && rm $NAME.a

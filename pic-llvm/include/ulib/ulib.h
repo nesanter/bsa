@@ -10,6 +10,8 @@
 
 #define BITS(n) (1L << n)
 
+#include "ulib/pins.h"
+
 /* ------------------------- UART ------------------------- */
 
 typedef enum {
@@ -290,7 +292,7 @@ u_cn_config u_cn_load_config(u_cn_select select);
 void u_cn_save_config(u_cn_select select, u_cn_config config);
 void u_cn_enable(Pin p);
 void u_cn_disable(Pin p);
-int u_cn_changed(Pin p);
+int u_cn_changed(u_cn_select select);
 
 /* ------------------------- I2C ------------------------- */
 typedef struct {
@@ -308,7 +310,7 @@ typedef struct {
        receive_enable,
        stop_condition_enable,
        restart_condition_enable,
-       start_condition_enable
+       start_condition_enable;
 } u_i2c_config;
 
 typedef enum {

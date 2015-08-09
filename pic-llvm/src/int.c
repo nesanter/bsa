@@ -1,4 +1,3 @@
-#include "int.h"
 #include "runtime.h"
 #include "driver/console.h"
 #include "driver/basic_io.h"
@@ -20,8 +19,14 @@ extern struct task_info *current_task;
 
 extern handler_t volatile __vector_table[43];
 
+/*
 void handler_change_notify() {
+    
 //    unblock_tasks(BLOCK_REASON_CHANGE_NOTIFY, 
+}
+
+void handler_change_notify_b() {
+
 }
 
 void handler_uart1_rx() {
@@ -31,3 +36,5 @@ void handler_uart1_rx() {
 void handler_timerb() {
 //    unblock_tasks(BLOCK_REASON_TIMER_B
 }
+*/
+

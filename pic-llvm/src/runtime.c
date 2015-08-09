@@ -8,6 +8,7 @@
 #include "ulib/pins.h"
 #include "exception.h"
 #include "task.h"
+#include "proc/processor.h"
 
 #define DRV_SUCCESS (1)
 #define DRV_FAILURE (0)
@@ -38,7 +39,8 @@ struct driver {
 // [manifest] .led.select            1   1   rw,v
 // [manifest] .sw                    2   0   r
 // [manifest] .sw.select             2   1   rw,v
-// [manifest] .sw.edge               2   0   b
+// [manifest] .sw.edge               2   2   rw,v
+// [manifest] .sw.wait               2   0   b
 // [manifest] .system.delay          3   0   w,v
 // [manifest] .timer.tick            4   0   rw,v
 // [manifest] .timer.enable          4   1   w,v
@@ -102,10 +104,10 @@ const driver_block_fn all_block_fns[] = {
     &drv_console_rx_block, // 0.0
     
     /* .sw */
-    &drv_console_sw_block, // 2.0
+    &drv_sw_block, // 2.0
 
     /* .timer */
-    &drv_console_timer_block, // 4.0
+    &drv_timer_block, // 4.0
 };
 
 const struct driver drivers[] = {
@@ -143,6 +145,8 @@ int ___read_builtin(struct eh_t *eh, unsigned int target) {
 int ___block_builtin(struct eh_t *eh, unsigned int target) {
     unsigned int low = target & 0xFFFF;
     unsigned int high = (target & 0xFFFF0000) >> 16;
+
+    uart_print("[block builtin]\r\n");
 
     driver_block_fn fn = drivers[low].block_fns[high];
     if (fn) {
@@ -189,6 +193,16 @@ void ___fork_builtin(struct eh_t *eh, int (*fn)(void*)) {
 
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
     __vector_table[entry] = handler;
+}
+
+/* block utilities */
+
+int block_util_match_data(struct task_info * task, unsigned int info) {
+    return info == task->block_data;
+}
+
+int block_util_match_sw(struct task_info * task, unsigned int info) {
+    return (task->block_data & 0xFFFF) == (info & 0xFFFF) && (task->block_data & info & 0xFFFF0000);
 }
 
 /* driver functions */
@@ -351,7 +365,7 @@ int drv_sw_select_read() {
 
 int drv_sw_edge_write(int val, char *str) {
     if (val >= 0 && val < 3) {
-        selected_edge = val + 1;
+        selected_sw_edge = val + 1;
         return 1;
     } else {
         return 0;
@@ -359,7 +373,7 @@ int drv_sw_edge_write(int val, char *str) {
 }
 
 int drv_sw_edge_read() {
-    return selected_edge;
+    return selected_sw_edge;
 }
 
 int drv_sw_read() {
@@ -468,41 +482,36 @@ int drv_timer_period_read() {
 int rx_block_init = 0;
 
 int drv_console_rx_block() {
-    block_task(current_task, &block_util_match_data, BLOCK_REASON_UART1_RX, 0);
+    block_task(current_task, &block_util_match_data, BLOCK_REASON_CONSOLE_RX, 0);
 }
 
 int sw_block_init = 0;
 
-int drv_console_sw_block() {
+int drv_sw_block() {
     unsigned int data;
     if (selected_sw.group == PIN_GROUP_A) {
         switch (selected_sw.pin) {
-            case BITS(2): data = 0;
-            case BITS(3): data = 1;
-            case BITS(4): data = 2;
+            case BITS(2): data = 0; break;
+            case BITS(3): data = 1; break;
+            case BITS(4): data = 2; break;
             default: return 0;
         }
     } else {
         data = 3;
     }
-    block_task(current_task, &block_util_match_sw, BLOCK_REASON_CHANGE_NOTIFY, selected_sw | (selected_sw_edge << 16));
+
+    runtime_set_vector_table_entry(_CHANGE_NOTICE_VECTOR, &handler_sw_edge);
+    u_cn_enable(selected_sw);
+
+    block_task(current_task, &block_util_match_sw, BLOCK_REASON_SW, data | (selected_sw_edge << 16));
     return 1;
 }
 
 int timer_block_init = 0;
 
-int drv_console_timer_block() {
-    block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER_B, selected_timer);
+int drv_timer_block() {
+    block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER, selected_timer);
     return 1;
 }
 
-/* block utilities */
-
-int block_util_match_data(struct task_info * task, unsigned int info) {
-    return info == task->block_data;
-}
-
-int block_util_match_sw(struct task_info * task, unsigned int info) {
-    return (task->block_data & 0xFFFF) == (info & 0xFFFF) && (task->block_data & info & 0xFFFF0000);
-}
 

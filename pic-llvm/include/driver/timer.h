@@ -10,4 +10,6 @@ int drv_timer_read();
 int drv_timer_select_read();
 int drv_timer_period_read();
 
+int drv_timer_block();
+
 #endif /* DRV_TIMER_H */

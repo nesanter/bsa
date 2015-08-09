@@ -1,6 +1,8 @@
 #include "task.h"
+#include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
+#include "proc/processor.h"
 
 
 enum {
@@ -109,12 +111,14 @@ int schedule_task() {
                 any_tasks = 1;
                 break;
             case TASK_STATE_HARD_BLOCKED:
-                if (task_list[i].block_fn(task_list[i].block_data)) {
+                /*
+                if (task_list[i].block_fn(&task_list[i], task_list[i].block_data)) {
                     task_list[i].state = TASK_STATE_READY;
                 }
                 if (!next_task || next_task->depth > task_list[i].depth) {
                     next_task = &task_list[i];
                 }
+                */
                 any_tasks = 1;
                 break;
             case TASK_STATE_ERROR:
@@ -156,7 +160,7 @@ void scheduler_loop() {
     while (schedule_task() == 1) {
         // there are still tasks, but none are schedulable
         // enter "idle" mode (OSCCON<4> has already been cleared by bootloader)
-        uart_print("[idleing]\r\n");
+//        uart_print("[idleing]\r\n");
 //        asm volatile ("wait");
     }
     // there are no tasks left, return to bootloader
@@ -183,6 +187,7 @@ void task_exit() {
 }
 
 void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data) {
+    uart_print("[blocking task]");
     task->state = TASK_STATE_HARD_BLOCKED;
     task->reason = reason;
     task->block_data = data;
@@ -194,9 +199,57 @@ void unblock_tasks(enum block_reason reason, unsigned int info) {
         if (task_list[i].reason == reason) {
             if (task_list[i].block_fn(&task_list[i], info)) {
                 task_list[i].state = TASK_STATE_READY;
-                task_list[i].reason = REASON_UNBLOCKED;
+                task_list[i].reason = BLOCK_REASON_UNBLOCKED;
             }
         }
     }
+}
+
+void handler_sw_edge() {
+    uart_print("[handling sw edge]\r\n");
+    unsigned int changed_a = u_cn_changed(CNA);
+    unsigned int changed_b = u_cn_changed(CNB);
+    unsigned int val_a = PORTA;
+    unsigned int val_b = PORTB;
+    for (unsigned int i = 0 ; i < MAX_TASKS; i++) {
+        if (task_list[i].reason == BLOCK_REASON_SW) {
+            unsigned int p;
+            switch (task_list[i].block_data & 0xFFFF) {
+                case 0:
+                    if (changed_a & BITS(2)) {
+                        if ((val_a & BITS(2)) ? task_list[i].block_data & 0x20000 : task_list[i].block_data & 0x10000) {
+                            task_list[i].state = TASK_STATE_READY;
+                            task_list[i].reason = BLOCK_REASON_UNBLOCKED;
+                        }
+                    }
+                    break;
+                case 1:
+                    if (changed_a & BITS(3)) {
+                        if ((val_a & BITS(3)) ? task_list[i].block_data & 0x20000 : task_list[i].block_data & 0x10000) {
+                            task_list[i].state = TASK_STATE_READY;
+                            task_list[i].reason = BLOCK_REASON_UNBLOCKED;
+                        }
+                    }
+                    break;
+                case 2:
+                    if (changed_a & BITS(4)) {
+                        if ((val_a & BITS(4)) ? task_list[i].block_data & 0x20000 : task_list[i].block_data & 0x10000) {
+                            task_list[i].state = TASK_STATE_READY;
+                            task_list[i].reason = BLOCK_REASON_UNBLOCKED;
+                        }
+                    }
+                    break;
+                case 3:
+                    if (changed_b & BITS(14)) {
+                        if ((val_b & BITS(14)) ? task_list[i].block_data & 0x20000 : task_list[i].block_data & 0x10000) {
+                            task_list[i].state = TASK_STATE_READY;
+                            task_list[i].reason = BLOCK_REASON_UNBLOCKED;
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+    IFS1CLR = BITS(13);
 }
 

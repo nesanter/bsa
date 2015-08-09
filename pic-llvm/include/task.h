@@ -11,6 +11,7 @@ struct __attribute__((packed)) context {
 enum task_state {
     TASK_STATE_EMPTY,
     TASK_STATE_NEW,
+    TASK_STATE_READY,
     TASK_STATE_RUNNING,
     TASK_STATE_SOFT_BLOCKED,
     TASK_STATE_HARD_BLOCKED,
@@ -19,10 +20,10 @@ enum task_state {
 
 enum block_reason {
     BLOCK_REASON_UNBLOCKED,
-    BLOCK_REASON_UART_RX,
-    BLOCK_REASON_CHANGE_NOTIFY,
-    BLOCK_REASON_TIMER_B
-}
+    BLOCK_REASON_CONSOLE_RX,
+    BLOCK_REASON_SW,
+    BLOCK_REASON_TIMER
+};
 
 struct task_info {
     enum task_state state;
@@ -51,5 +52,10 @@ int schedule_task();
 void scheduler_loop();
 
 void task_exit();
+
+void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data);
+void unblock_tasks(enum block_reason reason, unsigned int info);
+
+void handler_sw_edge();
 
 #endif /* TASK_H */

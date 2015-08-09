@@ -59,7 +59,27 @@ int main(void) {
     TRISBSET = BITS(15) | BITS(14);
     TRISASET = BITS(2) | BITS(3) | BITS(4);
 
+    unsigned int tmp;
+/*    asm volatile ("di");
+    asm volatile ("ehb");
+    asm volatile ("mtc0 %0, $15, $1" : "+r"(ebase_val));*/
+    asm volatile ("mfc0 %0, $13" : "=r"(tmp));
+    tmp |= 0x00800000;
+    asm volatile ("mtc0 %0, $13" : "+r"(tmp));
+
+    INTCONSET = BITS(12);
+
     while (!(PORTB & BITS(15)));
+
+    CNCONASET = BITS(15);
+    CNCONBSET = BITS(15);
+
+    IPC8SET = BITS(19);
+    IPC8CLR = BITS(20) | BITS(18);
+    IFS1CLR = BITS(13);
+    IEC1SET = BITS(13) | BITS(14);
+
+    asm volatile ("ei");
     
     // not needed, OSCCON<4> defaults to cleared
     /*

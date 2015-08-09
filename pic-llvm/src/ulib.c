@@ -1484,13 +1484,14 @@ void u_cn_disable(Pin p) {
     }
 }
 
-int u_cn_changed(Pin p) {
-    switch (p.group) {
-        case PIN_GROUP_A:
-            return CNASTAT & p.pin;
-        case PIN_GROUP_B:
-            return CNBSTAT & p.pin;
-=======
+int u_cn_changed(u_cn_select select) {
+    switch (select) {
+        case CNA:
+            return CNSTATA;
+        case CNB:
+            return CNSTATB;
+    }
+}
 
 /* ------------------------- I2C ------------------------- */
 
@@ -1511,7 +1512,7 @@ u_i2c_config u_i2c_load_config(u_i2c_select select) {
   config.on = (cur_config & BITS(15)) >> 15;
   config.stop_in_idle = (cur_config & BITS(13)) >> 13;
   config.scl_release_control = (cur_config & BITS(12)) >> 12;
-  config.strict_reserved_address_rule_enable = (cur_config & BITS[11]) >> 11;
+  config.strict_reserved_address_rule_enable = (cur_config & BITS(11)) >> 11;
   config.slave_address = (cur_config & BITS(10)) >> 10;
   config.slew_rate_control_disable = (cur_config & BITS(9)) >> 9;
   config.smbus_input_levels_disable = (cur_config & BITS(8)) >> 8;
@@ -1521,7 +1522,7 @@ u_i2c_config u_i2c_load_config(u_i2c_select select) {
   config.ack_sequence_enable = (cur_config & BITS(4)) >> 4;
   config.receive_enable = (cur_config & BITS(3)) >> 3;
   config.stop_condition_enable = (cur_config & BITS(2)) >> 2;
-  confix.restart_condition_enable = (cur_config & BITS(1)) >> 1;
+  config.restart_condition_enable = (cur_config & BITS(1)) >> 1;
   config.start_condition_enable = (cur_config & BITS(0)) >> 0;
      
   return config;
@@ -1693,17 +1694,17 @@ int u_i2c_slave_address_register_read(u_i2c_select select) {
 
 void u_i2c_address_mask_register_write(u_i2c_select select, int n) {
     if (select == I2C1) {
-        I2C1MASK = n;
+        I2C1MSK = n;
     } else if (select == I2C2) {
-        I2C2MASK = n;
+        I2C2MSK = n;
     }
 }
 
 int u_i2c_address_mask_register_read(u_i2c_select select) {
     if (select == I2C1) {
-        return I2C1MASK;
+        return I2C1MSK;
     } else if (select == I2C2) {
-        return I2C2MASK;
+        return I2C2MSK;
     }
     return 0;
 }
@@ -1727,9 +1728,9 @@ int u_i2c_baud_rate_generator_register_read(u_i2c_select select) {
 
 void  u_i2c_tx_register_write(u_i2c_select select, char c) {
     if (select == I2C1) {
-        I2C1TRAN = c;
+        I2C1TRN = c;
     } else if (select == I2C2) {
-        I2C2TRAN = c;
+        I2C2TRN = c;
     }
 }
 
@@ -1741,3 +1742,4 @@ char u_i2c_rx_register_read(u_uart_select select) {
     }
     return 0;
 }
+

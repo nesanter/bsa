@@ -14,4 +14,7 @@ int drv_console_rx_block_read();
 int drv_console_rx_ready();
 int drv_console_rx_read();
 
+int drv_console_rx_block();
+
+
 #endif

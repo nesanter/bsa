@@ -5,7 +5,7 @@
     .ent	handler_wrapper
     .set noat
 handler_wrapper:
-    bne $k0, $zero, Lskip
+    beq $k0, $zero, Lskip
     addi $sp, $sp, -80
     sw $1, ($sp)
     sw $2, 4($sp)
@@ -47,8 +47,10 @@ handler_wrapper:
     lw $28, 72($sp)
     lw $31, 76($sp)
     addi $sp, $sp, 80
-Lskip:
     eret
+Lskip:
+    add $k0, $zero, $zero
+    jr $k0
     .end    handler_wrapper
     .size	handler_wrapper, .-handler_wrapper
 
