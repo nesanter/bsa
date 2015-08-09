@@ -127,6 +127,13 @@ void error_logical_op_requires_booleans(string op) {
     error_action();
 }
 
+void error_is_op_requires_rh_boolean(string op) {
+    write_error_prefix();
+    stderr.write("right hand value of '", op, "' must be a boolean value");
+    write_error_suffix();
+    error_action();
+}
+
 void error_arithmetic_op_requires_numerics(string op) {
     write_error_prefix();
     stderr.write("'", op, "' must be used with numeric values");

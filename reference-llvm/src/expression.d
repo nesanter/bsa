@@ -333,12 +333,14 @@ extern (C) {
         res.value = current_builder.select(a, true_value, b);
         res.is_bool = true;
 
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
 
         return res.reference();
     }
@@ -360,12 +362,14 @@ extern (C) {
         res.value = current_builder.icmp_ne(a, b);
         res.is_bool = true;
 
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -385,12 +389,48 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.select(a, b, false_value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
+        return res.reference();
+    }
+
+    ulong expr_op_is(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (!rhs.is_bool) {
+            error_is_op_requires_rh_bool("is").
+        }
+
+        auto tmp = current_builder.icmp_ne(lhs.value, false_value);
+
+        auto res = new Expression;
+        res.value = current_builder.icmp_eq(tmp, rhs.value);
+        res.is_bool = true;
+
+        return res.reference();
+    }
+
+    ulong expr_op_nis(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (!rhs.is_bool) {
+            error_is_op_requires_rh_bool("!is");
+        }
+
+        auto tmp = current_builder.icmp_ne(lhs.value, false_value);
+
+        auto res = new Expression;
+        res.value = current_builder.icmp_ne(tmp, rhs.value);
+        res.is_bool = true;
+
         return res.reference();
     }
 
@@ -398,35 +438,59 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
+
         if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+            error_arithmetic_op_requires_numerics("==");
+        }
+
+        /*
+        Value lval, rval;
+
+        version (MIXED_COMPARE) {
+            if (lhs.is_bool && !rhs.is_bool) {
+                lval = lhs.value;
+                rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+            } else if (!lhs.is_bool && rhs.is_bool) {
+                rval = rhs.value;
+                lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+            } else {
+                lval = lhs.value;
+                rval = rhs.value;
+            }
+        } else {
+            if (lhs.is_bool != rhs.is_bool) {
+                error_mixed_comparison_types();
+            }
+            lval = lhs.value;
+            rval = rhs.value;
         }
         */
 
-        Value lval, rval;
-
-        if (lhs.is_bool && !rhs.is_bool) {
-            lval = lhs.value;
-            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
-        } else if (!lhs.is_bool && rhs.is_bool) {
-            rval = rhs.value;
-            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
-        } else {
-            lval = lhs.value;
-            rval = rhs.value;
-        }
-
         auto res = new Expression;
-        res.value = current_builder.icmp_eq(lval, rval);
+        res.value = current_builder.icmp_eq(lhs.val, rhs.val);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
+        return res.reference();
+    }
+
+    ulong expr_op_neq(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("!=");
+        }
+
+        auto res = new Expression;
+        res.value = current_builder.icmp_ne(lhs.val, rhs.val);
+
         return res.reference();
     }
 
@@ -434,12 +498,12 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("<");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -452,16 +516,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slt(lval, rval);
+        res.value = current_builder.icmp_slt(lhs.val, rhs.val);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -469,12 +536,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics(">");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -487,16 +553,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgt(lval, rval);
+        res.value = current_builder.icmp_sgt(lhs.val, rhs.val);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -504,12 +573,12 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("<=");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -522,16 +591,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slte(lval, rval);
+        res.value = current_builder.icmp_slte(lhs.val, rhs.val);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -539,12 +611,12 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics(">=");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -557,16 +629,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgte(lval, rval);
+        res.value = current_builder.icmp_sgte(lhs.val, rhs.val);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -582,12 +657,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.add(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -603,12 +680,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.sub(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -624,12 +703,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.mul(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -645,12 +726,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.sdiv(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -666,12 +749,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.srem(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -686,25 +771,29 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.icmp_eq(lhs.value, false_value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
+        */
         return res.reference();
     }
 
     ulong expr_op_neg(ulong lhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
 
-        if (lhs.value.type.same(bool_type)) {
+        if (lhs.is_bool) {
 //            stderr.writeln("error: '-' must be used with a numeric value (line ",yylineno,")");
 //            generic_error();
             error_arithmetic_op_requires_numerics("-");
         }
         auto res = new Expression;
         res.value = current_builder.neg(lhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
+        */
 
         return res.reference();
     }
@@ -748,11 +837,13 @@ extern (C) {
         }
         current_value = current_builder.call(fn.values[null], [current_eh] ~ p.values);
 
+        /*
         foreach (i,s; p.const_syms) {
             if (s !is null) {
                 s.associated_const_usages[current_block] ~= new InstUsage(current_value, i);
             }
         }
+        */
     }
 
     /* Statements */
