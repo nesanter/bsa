@@ -405,10 +405,15 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (!rhs.is_bool) {
-            error_is_op_requires_rh_bool("is").
+            error_is_op_requires_rh_boolean("is");
         }
 
-        auto tmp = current_builder.icmp_ne(lhs.value, false_value);
+        Value tmp;
+        if (lhs.is_bool) {
+            tmp = current_builder.icmp_ne(lhs.value, false_value);
+        } else {
+            tmp = current_builder.icmp_ne(lhs.value, false_numeric_value);
+        }
 
         auto res = new Expression;
         res.value = current_builder.icmp_eq(tmp, rhs.value);
@@ -422,10 +427,15 @@ extern (C) {
         auto rhs = Expression.lookup(rhs_ref);
 
         if (!rhs.is_bool) {
-            error_is_op_requires_rh_bool("!is");
+            error_is_op_requires_rh_boolean("!is");
         }
 
-        auto tmp = current_builder.icmp_ne(lhs.value, false_value);
+        Value tmp;
+        if (lhs.is_bool) {
+            tmp = current_builder.icmp_ne(lhs.value, false_value);
+        } else {
+            tmp = current_builder.icmp_ne(lhs.value, false_numeric_value);
+        }
 
         auto res = new Expression;
         res.value = current_builder.icmp_ne(tmp, rhs.value);
@@ -467,7 +477,7 @@ extern (C) {
         */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_eq(lhs.val, rhs.val);
+        res.value = current_builder.icmp_eq(lhs.value, rhs.value);
         res.is_bool = true;
         /*
         if (lhs.const_is_sym !is null) {
@@ -489,7 +499,7 @@ extern (C) {
         }
 
         auto res = new Expression;
-        res.value = current_builder.icmp_ne(lhs.val, rhs.val);
+        res.value = current_builder.icmp_ne(lhs.value, rhs.value);
 
         return res.reference();
     }
@@ -519,7 +529,7 @@ extern (C) {
         */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slt(lhs.val, rhs.val);
+        res.value = current_builder.icmp_slt(lhs.value, rhs.value);
         res.is_bool = true;
         /*
         if (lhs.const_is_sym !is null) {
@@ -556,7 +566,7 @@ extern (C) {
         */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgt(lhs.val, rhs.val);
+        res.value = current_builder.icmp_sgt(lhs.value, rhs.value);
         res.is_bool = true;
         /*
         if (lhs.const_is_sym !is null) {
@@ -594,7 +604,7 @@ extern (C) {
         */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slte(lhs.val, rhs.val);
+        res.value = current_builder.icmp_slte(lhs.value, rhs.value);
         res.is_bool = true;
         /*
         if (lhs.const_is_sym !is null) {
@@ -632,7 +642,7 @@ extern (C) {
         */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgte(lhs.val, rhs.val);
+        res.value = current_builder.icmp_sgte(lhs.value, rhs.value);
         res.is_bool = true;
         /*
         if (lhs.const_is_sym !is null) {
