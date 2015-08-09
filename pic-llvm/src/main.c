@@ -79,6 +79,18 @@ int main(void) {
     IFS1CLR = BITS(13);
     IEC1SET = BITS(13) | BITS(14);
 
+    IPC2SET = BITS(2) | BITS(3);
+    IPC2CLR = BITS(4);
+
+    IPC3SET = BITS(2) | BITS(3);
+    IPC3CLR = BITS(4);
+
+    IPC4SET = BITS(2) | BITS(3);
+    IPC4CLR = BITS(4);
+
+    IPC5SET = BITS(2) | BITS(3);
+    IPC5CLR = BITS(4);
+
     asm volatile ("ei");
     
     // not needed, OSCCON<4> defaults to cleared
