@@ -253,3 +253,24 @@ void handler_sw_edge() {
     IFS1CLR = BITS(13) | BITS(14);
 }
 
+void handler_timer_b2() {
+    unblock_tasks(BLOCK_REASON_TIMER, 2);
+    IFS0CLR = BITS(9);
+    IEC0CLR = BITS(9);
+}
+void handler_timer_b3() {
+    unblock_tasks(BLOCK_REASON_TIMER, 3);
+    IFS0CLR = BITS(14);
+    IEC0CLR = BITS(14);
+}
+void handler_timer_b4() {
+    unblock_tasks(BLOCK_REASON_TIMER, 4);
+    IFS0CLR = BITS(19);
+    IEC0CLR = BITS(19);
+}
+void handler_timer_b5() {
+    unblock_tasks(BLOCK_REASON_TIMER, 5);
+    IFS0CLR = BITS(24);
+    IEC0CLR = BITS(24);
+}
+

@@ -57,5 +57,9 @@ void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsi
 void unblock_tasks(enum block_reason reason, unsigned int info);
 
 void handler_sw_edge();
+void handler_timer_b2();
+void handler_timer_b3();
+void handler_timer_b4();
+void handler_timer_b5();
 
 #endif /* TASK_H */

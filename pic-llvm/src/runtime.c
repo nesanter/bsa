@@ -42,10 +42,11 @@ struct driver {
 // [manifest] .sw.edge               2   2   rw,v
 // [manifest] .sw.wait               2   0   b
 // [manifest] .system.delay          3   0   w,v
-// [manifest] .timer.tick            4   0   rw,v
+// [manifest] .timer                 4   0   rw,v
 // [manifest] .timer.enable          4   1   w,v
 // [manifest] .timer.select          4   2   rw,v
 // [manifest] .timer.period          4   3   rw,v
+// [manifest] .timer.prescaler       4   4   rw,v
 // [manifest] .timer.wait            4   0   b
 
 const driver_write_fn all_write_fns[] = {
@@ -501,16 +502,51 @@ int drv_sw_block() {
     }
 
     runtime_set_vector_table_entry(_CHANGE_NOTICE_VECTOR, &handler_sw_edge);
-    u_cn_enable(selected_sw);
 
     block_task(current_task, &block_util_match_sw, BLOCK_REASON_SW, data | (selected_sw_edge << 16));
+    
+    u_cn_enable(selected_sw);
     return 1;
 }
 
 int timer_block_init = 0;
 
 int drv_timer_block() {
-    block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER, selected_timer);
+    int n;
+    switch (selected_timer) {
+        case 0:
+            runtime_set_vector_table_entry(_TIMER_2_VECTOR, &handler_timer_b2);
+            n = 2;
+            IEC0SET = BITS(9);
+            break;
+        case 1:
+        case 4:
+            n = 3;
+            runtime_set_vector_table_entry(_TIMER_3_VECTOR, &handler_timer_b3);
+            IEC0SET = BITS(14);
+            break;
+        case 2:
+            n = 4;
+            runtime_set_vector_table_entry(_TIMER_4_VECTOR, &handler_timer_b4);
+            IEC0SET = BITS(19);
+            break;
+        case 3:
+        case 5:
+            n = 5;
+            runtime_set_vector_table_entry(_TIMER_5_VECTOR, &handler_timer_b5);
+            break;
+    }
+    block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER, n);
+
+    if (n == 2)
+        IEC0SET = BITS(9);
+    else if (n == 3)
+        IEC0SET = BITS(14);
+    else if (n == 4)
+        IEC0SET = BITS(19);
+    else if (n == 5)
+        IEC0SET = BITS(19);
+
     return 1;
 }
 
