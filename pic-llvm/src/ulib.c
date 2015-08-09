@@ -23,7 +23,7 @@ u_uart_config u_uartx_load_config(u_uart_select select) {
         cur_status = U1STA;
     } else if (select == UART2) {
         cur_mode = U2MODE;
-        cur_mode = U2STA;
+        cur_status = U2STA;
     }
 
     config.on = (cur_mode & BITS(15)) >> 15;
@@ -1490,7 +1490,254 @@ int u_cn_changed(Pin p) {
             return CNASTAT & p.pin;
         case PIN_GROUP_B:
             return CNBSTAT & p.pin;
+=======
+
+/* ------------------------- I2C ------------------------- */
+
+u_i2c_config u_i2c_load_config(u_i2c_select select) {
+  int cur_config;
+  u_i2c_config config;
+ 
+  switch (select) {
+    case I2C1:
+        cur_config = I2C1CON;
+      break;
+
+    case I2C2:
+       cur_config = I2C2CON;
+      break;
+  }
+
+  config.on = (cur_config & BITS(15)) >> 15;
+  config.stop_in_idle = (cur_config & BITS(13)) >> 13;
+  config.scl_release_control = (cur_config & BITS(12)) >> 12;
+  config.strict_reserved_address_rule_enable = (cur_config & BITS[11]) >> 11;
+  config.slave_address = (cur_config & BITS(10)) >> 10;
+  config.slew_rate_control_disable = (cur_config & BITS(9)) >> 9;
+  config.smbus_input_levels_disable = (cur_config & BITS(8)) >> 8;
+  config.general_call_enable = (cur_config & BITS(7)) >> 7;
+  config.scl_clock_stretch_enable = (cur_config & BITS(6)) >> 6;
+  config.ack_data = (cur_config & BITS(5)) >> 5;
+  config.ack_sequence_enable = (cur_config & BITS(4)) >> 4;
+  config.receive_enable = (cur_config & BITS(3)) >> 3;
+  config.stop_condition_enable = (cur_config & BITS(2)) >> 2;
+  confix.restart_condition_enable = (cur_config & BITS(1)) >> 1;
+  config.start_condition_enable = (cur_config & BITS(0)) >> 0;
+     
+  return config;
+}
+
+void u_i2c_save_config(u_i2c_select select, u_i2c_config config) {
+  int new_config;
+
+  new_config |= (config.on & 1) << 15;
+  new_config |= (config.stop_in_idle & 1) << 13;
+  new_config |= (config.scl_release_control & 1) << 12;
+  new_config |= (config.strict_reserved_address_rule_enable & 1) << 11;
+  new_config |= (config.slave_address & 1) << 10;
+  new_config |= (config.slew_rate_control_disable & 1) << 9;
+  new_config |= (config.smbus_input_levels_disable & 1) << 8;
+  new_config |= (config.general_call_enable & 1) << 7;
+  new_config |= (config.scl_clock_stretch_enable & 1) << 6;
+  new_config |= (config.ack_data & 1) << 5;
+  new_config |= (config.ack_sequence_enable & 1) << 4;
+  new_config |= (config.receive_enable & 1) << 3;
+  new_config |= (config.stop_condition_enable & 1) << 2;
+  new_config |= (config.restart_condition_enable & 1) << 1;
+  new_config |= (config.start_condition_enable & 1) << 0;
+
+  switch (select) {
+    case I2C1:
+      I2C1CON = new_config;
+      break;
+
+    case I2C2:
+      I2C2CON = new_config;
+      break;
+  }
+}
+
+int u_i2c_get_acknowledge_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(15);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(15);
+  }
+  return 0;
+}
+
+int u_i2c_get_transmit_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(14);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(14);
+  }
+  return 0;
+}
+
+int u_i2c_get_master_bus_collision_detect(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(10);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(10);
+  }
+  return 0;
+}
+
+int u_i2c_get_general_call_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(9);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(9);
+  }
+  return 0;
+}
+
+int u_i2c_get_address_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(8);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(8);
+  }
+  return 0;
+}
+
+int u_i2c_get_write_collision_detect(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(7);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(7);
+  }
+  return 0;
+}
+
+int u_i2c_get_receive_overflow_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(6);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(6);
+  }
+  return 0;
+}
+
+int u_i2c_get_data_address(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(5);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(5);
+  }
+  return 0;
+}
+
+int u_i2c_get_stop(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(4);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(4);
+  }
+  return 0;
+}
+
+int u_i2c_get_start(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(3);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(3);
+  }
+  return 0;
+}
+
+int u_i2c_get_read_write_information(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(2);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(2);
+  }
+  return 0;
+}
+
+int u_i2c_get_receive_buffer_full_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(1);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(1);
+  }
+  return 0;
+}
+
+int u_i2c_get_transmit_buffer_full_status(u_i2c_select select) {
+  if (select == I2C1) {
+     return I2C1STAT & BITS(0);
+  } else if (select == I2C2) {
+     return I2C2STAT & BITS(0);
+  }
+  return 0;
+}
+
+void u_i2c_slave_address_register_write(u_i2c_select select, int n) {
+    if (select == I2C1) {
+        I2C1ADD = n;
+    } else if (select == I2C2) {
+        I2C2ADD = n;
+    }
+}
+
+int u_i2c_slave_address_register_read(u_i2c_select select) {
+    if (select == I2C1) {
+        return I2C1ADD;
+    } else if (select == I2C2) {
+        return I2C2ADD;
     }
     return 0;
 }
 
+void u_i2c_address_mask_register_write(u_i2c_select select, int n) {
+    if (select == I2C1) {
+        I2C1MASK = n;
+    } else if (select == I2C2) {
+        I2C2MASK = n;
+    }
+}
+
+int u_i2c_address_mask_register_read(u_i2c_select select) {
+    if (select == I2C1) {
+        return I2C1MASK;
+    } else if (select == I2C2) {
+        return I2C2MASK;
+    }
+    return 0;
+}
+
+void u_i2c_baud_rate_generator_register_write(u_i2c_select select, int n) {
+    if (select == I2C1) {
+        I2C1BRG = n;
+    } else if (select == I2C2) {
+        I2C2BRG = n;
+    }
+}
+
+int u_i2c_baud_rate_generator_register_read(u_i2c_select select) {
+    if (select == I2C1) {
+        return I2C1BRG;
+    } else if (select == I2C2) {
+        return I2C2BRG;
+    }
+    return 0;
+}
+
+void  u_i2c_tx_register_write(u_i2c_select select, char c) {
+    if (select == I2C1) {
+        I2C1TRAN = c;
+    } else if (select == I2C2) {
+        I2C2TRAN = c;
+    }
+}
+
+char u_i2c_rx_register_read(u_uart_select select) {
+    if (select == I2C1) {
+        return I2C1RCV;
+    } else if (select == I2C2) {
+        return I2C2RCV;
+    }
+    return 0;
+}
