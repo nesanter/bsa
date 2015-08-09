@@ -75,7 +75,11 @@ void u_uartx_int_clear(u_uart_select select);
 /* ------------------------- PPS ------------------------- */
 
 typedef enum {
-    PPS_IN1_RPA0, PPS_IN1_RPB3, PPS1_IN_RPB4, PPS1_IN_RPB15, PPS1_IN_RPB7
+pins.h
+spi.h
+uart.h
+ulib.h
+util.h
 } u_pps_in_group1;
 
 typedef enum {
@@ -274,5 +278,56 @@ void u_spi_int_save_config(u_spi_select, u_spi_int_config config);
 
 void u_spi_int_clear(u_spi_select select);
 
+/* ------------------------- I2C ------------------------- */
+typedef struct {
+  char on,
+       stop_in_idle,
+       scl_release_control,
+       strict_reserved_address_rule_enable,
+       slave_address,
+       slew_rate_control_disable,
+       smbus_input_levels_disable,
+       general_call_enable,
+       scl_clock_stretch_enable,
+       ack_data,
+       ack_sequence_enable,
+       receive_enable,
+       stop_condition_enable,
+       restart_condition_enable,
+       start_condition_enable
+} u_i2c_config;
+
+typedef enum {
+  I2C1, I2C2
+} u_i2c_select;
+
+u_i2c_config u_i2c_load_config(u_i2c_select select);
+void u_i2c_save_config(u_i2c_select select, u_i2c_config config);
+
+int u_i2c_get_acknowledge_status(u_i2c_select select);
+int u_i2c_get_transmit_status(u_i2c_select select);
+int u_i2c_get_master_bus_collision_detect(u_i2c_select select);
+int u_i2c_get_general_call_status(u_i2c_select select);
+int u_i2c_get_address_status(u_i2c_select select);
+int u_i2c_get_write_collision_detect(u_i2c_select select);
+int u_i2c_get_receive_overflow_status(u_i2c_select select);
+int u_i2c_get_data_address(u_i2c_select select);
+int u_i2c_get_stop(u_i2c_select select);
+int u_i2c_get_start(u_i2c_select select);
+int u_i2c_get_read_write_information(u_i2c_select select);
+int u_i2c_get_receive_buffer_full_status(u_i2c_select select);
+int u_i2c_get_transmit_buffer_full_status(u_i2c_select select);
+
+void u_i2c_slave_address_register_write(u_i2c_select select, int n);
+int u_i2c_slave_address_register_read(u_i2c_select select);
+void u_i2c_address_mask_register_write(u_i2c_select select, int n);
+int u_i2c_address_mask_register_read(u_i2c_select select);
+void u_i2c_baud_rate_generator_register_write(u_i2c_select select, int n);
+int u_i2c_baud_rate_generator_register_read(u_i2c_select select);
+void u_i2c_tx_register_write(u_i2c_select select, char c);
+char u_i2c_rx_register_read(u_uart_select select);
+ 
 #endif	/* ULIB_H */
+
+
 
