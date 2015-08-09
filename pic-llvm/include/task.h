@@ -11,7 +11,6 @@ struct __attribute__((packed)) context {
 enum task_state {
     TASK_STATE_EMPTY,
     TASK_STATE_NEW,
-    TASK_STATE_READY,
     TASK_STATE_RUNNING,
     TASK_STATE_SOFT_BLOCKED,
     TASK_STATE_HARD_BLOCKED,
@@ -20,7 +19,9 @@ enum task_state {
 
 enum block_reason {
     BLOCK_REASON_UNBLOCKED,
-    BLOCK_REASON_CHANGE_NOTIFY
+    BLOCK_REASON_UART_RX,
+    BLOCK_REASON_CHANGE_NOTIFY,
+    BLOCK_REASON_TIMER_B
 }
 
 struct task_info {

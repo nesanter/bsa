@@ -61,6 +61,7 @@ const driver_write_fn all_write_fns[] = {
 
     0,
     &drv_sw_select_write, // 2.1
+    &drv_sw_edge_write, // 2.2
 
     &drv_sys_delay_write, // 3.0
 
@@ -86,6 +87,7 @@ const driver_read_fn all_read_fns[] = {
 
     &drv_sw_read, // 2.0
     &drv_sw_select_read, // 2.1
+    &drv_sw_edge_read, // 2.2
 
     0, // 3.0
 
@@ -110,8 +112,8 @@ const struct driver drivers[] = {
     { &all_write_fns[0], &all_read_fns[0], &all_block_fns[0], 7 }, /* .console */
     { &all_write_fns[7], &all_read_fns[7], 0, 2 }, /* .led */
     { &all_write_fns[9], &all_read_fns[9], &all_block_fns[1], 2 }, /* .sw */
-    { &all_write_fns[11], &all_read_fns[11], 0, 1 }, /* .system */
-    { &all_write_fns[12], &all_read_fns[12], &all_block_fns[2], 1}, /* .timer */
+    { &all_write_fns[12], &all_read_fns[12], 0, 1 }, /* .system */
+    { &all_write_fns[13], &all_read_fns[13], &all_block_fns[2], 1}, /* .timer */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -313,6 +315,7 @@ int drv_led_read() {
 }
 
 Pin selected_sw = { PIN_GROUP_A, BITS(2) };
+unsigned int selected_sw_edge = 1;
 
 int drv_sw_select_write(int val, char *str) {
     switch (val) {
@@ -344,6 +347,19 @@ int drv_sw_select_read() {
     } else {
         return 3;
     }
+}
+
+int drv_sw_edge_write(int val, char *str) {
+    if (val >= 0 && val < 3) {
+        selected_edge = val + 1;
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int drv_sw_edge_read() {
+    return selected_edge;
 }
 
 int drv_sw_read() {
@@ -449,22 +465,44 @@ int drv_timer_period_read() {
     return u_timerb_period_read(selected_timer);
 }
 
+int rx_block_init = 0;
+
 int drv_console_rx_block() {
-    current_task->state = TASK_STATE_HARD_BLOCKED;
-    
+    block_task(current_task, &block_util_match_data, BLOCK_REASON_UART1_RX, 0);
 }
+
+int sw_block_init = 0;
 
 int drv_console_sw_block() {
-    
+    unsigned int data;
+    if (selected_sw.group == PIN_GROUP_A) {
+        switch (selected_sw.pin) {
+            case BITS(2): data = 0;
+            case BITS(3): data = 1;
+            case BITS(4): data = 2;
+            default: return 0;
+        }
+    } else {
+        data = 3;
+    }
+    block_task(current_task, &block_util_match_sw, BLOCK_REASON_CHANGE_NOTIFY, selected_sw | (selected_sw_edge << 16));
+    return 1;
 }
 
+int timer_block_init = 0;
+
 int drv_console_timer_block() {
-    
+    block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER_B, selected_timer);
+    return 1;
 }
 
 /* block utilities */
 
 int block_util_match_data(struct task_info * task, unsigned int info) {
     return info == task->block_data;
+}
+
+int block_util_match_sw(struct task_info * task, unsigned int info) {
+    return (task->block_data & 0xFFFF) == (info & 0xFFFF) && (task->block_data & info & 0xFFFF0000);
 }
 

@@ -21,7 +21,13 @@ extern struct task_info *current_task;
 extern handler_t volatile __vector_table[43];
 
 void handler_change_notify() {
-
-    unblock_tasks(BLOCK_REASON_CHANGE_NOTIFY, 
+//    unblock_tasks(BLOCK_REASON_CHANGE_NOTIFY, 
 }
 
+void handler_uart1_rx() {
+    unblock_tasks(BLOCK_REASON_UART1_RX, 0);
+}
+
+void handler_timerb() {
+//    unblock_tasks(BLOCK_REASON_TIMER_B
+}
