@@ -1,6 +1,7 @@
 /* UART */
 
 #include "ulib/ulib.h"
+#include "ulib/pins.h"
 //#include "ulib/ulib_int.h"
 #include "proc/p32mx250f128b.h"
 
@@ -1426,3 +1427,70 @@ void u_spi_int_clear(u_spi_select select) {
             break;
     }
 }
+
+/* ------------------------- CN ------------------------- */
+
+u_cn_config u_cn_load_config(u_cn_select select) {
+    unsigned int con;
+    switch (select) {
+        case CNA:
+            con = CNCONA;
+            break;
+        case CNB:
+            con = CNCONB;
+            break;
+    }
+
+    u_cn_config config;
+    config.on = (con & BITS(15)) >> 15;
+    config.stop_in_idle = (con & BITS(13)) >> 13;
+
+    return config;
+}
+
+void u_cn_save_config(u_cn_select select, u_cn_config config) {
+    unsigned int con;
+    con |= (config.on & 1) << 15;
+    con |= (config.stop_in_idle & 1) << 13;
+    switch (select) {
+        case CNA:
+            CNCONA = con;
+            break;
+        case CNB:
+            CNCONB = con;
+            break;
+    }
+}
+
+void u_cn_enable(Pin p) {
+    switch (p.group) {
+        case PIN_GROUP_A:
+            CNENASET = p.pin;
+            break;
+        case PIN_GROUP_B:
+            CNENBSET = p.pin;
+            break;
+    }
+}
+
+void u_cn_disable(Pin p) {
+    switch (p.group) {
+        case PIN_GROUP_A:
+            CNENACLR = p.pin;
+            break;
+        case PIN_GROUP_B:
+            CNENBCLR = p.pin;
+            break;
+    }
+}
+
+int u_cn_changed(Pin p) {
+    switch (p.group) {
+        case PIN_GROUP_A:
+            return CNASTAT & p.pin;
+        case PIN_GROUP_B:
+            return CNBSTAT & p.pin;
+    }
+    return 0;
+}
+

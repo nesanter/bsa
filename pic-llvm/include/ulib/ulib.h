@@ -275,5 +275,22 @@ void u_spi_int_save_config(u_spi_select, u_spi_int_config config);
 
 void u_spi_int_clear(u_spi_select select);
 
+/* ------------------------- CN ------------------------- */
+
+typedef enum {
+    CNA, CNB
+} u_cn_select;
+
+typedef struct {
+    char    on,
+            stop_in_idle;
+} u_cn_config;
+
+u_cn_config u_cn_load_config(u_cn_select select);
+void u_cn_save_config(u_cn_select select, u_cn_config config);
+void u_cn_enable(Pin p);
+void u_cn_disable(Pin p);
+int u_cn_changed(Pin p);
+
 #endif	/* ULIB_H */
 
