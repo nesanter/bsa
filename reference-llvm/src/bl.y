@@ -21,7 +21,7 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL AT
-%token FUNCTION WHILE DO IF ELSE BLOCK YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
+%token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
 
@@ -80,7 +80,7 @@ statement: SEMI /* "empty" statement */
          | if_statement
          | while_statement
          | scope_statement
-         | block_statement SEMI
+/*         | block_statement SEMI */
          | yield_statement SEMI
 /*         | return_statement SEMI */
          | fork_statement SEMI
@@ -116,8 +116,10 @@ scope_type: ALWAYS { $$ = HANDLER_ALWAYS; }
           | FAILURE { $$ = HANDLER_FAILURE; }
           ;
 
+/*
 block_statement: BLOCK IDENT
                ;
+*/
 
 yield_statement: YIELD { statement_yield(); }
                ;
