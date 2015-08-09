@@ -16,7 +16,30 @@ int boot_print_enabled = 0;
 //unsigned int handler_old_sp;
 //unsigned char handler_stack[32];
 
+#ifdef HARD_RUNTIME
+#include "ulib/uart.h"
+unsigned int boot_flags = 0;
+void boot_print(char *s) {
+    uart_print(s);
+}
+void soft_reset() {
+    asm volatile ("di");
+    DMACONSET = 0x00001000; //suspend any DMA
+
+    SYSKEY = 0x00000000;
+    SYSKEY = UNLOCK_KEY_A;
+    SYSKEY = UNLOCK_KEY_B;
+
+    RSWRSTSET = 0x1;
+
+    unsigned int volatile dummy;
+    dummy = RSWRSTSET;
+
+    while (1);
+}
+#else
 extern unsigned int __attribute((section(".boot_flags"))) boot_flags;
+#endif
 
 //private functions
 void boot_cs_setup(void);
@@ -89,6 +112,7 @@ unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int epc, un
         case SYSCALL_RESET:
             soft_reset();
             break;
+        /*
         case SYSCALL_GET_FLAGS:
             boot_flags_masked = boot_flags & 0x0FFFFFFF;
             asm volatile ("move $k0, %0": "+r" (boot_flags_masked));
@@ -110,6 +134,7 @@ unsigned int __attribute__((nomips16)) boot_syscall_handler(unsigned int epc, un
             }
             asm volatile ("li $k0, 0");
             break;
+        */
     }
 
     return epc + 4;
@@ -174,6 +199,7 @@ void __attribute__((nomips16)) boot_exception_handler(unsigned int code, unsigne
     }
     */
 
+    /*
     if (boot_flags & BOOT_FLAG_HOLD_ON_ERROR) {
         if (!(boot_flags & BOOT_FLAG_HOLD))
             flash_write_word(boot_flags | BOOT_FLAG_HOLD, physical_address(&boot_flags));
@@ -181,6 +207,7 @@ void __attribute__((nomips16)) boot_exception_handler(unsigned int code, unsigne
     if (boot_flags & BOOT_FLAG_RESET_ON_ERROR) {
         soft_reset();
     }
+    */
 
     PORTACLR = SIGNAL_USER;
     PORTASET = SIGNAL_BOOT;

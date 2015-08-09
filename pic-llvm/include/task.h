@@ -11,20 +11,27 @@ struct __attribute__((packed)) context {
 enum task_state {
     TASK_STATE_EMPTY,
     TASK_STATE_NEW,
-    TASK_STATE_READY,
     TASK_STATE_RUNNING,
     TASK_STATE_SOFT_BLOCKED,
     TASK_STATE_HARD_BLOCKED,
     TASK_STATE_ERROR
 };
 
+enum block_reason {
+    BLOCK_REASON_UNBLOCKED,
+    BLOCK_REASON_UART_RX,
+    BLOCK_REASON_CHANGE_NOTIFY,
+    BLOCK_REASON_TIMER_B
+}
+
 struct task_info {
     enum task_state state;
     struct task_info *parent;
     unsigned int depth;
     struct context context;
+    enum block_reason reason;
     unsigned int block_data;
-    int (*block_fn)(unsigned int);
+    int (*block_fn)(struct task_info *, unsigned int);
 };
 
 enum task_size {
@@ -36,7 +43,8 @@ struct task_attributes {
     enum task_size size;
 };
 
-void context_switch(struct context *save, struct context *restore, void (*on_exit)());
+void context_save(struct context *save, void *ra);
+void context_switch(struct context *restore, void (*on_exit)());
 int create_task(int (*fn)(void *), struct task_attributes attributes);
 int schedule_task();
 

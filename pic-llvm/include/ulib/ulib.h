@@ -192,6 +192,7 @@ typedef enum {
 u_timerb_config u_timerb_load_config(u_timerb_select select);
 void u_timerb_save_config(u_timerb_select select, u_timerb_config config);
 
+void u_timerb_write(u_timerb_select select, unsigned int period);
 unsigned int u_timerb_read(u_timerb_select select);
 unsigned int u_timerb_period_read(u_timerb_select select);
 void u_timerb_period_write(u_timerb_select select, unsigned int period);

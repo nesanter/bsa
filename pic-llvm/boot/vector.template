@@ -6,7 +6,8 @@
 __vector_dispatch_NUM:
     la $k0, __vector_table
     lw $k0, 4*NUM($k0)
-	jr $k0
+    la $k1, handler_wrapper
+	jr $k1
 	.end	__vector_dispatch_NUM
 	.size	__vector_dispatch_NUM, .-__vector_dispatch_NUM
 

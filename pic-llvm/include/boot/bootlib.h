@@ -5,11 +5,12 @@ void boot_uart_init();
 void boot_print(char *s);
 void boot_read_blocking(char *s, unsigned int length);
 
-#define TRANSFER_BUFFER_SIZE (1024)
-#define TRANSFER_BUFFER_SIZE_WITH_HEADER (TRANSFER_BUFFER_SIZE+2)
+#define TRANSFER_BUFFER_SIZE (4096)
+#define TRANSFER_BUFFER_HEADER_SIZE (3)
+#define TRANSFER_BUFFER_SIZE_WITH_HEADER (TRANSFER_BUFFER_SIZE+TRANSFER_BUFFER_HEADER_SIZE)
 
-extern int transfer_ready;
-unsigned char transfer_buffer[TRANSFER_BUFFER_SIZE_WITH_HEADER];
+//extern int transfer_ready;
+//unsigned char transfer_buffer[TRANSFER_BUFFER_SIZE_WITH_HEADER];
 
 void boot_transfer_init();
 void boot_transfer_enable();
@@ -23,7 +24,7 @@ typedef enum {
 void boot_signal_init();
 void boot_signal_set(boot_signal sig, unsigned int on);
 
-void boot_internal_error();
+void boot_internal_error(int single);
 
 typedef enum {
     NVM_WRITE_WORD = 0x4001,
@@ -34,12 +35,14 @@ typedef enum {
 
 unsigned int flash_write_word(unsigned int value, unsigned int dest_addr);
 unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr);
-unsigned int flash_unlock_erase(unsigned int page_addr);
+unsigned int flash_page_erase(unsigned int page_addr);
 
 unsigned int physical_address(void *virt);
 
-#define PAGE_SIZE (1024)
-#define ROW_SIZE (128)
+#define PAGE_SIZE (0x400)
+#define ROW_SIZE (0x80)
+#define PAGE_MASK (0x3FF)
+#define ROWS_PER_PAGE (0x8)
 
 typedef enum {
     REASON_POWER_ON = 0x001,

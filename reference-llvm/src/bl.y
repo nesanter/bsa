@@ -29,7 +29,8 @@
 %left OR
 %left XOR
 %left AND
-%left EQUAL_EQUAL
+%left IS BANG_IS
+%left EQUAL_EQUAL BANG_EQUAL
 %left LANGLE RANGLE LANGLE_EQUAL RANGLE_EQUAL
 %left PLUS MINUS
 %left STAR FSLASH PERCENT
@@ -143,7 +144,10 @@ expression: atom { $$ = $1; }
           | expression OR expression { $$ = expr_op_lor($1, $3); }
           | expression XOR expression { $$ = expr_op_lxor($1, $3); }
           | expression AND expression { $$ = expr_op_land($1, $3); }
+          | expression IS expression { $$ = expr_op_is($1, $3); }
+          | expression BANG_IS expression { $$ = expr_op_nis($1, $3); }
           | expression EQUAL_EQUAL expression { $$ = expr_op_eq($1, $3); }
+          | expression BANG_EQUAL expression { $$ = expr_op_neq($1, $3); }
           | expression LANGLE expression { $$ = expr_op_lt($1, $3); }
           | expression RANGLE expression { $$ = expr_op_gt($1, $3); }
           | expression LANGLE_EQUAL expression { $$ = expr_op_lte($1, $3); }

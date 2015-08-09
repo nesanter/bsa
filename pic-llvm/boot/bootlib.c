@@ -8,6 +8,7 @@
 #define VIRT_OFFSET (0xA0000000)
 
 int transfer_ready = 0;
+unsigned char __attribute__((section(".transfer_buffer"))) transfer_buffer[TRANSFER_BUFFER_SIZE_WITH_HEADER];
 
 /*  The bootloader enables UART1:
  *  9600 baud 81N, no interrupts
@@ -90,6 +91,25 @@ void boot_transfer_enable() {
     DCH1CONSET = 0x80;
 }
 
+int boot_transfer_seek(unsigned int seek) {
+    boot_print("SEEK");
+    while (U1STA & 0x200);
+    U1TXREG = (seek & 0xFF00) >> 8;
+    while (U1STA & 0x200);
+    U1TXREG = seek & 0xFF;
+    while (!(U1STA & 0x1));
+    return (U1RXREG != 0x06); // ACK
+}
+
+void boot_transfer_read() {
+    boot_transfer_enable();
+    boot_print("READ");
+    while (U1STA & 0x200);
+    U1TXREG = (TRANSFER_BUFFER_SIZE & 0xFF00) >> 8;
+    while (U1STA & 0x200);
+    U1TXREG = TRANSFER_BUFFER_SIZE & 0xFF;
+}
+
 void boot_transfer_shutdown() {
     boot_set_vector_table_entry(31, 0);
 }
@@ -116,16 +136,33 @@ void boot_read_blocking(char *buffer, unsigned int length) {
 }
 
 
-unsigned int flash_unlock(nvm_op op) {
+unsigned int __attribute__((nomips16)) flash_unlock(nvm_op op) {
     unsigned int int_status;
     asm volatile ("di %0" : "=r" (int_status));
 
     NVMCON = op;
 
-    NVMCONSET = 0x00040000;
+//    NVMCONSET = 0x00040000;
+    
+    unsigned int volatile * nvmkeyaddr = &NVMKEY;
 
-    NVMKEY = UNLOCK_KEY_A;
-    NVMKEY = UNLOCK_KEY_B;
+    unsigned int t0, t1;
+    asm volatile ("mfc0 %0, $9" : "=r"(t0));
+    t0 += 150;
+    do {
+        asm volatile ("mfc0 %0, $9" : "=r"(t1));
+    } while (t1 < t0);
+
+    asm volatile ("lui $8, 0xAA99\n"
+                  "ori $8, 0x6655\n"
+                  "lui $9, 0x5566\n"
+                  "ori $9, 0x99AA\n"
+                  "sw $8, (%0)\n"
+                  "sw $9, (%0)\n" : "+r"(nvmkeyaddr));
+
+
+//    NVMKEY = UNLOCK_KEY_A;
+//    NVMKEY = UNLOCK_KEY_B;
 
     NVMCONSET = 0x00008000;
 
@@ -141,6 +178,7 @@ unsigned int flash_unlock(nvm_op op) {
     return (NVMCON & 0x00003000);
 }
 
+/*
 unsigned int flash_write_word_unsafe(unsigned int value, unsigned int dest_addr) {
     if (dest_addr & 0x3) {
         return 1;
@@ -151,6 +189,7 @@ unsigned int flash_write_word_unsafe(unsigned int value, unsigned int dest_addr)
 
     return flash_unlock(NVM_WRITE_WORD);
 }
+*/
 
 unsigned int flash_write_word(unsigned int value, unsigned int dest_addr) {
     if (dest_addr < 0x1002400 || dest_addr >= 0x1DF000 || dest_addr & 0x3) {
@@ -176,7 +215,7 @@ unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr) {
     return flash_unlock(NVM_WRITE_ROW);
 }
 
-unsigned int flash_unlock_erase(unsigned int page_addr) {
+unsigned int flash_page_erase(unsigned int page_addr) {
     if (page_addr < 0x1D002400 || page_addr >= 0x1DF000 || page_addr & 0xFFF) {
         return 1;
     }
@@ -197,7 +236,7 @@ void boot_signal_set(boot_signal sig, unsigned int on) {
         PORTACLR = sig;
 }
 
-void boot_internal_error() {
+void boot_internal_error(int single) {
     PORTACLR = SIGNAL_USER | SIGNAL_BOOT;
     
     int phase = 0, phases = 5;
@@ -212,13 +251,17 @@ void boot_internal_error() {
         asm volatile ("mtc0 $zero, $9");
         PORTAINV = SIGNAL_BOOT;
         phase++;
-        if (phase == phases)
+        if (phase == phases) {
+            if (single) {
+                return;
+            }
             phase = 0;
+        }
     }
  
 }
 
-unsigned int physical_address(void *virt) {
+unsigned int physical_address(void * const virt) {
     if (virt >= 0xBF800000)
         return (unsigned int)(virt - 0xA0000000); //sfrs
     if (virt >= 0xBD000000)

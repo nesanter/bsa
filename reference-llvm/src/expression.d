@@ -143,6 +143,7 @@ void init(string manifest_file) {
 
     system_calls["write"] = new SystemCall("___write_builtin", 2, true, true);
     system_calls["read"] = new SystemCall("___read_builtin", 1, false);
+    system_calls["block"] = new SystemCall("___block_builtin", 1, false);
 
     yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), []));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
@@ -266,7 +267,7 @@ extern (C) {
         if (!ent.syscall_allowed(text(ident))) {
             error_intrinsic_not_allowed_for_target(text(ident), qname);
         }
-        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 0)) {
+        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 1)) {
             error_intrinsic_args_not_allowed_for_target(text(ident), qname);
         }
 
@@ -332,12 +333,14 @@ extern (C) {
         res.value = current_builder.select(a, true_value, b);
         res.is_bool = true;
 
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
 
         return res.reference();
     }
@@ -359,12 +362,14 @@ extern (C) {
         res.value = current_builder.icmp_ne(a, b);
         res.is_bool = true;
 
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -384,12 +389,58 @@ extern (C) {
         auto res = new Expression;
         res.value = current_builder.select(a, b, false_value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
+        return res.reference();
+    }
+
+    ulong expr_op_is(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (!rhs.is_bool) {
+            error_is_op_requires_rh_boolean("is");
+        }
+
+        Value tmp;
+        if (lhs.is_bool) {
+            tmp = current_builder.icmp_ne(lhs.value, false_value);
+        } else {
+            tmp = current_builder.icmp_ne(lhs.value, false_numeric_value);
+        }
+
+        auto res = new Expression;
+        res.value = current_builder.icmp_eq(tmp, rhs.value);
+        res.is_bool = true;
+
+        return res.reference();
+    }
+
+    ulong expr_op_nis(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (!rhs.is_bool) {
+            error_is_op_requires_rh_boolean("!is");
+        }
+
+        Value tmp;
+        if (lhs.is_bool) {
+            tmp = current_builder.icmp_ne(lhs.value, false_value);
+        } else {
+            tmp = current_builder.icmp_ne(lhs.value, false_numeric_value);
+        }
+
+        auto res = new Expression;
+        res.value = current_builder.icmp_ne(tmp, rhs.value);
+        res.is_bool = true;
+
         return res.reference();
     }
 
@@ -397,35 +448,59 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
+
         if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+            error_arithmetic_op_requires_numerics("==");
+        }
+
+        /*
+        Value lval, rval;
+
+        version (MIXED_COMPARE) {
+            if (lhs.is_bool && !rhs.is_bool) {
+                lval = lhs.value;
+                rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
+            } else if (!lhs.is_bool && rhs.is_bool) {
+                rval = rhs.value;
+                lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
+            } else {
+                lval = lhs.value;
+                rval = rhs.value;
+            }
+        } else {
+            if (lhs.is_bool != rhs.is_bool) {
+                error_mixed_comparison_types();
+            }
+            lval = lhs.value;
+            rval = rhs.value;
         }
         */
 
-        Value lval, rval;
-
-        if (lhs.is_bool && !rhs.is_bool) {
-            lval = lhs.value;
-            rval = current_builder.icmp_ne(rhs.value, false_numeric_value);
-        } else if (!lhs.is_bool && rhs.is_bool) {
-            rval = rhs.value;
-            lval = current_builder.icmp_ne(lhs.value, false_numeric_value);
-        } else {
-            lval = lhs.value;
-            rval = rhs.value;
-        }
-
         auto res = new Expression;
-        res.value = current_builder.icmp_eq(lval, rval);
+        res.value = current_builder.icmp_eq(lhs.value, rhs.value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
+        return res.reference();
+    }
+
+    ulong expr_op_neq(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("!=");
+        }
+
+        auto res = new Expression;
+        res.value = current_builder.icmp_ne(lhs.value, rhs.value);
+
         return res.reference();
     }
 
@@ -433,12 +508,12 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("<");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -451,16 +526,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slt(lval, rval);
+        res.value = current_builder.icmp_slt(lhs.value, rhs.value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -468,12 +546,11 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics(">");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -486,16 +563,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgt(lval, rval);
+        res.value = current_builder.icmp_sgt(lhs.value, rhs.value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -503,12 +583,12 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("<=");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -521,16 +601,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_slte(lval, rval);
+        res.value = current_builder.icmp_slte(lhs.value, rhs.value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -538,12 +621,12 @@ extern (C) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
 
-        /*
-        if (lhs.is_bool != rhs.is_bool) {
-            stderr.writeln("error: cannot compare boolean and non-boolean values (line ",yylineno,")");
-            generic_error();
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics(">=");
         }
-        */
+
+        /*
         Value lval, rval;
 
         if (lhs.is_bool && !rhs.is_bool) {
@@ -556,16 +639,19 @@ extern (C) {
             lval = lhs.value;
             rval = rhs.value;
         }
+        */
 
         auto res = new Expression;
-        res.value = current_builder.icmp_sgte(lval, rval);
+        res.value = current_builder.icmp_sgte(lhs.value, rhs.value);
         res.is_bool = true;
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -581,12 +667,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.add(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -602,12 +690,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.sub(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -623,12 +713,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.mul(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -644,12 +736,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.sdiv(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -665,12 +759,14 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.srem(lhs.value, rhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         if (rhs.const_is_sym !is null) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
+        */
         return res.reference();
     }
 
@@ -685,25 +781,29 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.icmp_eq(lhs.value, false_value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
+        */
         return res.reference();
     }
 
     ulong expr_op_neg(ulong lhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
 
-        if (lhs.value.type.same(bool_type)) {
+        if (lhs.is_bool) {
 //            stderr.writeln("error: '-' must be used with a numeric value (line ",yylineno,")");
 //            generic_error();
             error_arithmetic_op_requires_numerics("-");
         }
         auto res = new Expression;
         res.value = current_builder.neg(lhs.value);
+        /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
+        */
 
         return res.reference();
     }
@@ -747,11 +847,13 @@ extern (C) {
         }
         current_value = current_builder.call(fn.values[null], [current_eh] ~ p.values);
 
+        /*
         foreach (i,s; p.const_syms) {
             if (s !is null) {
                 s.associated_const_usages[current_block] ~= new InstUsage(current_value, i);
             }
         }
+        */
     }
 
     /* Statements */
@@ -890,12 +992,13 @@ extern (C) {
 
         ifelse.after_value = current_builder.make_phi(t, phi_vals, phi_blocks);
 
-        auto syms1 = find_symbols_in_block(ifelse.during);
+//        auto syms1 = find_symbols_in_blocks(ifelse.during);
         if (nested_ifelse_ref == ulong.max) {
             phi_blocks = [ifelse.during, prev_block];
         } else {
             phi_blocks = [ifelse.during, nested.after];
         }
+        auto syms1 = find_symbols_in_blocks(phi_blocks[0], phi_blocks[1]);
 
         foreach (sym; syms1) {
             phi_vals = [];
@@ -934,8 +1037,9 @@ extern (C) {
             sym.last_block = current_block;
         }
 
-        auto syms2 = find_symbols_in_block(ifelse.otherwise);
+//        auto syms2 = find_symbols_in_block(ifelse.otherwise);
         phi_blocks[1] = prev_block;
+        auto syms2 = find_symbols_in_blocks(ifelse.otherwise, prev_block);
         foreach (sym; syms2) {
             bool already = false;
             foreach (symprev; syms1) {
@@ -1005,6 +1109,21 @@ extern (C) {
 
         current_block = loop.test;
 
+        foreach (sym; SymbolTable.symbols) {
+            if (sym.type != SymbolType.VARIABLE || sym.is_global)
+                continue;
+
+            Value p;
+            if (sym.is_bool)
+                p = current_builder.phi(bool_type);
+            else
+                p = current_builder.phi(numeric_type);
+
+            p.add_incoming([sym.values[sym.last_block]], [loop.before]);
+            sym.values[loop.test] = p;
+            sym.last_block = loop.test;
+        }
+
         /*
         foreach (sym; SymbolTable.symbols) {
             if (sym.type != SymbolType.VARIABLE)
@@ -1036,9 +1155,67 @@ extern (C) {
 
         current_builder.br(loop.test);
 
-        auto syms1 = find_symbols_in_block(loop.test);
-        auto syms2 = find_symbols_in_block(loop.during);
+//        auto syms1 = find_symbols_in_block(loop.test);
+//        auto syms2 = find_symbols_in_block(loop.during);
+//        auto syms1 = find_symbols_in_blocks(loop.test, loop.during);
+//        auto syms2 = find_symbols_in_blocks(loop.during, loop.after);
 
+        auto syms = find_symbols_in_blocks(loop.test, loop.after);
+       
+        foreach (sym; syms) {
+            if (loop.test in sym.values) {
+                sym.values[loop.test].add_incoming([sym.values[sym.last_block]], [current_block]);
+                sym.last_block = loop.test;
+            }
+        }
+
+        /*
+        Value[] phi_values;
+        Value[Value] replacements;
+        BasicBlock[] phi_blocks = [loop.before, current_block];
+        current_builder.position_before(loop.test.first_instruction());
+
+        foreach (sym; syms) {
+            phi_values = [];
+            foreach (bl; phi_blocks) {
+                auto v = sym.values.get(bl, void_value);
+                ulong min = 0;
+                if (v == void_value) {
+                    foreach (k, va; sym.values) {
+                        if (k.index >= min && k.index < bl.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+                        warn_conditionally_defined(sym.ident);
+                        continue;
+                    }
+                }
+                phi_values ~= v;
+            }
+            Type t = null;
+            foreach (v; phi_values) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    warn_unexpected_error();
+                    error_indeterminate_statement_type();
+                }
+            }
+            Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
+            sym.values[loop.test] = newval;
+
+            foreach (v; phi_values) {
+                replacements[v] = newval;
+            }
+
+            sym.last_block = loop.test;
+            sym.is_bool = t.same(bool_type);
+        }
+        */
+
+        /*
         auto syms = syms1.dup;
 
         foreach (sym2; syms2) {
@@ -1053,15 +1230,17 @@ extern (C) {
                 syms ~= sym2;
             }
         }
+        */
 
+        /*
         Value[] phi_values;
-        BasicBlock[] phi_blocks = [loop.before, current_block];
+        BasicBlock[] phi_blocks = [loop.before, loop.during];
 
         current_builder.position_before(loop.test.first_instruction());
 
         Value[Value] replacements;
         
-        foreach (sym; syms) {
+        foreach (sym; syms1 ~ syms2) {
             phi_values = [];
             foreach (bl; phi_blocks) {
 //                phi_values ~= sym.values.get(bl, void_value);
@@ -1078,6 +1257,7 @@ extern (C) {
 //                        stderr.writeln("warning: ",sym.ident," is conditionally defined (line ",yylineno,")");
 //                        generic_error();
                         warn_conditionally_defined(sym.ident);
+                        continue;
                     }
                 }
                 phi_values ~= v;
@@ -1094,7 +1274,10 @@ extern (C) {
                 }
             }
             Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
-            sym.values[loop.after] = newval;
+            sym.values[loop.during] = newval;
+//            sym.values[loop.after] = sym.values[loop.test];
+            sym.values[loop.test] = newval;
+//            sym.values[loop.after] = newval;
             ulong min = 0;
             BasicBlock prev_block = null;
             foreach (bl, va; sym.values) {
@@ -1105,16 +1288,61 @@ extern (C) {
             }
             replacements[sym.values[prev_block]] = newval;
             
-            sym.last_block = loop.after;
+            sym.last_block = loop.test;
             sym.is_bool = t.same(bool_type);
 
-            /*
-            if (sym.dummy[loop.test] !is null) {
-                Value.replace_all(sym.dummy[loop.test], sym.values[loop.after]);
-            }
-            */
         }
+        */
 
+        /*
+        current_builder.position_at_end(loop.after);
+        phi_blocks = [loop.before, loop.test];
+
+        foreach (sym; syms1 ~ syms2) {
+            phi_values = [];
+            foreach (bl; phi_blocks) {
+                auto v = sym.values.get(bl, void_value);
+                ulong min = 0;
+                if (v == void_value) {
+                    foreach (k, va; sym.values) {
+                        if (k.index >= min && k.index <= loop.test.index && va != void_value) {
+                            min = k.index;
+                            v = va;
+                        }
+                    }
+                    if (v == void_value) {
+                        warn_conditionally_defined(sym.ident);
+                        continue;
+                    }
+                }
+                phi_values ~= v;
+            }
+            Type t = null;
+            foreach (v; phi_values) {
+                if (t is null) {
+                    t = v.type;
+                } else if (!t.same(v.type)) {
+                    warn_unexpected_error();
+                    error_indeterminate_statement_type();
+                }
+            }
+            Value newval = current_builder.make_phi(t, phi_values, phi_blocks);
+            sym.values[loop.after] = newval;
+            ulong min = 0;
+            BasicBlock prev_block = null;
+            foreach (bl, va; sym.values) {
+                if (bl.index >= min && bl.index <= loop.test.index) {
+                    min = bl.index;
+                    prev_block = bl;
+                }
+                replacements[sym.values[prev_block]] = newval;
+                sym.last_block = loop.after;
+                sym.is_bool = t.same(bool_type);
+            }
+        }
+        */
+
+        /*
         Value inst = loop.test.first_instruction();
 
         while (inst !is null) {
@@ -1124,16 +1352,16 @@ extern (C) {
                     Value operand = inst.get_operand(i);
                     if (operand.is_const()) {
                         bool stop = false;
-                        foreach (sym; syms1) {
+                        foreach (sym; syms) {
                             foreach (usage; sym.associated_const_usages.get(loop.test, [])) {
                                 if (usage.inst.same(inst) && usage.pos == i) {
-                                    inst.set_operand(i, sym.values[loop.after]);
+                                    inst.set_operand(i, sym.values[loop.test]);
                                     stop = true;
                                     break;
                                 }
                             }
-                            if (stop)
-                                break;
+//                            if (stop)
+//                                break;
                         }
                     } else {
                         foreach (k,v; replacements) {
@@ -1157,17 +1385,23 @@ extern (C) {
                 foreach (i; 0 .. inst.get_num_operands()) {
                     Value operand = inst.get_operand(i);
                     if (operand.is_const()) {
-                        foreach (sym; syms2) {
+                        bool stop = false;
+                        foreach (sym; syms) {
                             foreach (usage; sym.associated_const_usages.get(loop.during, [])) {
                                 if (usage.inst.same(inst) && usage.pos == i) {
-                                    inst.set_operand(i, sym.values[loop.after]);
+                                    inst.set_operand(i, sym.values[loop.during]);
+                                    stop = true;
+                                    break;
                                 }
                             }
+//                            if (stop)
+//                                break;
                         }
                     } else {
                         foreach (k,v; replacements) {
                             if (operand.same(k)) {
                                 inst.set_operand(i, v);
+                                break;
                             }
                         }
                     }
@@ -1175,9 +1409,26 @@ extern (C) {
             }
 
             inst = inst.next_instruction();
-        }        
+        }
+        */
 
         current_builder.position_at_end(loop.after);
+
+        /*
+        foreach (sym; syms2) {
+            sym.values[loop.after] = sym.values[loop.during];
+        }
+        foreach (sym; syms1) {
+            sym.values[loop.after] = sym.values[loop.test];
+        }*/
+        /*
+        foreach (sym; syms) {
+            sym.values[loop.after] = sym.values[loop.test];
+            sym.last_block = loop.after;
+        }
+        */
+        
+
         current_value = void_value;
 
         current_block = loop.after;

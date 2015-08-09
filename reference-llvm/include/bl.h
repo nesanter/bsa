@@ -13,7 +13,10 @@ unsigned long expr_atom_syscall(char *ident, unsigned long qident_ref, unsigned 
 unsigned long expr_op_lor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_lxor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_land(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_is(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_nis(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_eq(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_neq(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_lt(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_gt(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_lte(unsigned long lhs_ref, unsigned long rhs_ref);

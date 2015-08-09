@@ -25,39 +25,40 @@
  */
 
 unsigned int const volatile __attribute((section(".boot_flags"))) boot_flags = BOOT_FLAG_HOLD | BOOT_FLAG_NOPROGRAM | BOOT_FLAG_HOLD_ON_ERROR;
+unsigned int const volatile * const boot_flags_uncached = &boot_flags + 0x8000000;
 
 void boot_flag_prompt() {
     char cmd;
     boot_read_blocking(&cmd, 1);
     int comma;
 
-    unsigned int new_flags = boot_flags;
+    unsigned int new_flags = *boot_flags_uncached;
 
     switch (cmd) {
         case '?':
-            if (boot_flags == 0) {
+            if (new_flags == 0) {
                 boot_print("(none)");
                 break;
             }
-            if (boot_flags & BOOT_FLAG_NOPROGRAM) {
+            if (new_flags & BOOT_FLAG_NOPROGRAM) {
                 boot_print("noprog");
                 comma = 1;
             }
-            if (boot_flags & BOOT_FLAG_HOLD) {
+            if (new_flags & BOOT_FLAG_HOLD) {
                 if (comma)
                     boot_print(",hold");
                 else
                     boot_print("hold");
                 comma = 1;
             }
-            if (boot_flags & BOOT_FLAG_HOLD_ON_ERROR) {
+            if (new_flags & BOOT_FLAG_HOLD_ON_ERROR) {
                 if (comma)
                     boot_print(",hoe");
                 else
                     boot_print("hoe");
                 comma = 1;
             }
-            if (boot_flags & BOOT_FLAG_RESET_ON_ERROR) {
+            if (new_flags & BOOT_FLAG_RESET_ON_ERROR) {
                 if (comma)
                     boot_print(",roe");
                 else
@@ -94,11 +95,22 @@ void boot_flag_prompt() {
             return;
     }
 
-    if (new_flags != boot_flags) {
-        if (flash_write_word(new_flags, physical_address(&boot_flags)))
-            boot_print("NO");
-        else
+    if (new_flags != *boot_flags_uncached) {
+        boot_print(tohex(new_flags, 8));
+        boot_print("\r\n");
+
+        /*
+        unsigned int res = flash_write_word_unsafe(new_flags, physical_address(boot_flags_uncached));
+        if (res & 0x1000) {
+            boot_print("LVD");
+        } else if (res & 0x2000) {
+            boot_print("ERR");
+        } else if (res == 1) {
+            boot_print("ADDR");
+        } else {
             boot_print("OK");
+        }
+        */
     }
 }
 
@@ -122,6 +134,8 @@ int check_reset_reason(unsigned int epc) {
 
 
 int main(void) {
+//    flash_write_word_unsafe(boot_flags & 0x40, physical_address(&boot_flags));
+
     unsigned int errorepc;
     boot_handler_setup(&errorepc);
     boot_uart_init();
@@ -177,6 +191,8 @@ int main(void) {
                 break;
             case 'F':
                 boot_flag_prompt();
+            case 'Q':
+                soft_reset();
             default:
                 break;
         }
@@ -190,7 +206,7 @@ int main(void) {
 //                if (!load_user_program(&entry, &user_sp, &user_gp)) {
 //                    start_user_program(entry, user_sp, user_gp);
 //                }
-                boot_internal_error();
+                boot_internal_error(0);
                 break;
             default:
                 break;

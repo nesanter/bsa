@@ -86,6 +86,33 @@ Symbol[] find_symbols_in_block(BasicBlock block) {
     return syms;
 }
 
+Symbol[] find_symbols_in_blocks(BasicBlock start, BasicBlock end) {
+    BasicBlock[] selected;
+    auto bbs = BasicBlock.all();
+    foreach (bb; bbs) {
+        if (bb.index >= start.index && bb.index < end.index) {
+            selected ~= bb;
+        }
+    }
+    Symbol[] all_syms, out_syms;
+    foreach (bb; selected) {
+        all_syms ~= find_symbols_in_block(bb);
+    }
+    foreach (s1; all_syms) {
+        bool add = true;
+        foreach (s2; out_syms) {
+            if (s1 == s2) {
+                add = false;
+                break;
+            }
+        }
+        if (add) {
+            out_syms ~= s1;
+        }
+    }
+    return out_syms;
+}
+
 void flush_symbols(Value parent) {
     string[] flush;
     foreach (name, sym; SymbolTable.symbols) {

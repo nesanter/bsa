@@ -18,7 +18,7 @@ class Manifest {
         }
 
         bool syscall_arguments_allowed(bool has_string_arg, bool has_value_arg) {
-            if (has_string_arg && !accept_string || has_value_arg && !accept_value) {
+            if ((has_string_arg && !accept_string) || (has_value_arg && !accept_value)) {
                 return false;
             }
             return true;
@@ -98,6 +98,9 @@ class Manifest {
                             ent.accept_string = true;
                             ent.accept_value = false;
                             break;
+                        case "b":
+                            ent.accepted_calls["block"] = true;
+                            break;
                     }
                 }
             }
@@ -106,7 +109,7 @@ class Manifest {
                 continue;
             }
             try {
-                ent.index = (to!ushort(a) << 16) | to!ushort(b);
+                ent.index = ((to!uint(b) & 0xFFFF) << 16) | (to!uint(a) & 0xFFFF);
             } catch (Exception e) {
                 stderr.writeln("Invalid manifest entry (line ",linenum,")");
             }

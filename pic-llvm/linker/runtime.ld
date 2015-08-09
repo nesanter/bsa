@@ -58,7 +58,7 @@ ENTRY(runtime_entry)
  *                     the command line using the linker's --defsym option.
  */
 EXTERN (_min_stack_size _min_heap_size)
-PROVIDE(_min_stack_size = 0x400) ;
+PROVIDE(_min_stack_size = 0x200) ;
 
 /*************************************************************************
  * Processor-specific object file.  Contains SFR definitions.
@@ -109,7 +109,7 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
  *************************************************************************/
 MEMORY
 {
-  kseg0_program_mem     (rx)  : ORIGIN = 0x9D002400, LENGTH = 0x1C800
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D003000, LENGTH = 0x1C000
   /*exception_mem               : ORIGIN = 0x9D01F000, LENGTH = 0x1000*/
   debug_exec_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x760
   kseg0_boot_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x0
@@ -118,8 +118,8 @@ MEMORY
   config2                     : ORIGIN = 0xBFC00BF4, LENGTH = 0x4
   config1                     : ORIGIN = 0xBFC00BF8, LENGTH = 0x4
   config0                     : ORIGIN = 0xBFC00BFC, LENGTH = 0x4
-  vector_table_mem     (w)    : ORIGIN = 0xA0000800, LENGTH = 0x100
-  kseg1_data_mem       (w)    : ORIGIN = 0xA0000900, LENGTH = 0x7700
+  vector_table_mem     (w)    : ORIGIN = 0xA0000400, LENGTH = 0x100
+  kseg1_data_mem       (w)    : ORIGIN = 0xA0000500, LENGTH = 0x7B00
   sfrs                        : ORIGIN = 0xBF800000, LENGTH = 0x100000
   configsfrs                  : ORIGIN = 0xBFC00BF0, LENGTH = 0x10
 }
