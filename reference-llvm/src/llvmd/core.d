@@ -230,6 +230,28 @@ extern (C) {
 
        LLVMValueRef LLVMAddAlias(LLVMModuleRef M, LLVMTypeRef Ty, LLVMValueRef Aliasee, const char * Name);
 
+       void LLVMSetLinkage(LLVMValueRef Global, LLVMLinkage Linkage);
+
+       enum LLVMLinkage {
+           LLVMExternalLinkage,
+           LLVMAvailableExternallyLinkage,
+           LLVMLinkOnceAnyLinkage,
+           LLVMLinkOnceODRLinkage,
+           LLVMLinkOnceODRAutoHideLinkage,
+           LLVMWeakLinkAnyLinkage,
+           LLVMWeakODRLinkage,
+           LLVMAppendingLinkage,
+           LLVMInternalLinkage,
+           LLVMPrivateLinkage,
+           LLVMDLLImportLinkage,
+           LLVMDLLExportLinkage,
+           LLVMExternalWeakLinkage,
+           LLVMGhostLinkage,
+           LLVMCommonLinkage,
+           LLVMLinkerPrivateLinkage,
+           LLVMLinkerPrivateWeakLinkage
+       }
+
        LLVMOpcode LLVMGetInstructionOpcode(LLVMValueRef Inst);
 
        enum LLVMOpcode {
@@ -401,6 +423,10 @@ class Value {
         }
 
         LLVMAddIncoming(val, rawvals.ptr, rawblocks.ptr, cast(uint)rawvals.length);
+    }
+
+    void set_internal_linkage() {
+        LLVMSetLinkage(val, LLVMLinkage.LLVMInternalLinkage);
     }
 
     bool is_constant_string() {

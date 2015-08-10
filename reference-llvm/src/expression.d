@@ -1535,6 +1535,8 @@ extern (C) {
                 error_entry_with_arguments();
             }
             entry_function = Value.add_alias(current_module, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type])), current_function, "___entry");
+        } else {
+            current_function.set_internal_linkage();
         }
 
         current_value = void_value;
@@ -1555,7 +1557,7 @@ extern (C) {
 
         foreach (sym; SymbolTable.symbols) {
             if (sym.is_global && sym.parent == current_function) {
-                current_builder.store(sym.values[current_block], sym.global_value);
+                current_builder.store(sym.values[sym.last_block], sym.global_value);
                 sym.parent = null;
             }
         }
