@@ -207,10 +207,10 @@ void unblock_tasks(enum block_reason reason, unsigned int info) {
 
 void handler_sw_edge() {
     uart_print("[handling sw edge]\r\n");
-    unsigned int changed_a = u_cn_changed(CNA);
-    unsigned int changed_b = u_cn_changed(CNB);
-    unsigned int val_a = PORTA;
-    unsigned int val_b = PORTB;
+    int changed_a = u_cn_changed(CNA);
+    int changed_b = u_cn_changed(CNB);
+    int val_a = PORTA;
+    int val_b = PORTB;
     for (unsigned int i = 0 ; i < MAX_TASKS; i++) {
         if (task_list[i].reason == BLOCK_REASON_SW) {
             unsigned int p;
@@ -250,7 +250,7 @@ void handler_sw_edge() {
             }
         }
     }
-    IFS1CLR = BITS(13);
+    IFS1CLR = BITS(13) | BITS(14);
 }
 
 void handler_timer_b2() {
