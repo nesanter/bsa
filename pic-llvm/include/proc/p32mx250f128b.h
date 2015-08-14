@@ -2348,14 +2348,4 @@ extern volatile unsigned int        DEVCFG0 __attribute__((section("sfrs")));
 #define _DMA2_IRQ                                62
 #define _DMA3_IRQ                                63
 
-/*  The following device macros indicate which core features are
- *  available on this device.
- */
-#ifndef __PIC32_HAS_MIPS32R2
-# define __PIC32_HAS_MIPS32R2 1
-#endif
-#ifndef __PIC32_HAS_MIPS16
-# define __PIC32_HAS_MIPS16 1
-#endif
-
 #endif
