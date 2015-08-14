@@ -17,7 +17,7 @@ cd out
 
 [ -f .error ] && rm .error
 
-for FILE in $(find ../src -type f) ; do
+for FILE in $(find -L ../src -type f) ; do
     case $FILE in
         *.c)
             echo "Compiling $FILE"

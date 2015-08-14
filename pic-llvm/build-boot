@@ -16,7 +16,7 @@ cd out-boot
 
 [ -f .error ] && rm .error
 
-for FILE in $(find ../boot -type f) ; do
+for FILE in $(find -L ../boot -type f) ; do
     case $FILE in
         *.c)
             echo "Compiling $FILE"
