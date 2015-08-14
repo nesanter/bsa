@@ -26,15 +26,15 @@
 %token TRUE FALSE
 
 %precedence PAREN
+%left IS BANG_IS
 %left OR
 %left XOR
 %left AND
-%left IS BANG_IS
+%right NOT
 %left EQUAL_EQUAL BANG_EQUAL
 %left LANGLE RANGLE LANGLE_EQUAL RANGLE_EQUAL
 %left PLUS MINUS
 %left STAR FSLASH PERCENT
-%right NOT
 %precedence UNARY
 
 %type <llu> attributes
@@ -159,7 +159,7 @@ expression: atom { $$ = $1; }
           | expression STAR expression { $$ = expr_op_mul($1, $3); }
           | expression FSLASH expression { $$ = expr_op_sdiv($1, $3); }
           | expression PERCENT expression { $$ = expr_op_mod($1, $3); }
-          | NOT expression %prec UNARY { $$ = expr_op_lnot($2); }
+          | NOT expression { $$ = expr_op_lnot($2); }
           | MINUS expression %prec UNARY { $$ = expr_op_neg($2); }
           | PLUS expression %prec UNARY { $$ = expr_op_pos($2); }
           ;
