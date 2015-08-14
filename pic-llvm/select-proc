@@ -1,0 +1,16 @@
+#!/bin/bash
+
+[ -z "$1" ] && { echo "Syntax: $0 processor" ; exit 1 ; }
+
+[ -e "src/$1.S.proc" ] || { echo "Processor source not found" ; exit 1 ; }
+[ -e "include/proc/$1.h" ] || { echo "Processor include not found" ; exit 1 ; }
+[ -e "linker/bootloader-$1.ld" ] || { echo "Processor linker script not found" ; exit 1 ; }
+[ -e "linker/runtime-$1.ld" ] || { echo "Processor linker script not found" ; exit 1 ; }
+[ -e "linker/hard-runtime-$1.ld" ] || { echo "Processor linker script not found" ; exit 1 ; }
+
+ln -sf $1.S.proc src/processor.S
+ln -sf $1.h include/proc/processor.h
+ln -sf bootloader-$1.ld linker/bootloader.ld
+ln -sf runtime-$1.ld linker/runtime.ld
+ln -sf hard-runtime-$1.ld linker/hard-runtime.ld
+
