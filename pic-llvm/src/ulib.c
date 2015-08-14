@@ -1743,3 +1743,120 @@ char u_i2c_rx_register_read(u_uart_select select) {
     return 0;
 }
 
+/* ------------------------- ANA ------------------------- */
+
+u_ana_config u_ana_load_config() {
+    u_ana_config config;
+    
+    int con1 = AD1CON1;
+    int con2 = AD1CON2;
+    int con3 = AD1CON3;
+
+    config.on = (con1 & BITS(15)) >> 15;
+    config.stop_in_idle = (con1 & BITS(13)) >> 13;
+    config.format = (con1 & (BITS(8) | BITS(9) | BITS(10))) >> 8;
+    config.conversion_trigger_source = (con1 & (BITS(5) | BITS(6) | BITS(7))) >> 5;
+    config.stop_on_int = (con1 & BITS(4)) >> 4;
+    config.sample_auto_start = (con1 & BITS(2)) >> 2;
+
+    config.voltage_reference = (con2 & (BITS(13) | BITS(14) | BITS(15))) >> 13;
+    config.offset_calibration_mode = (con2 & BITS(12)) >> 12;
+    config.scan_inputs = (con2 & BITS(10)) >> 10;
+    config.sequences_per_interrupt = (con2 & (BITS(2) | BITS(3) | BITS(4) | BITS(5))) >> 2;
+    config.result_buffer_mode = (con2 & BITS(1)) >> 1;
+    config.alternate_mux = (con2 & BITS(0));
+
+    config.clock_source = (con3 & BITS(15)) >> 15;
+    config.auto_sample_time = (con3 & (BITS(8) | BITS(9) | BITS(10) | BITS(11) | BITS(12))) >> 8;
+    config.clock_select = (con3 & 0xFF);
+
+    return config;
+}
+
+void u_ana_save_config(u_ana_config config) {
+    int con1 = 0;
+    int con2 = 0;
+    int con3 = 0;
+
+    con1 |= (config.on & 0x1) << 15;
+    con1 |= (config.stop_in_idle & 0x1) << 13;
+    con1 |= (config.format & 0x7) << 8;
+    con1 |= (config.conversion_trigger_source & 0x7) << 5;
+    con1 |= (config.stop_on_int & 0x1) << 4;
+    con1 |= (config.sample_auto_start & 0x1) << 2;
+
+    con2 |= (config.voltage_reference & 0x7) << 13;
+    con2 |= (config.offset_calibration_mode & 0x1) << 12;
+    con2 |= (config.scan_inputs & 0x1) << 10;
+    con2 |= (config.sequences_per_interrupt & 0xF) << 2;
+    con2 |= (config.result_buffer_mode & 0x1) << 1;
+    con2 |= (config.alternate_mux & 0x1);
+
+    con3 |= (config.clock_source & 0x1) << 15;
+    con3 |= (config.auto_sample_time & 0x1F) << 8;
+    con3 |= (config.clock_select & 0xFF);
+
+    AD1CON3 = con3;
+    AD1CON2 = con2;
+    AD1CON1 = con1;
+}
+
+int u_ana_get_enabled() {
+    return AD1CON1 & BITS(1);
+}
+
+void u_ana_set_enabled(int enabled) {
+    if (enabled)
+        AD1CON1SET = BITS(1);
+    else
+        AD1CON1CLR = BITS(1);
+}
+
+int u_ana_get_done() {
+    return AD1CON1 & BITS(0);
+}
+
+void u_ana_set_done(int done) {
+    if (done)
+        AD1CON1SET = BITS(0);
+    else
+        AD1CON1CLR = BITS(0);
+}
+
+int u_ana_get_buffer_status() {
+    return AD1CON2 & BITS(7);
+}
+
+int u_ana_get_mux_b_negative() {
+    return (AD1CHS & BITS(31)) >> 31;
+}
+
+int u_ana_get_mux_b_positive() {
+    return (AD1CHS & (BITS(24) | BITS(25) | BITS(26) | BITS(27))) >> 24;
+}
+
+int u_ana_get_mux_a_negative() {
+    return (AD1CHS & BITS(23)) >> 23;
+}
+int u_ana_get_mux_a_positive() {
+    return (AD1CHS & (BITS(16) | BITS(17) | BITS(18) | BITS(19))) >> 16;
+}
+
+int u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos) {
+    AD1CHS = (a_neg << 23) | (a_pos << 16) | (b_neg << 31) | (b_pos << 24);
+}
+
+int u_ana_get_scan_select(int pin_bit) {
+    return AD1CSSL & pin_bit;
+}
+void u_ana_set_scan_select(int pin_bit, int select) {
+    if (select)
+        AD1CSSLSET = pin_bit;
+    else
+        AD1CSSLCLR = pin_bit;
+}
+
+int volatile *u_ana_buffer_ptr(int n) {
+    return &ADC1BUF0 + n;
+}
+

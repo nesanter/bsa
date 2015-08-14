@@ -48,6 +48,7 @@ struct driver {
 // [manifest] .timer.period          4   3   rw,v
 // [manifest] .timer.prescaler       4   4   rw,v
 // [manifest] .timer.wait            4   0   b
+// [manifest] .ldr                   5   0   r
 
 const driver_write_fn all_write_fns[] = {
     /* .console */
@@ -72,6 +73,8 @@ const driver_write_fn all_write_fns[] = {
     &drv_timer_enable_write, // 4.1
     &drv_timer_select_write, // 4.2
     &drv_timer_period_write, // 4.3
+
+    0, // 5.0
 };
 
 const driver_read_fn all_read_fns[] = {
@@ -97,7 +100,9 @@ const driver_read_fn all_read_fns[] = {
     &drv_timer_read, // 4.0
     0, // 4.1
     &drv_timer_select_read, // 4.2
-    &drv_timer_period_read // 4.3
+    &drv_timer_period_read, // 4.3
+
+    &drv_ldr_read, // 5.0
 };
 
 const driver_block_fn all_block_fns[] = {
@@ -117,6 +122,7 @@ const struct driver drivers[] = {
     { &all_write_fns[9], &all_read_fns[9], &all_block_fns[1], 2 }, /* .sw */
     { &all_write_fns[12], &all_read_fns[12], 0, 1 }, /* .system */
     { &all_write_fns[13], &all_read_fns[13], &all_block_fns[2], 1}, /* .timer */
+    { &all_write_fns[18], &all_read_fns[18], 0, 1 }, /* .ldr */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -478,6 +484,10 @@ int drv_timer_period_write(int val, char *str) {
 
 int drv_timer_period_read() {
     return u_timerb_period_read(selected_timer);
+}
+
+int drv_ldr_read() {
+    return *u_ana_buffer_ptr(0);
 }
 
 int rx_block_init = 0;

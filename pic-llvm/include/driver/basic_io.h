@@ -12,6 +12,8 @@ int drv_sw_edge_write(int val, char *str);
 int drv_sw_select_read();
 int drv_sw_edge_read();
 
+int drv_ldr_read();
+
 int drv_sw_block();
 
 #endif /* BASIC_IO_H */

@@ -342,7 +342,49 @@ void u_i2c_baud_rate_generator_register_write(u_i2c_select select, int n);
 int u_i2c_baud_rate_generator_register_read(u_i2c_select select);
 void u_i2c_tx_register_write(u_i2c_select select, char c);
 char u_i2c_rx_register_read(u_uart_select select);
- 
+
+/* ------------------------- ANA ------------------------- */
+
+typedef struct {
+    char    on,
+            stop_in_idle,
+            format,
+            conversion_trigger_source,
+            stop_on_int,
+            sample_auto_start;
+    char    voltage_reference,
+            offset_calibration_mode,
+            scan_inputs,
+            sequences_per_interrupt,
+            result_buffer_mode,
+            alternate_mux;
+    char    clock_source,
+            auto_sample_time,
+            clock_select;
+} u_ana_config;
+
+u_ana_config u_ana_load_config();
+void u_ana_save_config(u_ana_config config);
+
+int u_ana_get_enabled();
+void u_ana_set_enabled(int enabled);
+
+int u_ana_get_done();
+void u_ana_set_done(int done);
+
+int u_ana_get_buffer_status();
+
+int u_ana_get_mux_a_negative();
+int u_ana_get_mux_a_positive();
+int u_ana_get_mux_b_negative();
+int u_ana_get_mux_b_positive();
+
+int u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos);
+
+int u_ana_get_scan_select(int pin_bit);
+void u_ana_set_scan_select(int pin_bit, int select);
+
+int volatile *u_ana_buffer_ptr(int n);
 #endif	/* ULIB_H */
 
 
