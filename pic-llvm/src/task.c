@@ -59,7 +59,7 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
     new_task->depth = (current_task ? current_task->depth + 1 : 0);
 
     void *stack_ptr = 0;
-    unsigned int found, needed;
+    unsigned int found = 0, needed;
     if (attributes.size == TASK_SIZE_SMALL)
         needed = SMALL_TASK_SLOTS;
     else
