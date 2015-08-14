@@ -781,6 +781,7 @@ extern (C) {
 
         auto res = new Expression;
         res.value = current_builder.icmp_eq(lhs.value, false_value);
+        res.is_bool = true;
         /*
         if (lhs.const_is_sym !is null) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
