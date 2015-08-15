@@ -33,10 +33,17 @@
 "/" { return FSLASH; }
 ">=" { return RANGLE_EQUAL; }
 ">" { return RANGLE; }
+">>" { return RANGLE_RANGLE; }
+">>>" { return RANGLE_RANGLE_RANGLE; }
 "<=" { return LANGLE_EQUAL; }
 "<" { return LANGLE; }
+"<<" { return LANGLE_LANGLE; }
 "==" { return EQUAL_EQUAL; }
 "!=" { return BANG_EQUAL; }
+"&" { return AMPERSAND; }
+"|" { return VERTICAL_BAR; }
+"^" { return CARET; }
+"~" { return TILDE; }
 
  /* keywords */
 "not" { return NOT; }

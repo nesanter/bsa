@@ -496,6 +496,10 @@ extern (C) {
 
         LLVMValueRef LLVMBuildAnd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildOr(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildXor(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildShl(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildLShr(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
+        LLVMValueRef LLVMBuildAShr(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildAdd(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildSub(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildMul(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
@@ -503,6 +507,7 @@ extern (C) {
         LLVMValueRef LLVMBuildSRem(LLVMBuilderRef, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildICmp(LLVMBuilderRef, LLVMIntPredicate Pred, LLVMValueRef LHS, LLVMValueRef RHS, const char *Name);
         LLVMValueRef LLVMBuildNeg(LLVMBuilderRef, LLVMValueRef LHS, const char *Name);
+        LLVMValueRef LLVMBuildNot(LLVMBuilderRef, LLVMValueRef LHS, const char *Name);
 
         LLVMValueRef LLVMBuildSelect(LLVMBuilderRef, LLVMValueRef If, LLVMValueRef Then, LLVMValueRef Else, const char *Name);
 
@@ -594,6 +599,34 @@ class Builder {
 
     Value neg(Value lhs, string name = null) {
         return new Value(LLVMBuildNeg(builder, lhs.val, toStringz(name)));
+    }
+
+    Value bor(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildOr(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value bxor(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildXor(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value band(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildAnd(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value shl(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildShl(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value shrl(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildLShr(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value shra(Value lhs, Value rhs, string name = null) {
+        return new Value(LLVMBuildAShr(builder, lhs.val, rhs.val, toStringz(name)));
+    }
+
+    Value binv(Value lhs, string name = null) {
+        return new Value(LLVMBuildNot(builder, lhs.val, toStringz(name)));
     }
 
     Value icmp_eq(Value lhs, Value rhs, string name = null) {

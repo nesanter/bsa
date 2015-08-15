@@ -40,7 +40,8 @@ immutable(char) *escape_string(char *s) {
             s++;
             switch (*s) {
                 default:
-                    error_unknown_escape_sequence(*s);
+                    escaped ~= "\\" ~ *s;
+//                    error_unknown_escape_sequence(*s);
                     break;
                 case 'n':
                     escaped ~= '\n';

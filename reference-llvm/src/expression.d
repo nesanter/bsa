@@ -345,6 +345,19 @@ extern (C) {
         return res.reference();
     }
 
+    ulong expr_op_bor(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("|");
+        }
+        auto res = new Expression;
+        res.value = current_builder.bor(lhs.value, rhs.value);
+        
+        return res.reference();
+    }
+
     ulong expr_op_lxor(ulong lhs_ref, ulong rhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
@@ -373,6 +386,19 @@ extern (C) {
         return res.reference();
     }
 
+    ulong expr_op_bxor(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("^");
+        }
+        auto res = new Expression;
+        res.value = current_builder.bxor(lhs.value, rhs.value);
+        
+        return res.reference();
+    }
+
     ulong expr_op_land(ulong lhs_ref, ulong rhs_ref) {
         auto lhs = Expression.lookup(lhs_ref);
         auto rhs = Expression.lookup(rhs_ref);
@@ -397,6 +423,19 @@ extern (C) {
             rhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 1);
         }
         */
+        return res.reference();
+    }
+
+    ulong expr_op_band(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("&");
+        }
+        auto res = new Expression;
+        res.value = current_builder.band(lhs.value, rhs.value);
+        
         return res.reference();
     }
 
@@ -441,6 +480,44 @@ extern (C) {
         res.value = current_builder.icmp_ne(tmp, rhs.value);
         res.is_bool = true;
 
+        return res.reference();
+    }
+    ulong expr_op_shl(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics("<<");
+        }
+        auto res = new Expression;
+        res.value = current_builder.shl(lhs.value, rhs.value);
+        
+        return res.reference();
+    }
+    
+    ulong expr_op_shrl(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics(">>");
+        }
+        auto res = new Expression;
+        res.value = current_builder.shrl(lhs.value, rhs.value);
+        
+        return res.reference();
+    }
+    
+    ulong expr_op_shra(ulong lhs_ref, ulong rhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (lhs.is_bool || rhs.is_bool) {
+            error_arithmetic_op_requires_numerics(">>>");
+        }
+        auto res = new Expression;
+        res.value = current_builder.shra(lhs.value, rhs.value);
+        
         return res.reference();
     }
 
@@ -787,6 +864,18 @@ extern (C) {
             lhs.const_is_sym.associated_const_usages[current_block] ~= new InstUsage(res.value, 0);
         }
         */
+        return res.reference();
+    }
+
+    ulong expr_op_binv(ulong lhs_ref) {
+        auto lhs = Expression.lookup(lhs_ref);
+
+        if (lhs.is_bool) {
+            error_arithmetic_op_requires_numerics("~");
+        }
+
+        auto res = new Expression;
+        res.value = current_builder.binv(lhs.value);
         return res.reference();
     }
 

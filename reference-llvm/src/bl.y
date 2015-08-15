@@ -30,11 +30,15 @@
 %left OR
 %left XOR
 %left AND
-%right NOT
+%left VERTICAL_BAR
+%left CARET
+%left AMPERSAND
 %left EQUAL_EQUAL BANG_EQUAL
 %left LANGLE RANGLE LANGLE_EQUAL RANGLE_EQUAL
+%left LANGLE_LANGLE RANGLE_RANGLE RANGLE_RANGLE_RANGLE
 %left PLUS MINUS
 %left STAR FSLASH PERCENT
+%right NOT TILDE
 %precedence UNARY
 
 %type <llu> attributes
@@ -146,6 +150,9 @@ expression: atom { $$ = $1; }
           | expression OR expression { $$ = expr_op_lor($1, $3); }
           | expression XOR expression { $$ = expr_op_lxor($1, $3); }
           | expression AND expression { $$ = expr_op_land($1, $3); }
+          | expression VERTICAL_BAR expression { expr_op_bor($1, $3); }
+          | expression CARET expression { expr_op_bxor($1, $3); }
+          | expression AMPERSAND expression { expr_op_band($1, $3); }
           | expression IS expression { $$ = expr_op_is($1, $3); }
           | expression BANG_IS expression { $$ = expr_op_nis($1, $3); }
           | expression EQUAL_EQUAL expression { $$ = expr_op_eq($1, $3); }
@@ -154,12 +161,16 @@ expression: atom { $$ = $1; }
           | expression RANGLE expression { $$ = expr_op_gt($1, $3); }
           | expression LANGLE_EQUAL expression { $$ = expr_op_lte($1, $3); }
           | expression RANGLE_EQUAL expression { $$ = expr_op_gte($1, $3); }
+          | expression LANGLE_LANGLE expression { $$ = expr_op_shl($1, $3); }
+          | expression RANGLE_RANGLE expression { $$ = expr_op_shrl($1, $3); }
+          | expression RANGLE_RANGLE_RANGLE expression { $$ = expr_op_shra($1, $3); }
           | expression PLUS expression { $$ = expr_op_add($1, $3); }
           | expression MINUS expression { $$ = expr_op_sub($1, $3); }
           | expression STAR expression { $$ = expr_op_mul($1, $3); }
           | expression FSLASH expression { $$ = expr_op_sdiv($1, $3); }
           | expression PERCENT expression { $$ = expr_op_mod($1, $3); }
           | NOT expression { $$ = expr_op_lnot($2); }
+          | TILDE expression { $$ = expr_op_binv($2); }
           | MINUS expression %prec UNARY { $$ = expr_op_neg($2); }
           | PLUS expression %prec UNARY { $$ = expr_op_pos($2); }
           ;

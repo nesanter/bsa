@@ -13,6 +13,12 @@ unsigned long expr_atom_syscall(char *ident, unsigned long qident_ref, unsigned 
 unsigned long expr_op_lor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_lxor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_land(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_bor(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_bxor(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_band(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_shl(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_shrl(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_shra(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_is(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_nis(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_eq(unsigned long lhs_ref, unsigned long rhs_ref);
@@ -28,6 +34,7 @@ unsigned long expr_op_sdiv(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_mod(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_write(unsigned long qident_ref, unsigned long rhs_ref);
 unsigned long expr_op_lnot(unsigned long lhs_ref);
+unsigned long expr_op_binv(unsigned long lhs_ref);
 unsigned long expr_op_neg(unsigned long lhs_ref);
 unsigned long expr_op_pos(unsigned long lhs_ref);
 
