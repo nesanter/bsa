@@ -143,7 +143,7 @@ void error_arithmetic_op_requires_numerics(string op) {
 
 void error_inconsistent_function(string ident) {
     write_error_prefix();
-    stderr.write("inconsistent number of parameters for function ",ident);
+    stderr.write("inconsistent number of arguments for function ",ident);
     write_error_suffix();
     error_action();
 }
@@ -213,7 +213,7 @@ void error_handler_attr_expected() {
 
 void error_multiple_entry() {
     write_error_prefix();
-    stderr.write("multiple functions declared attribute @entry");
+    stderr.write("multiple functions declared with attribute @entry");
     write_error_suffix();
     error_action();
 }
@@ -227,7 +227,7 @@ void error_no_entry() {
 
 void error_lib_with_entry() {
     write_error_prefix();
-    stderr.write("entry function present but -lib specified");
+    stderr.write("entry function present but '-lib' specified");
     write_error_suffix();
     error_action();
 }
@@ -248,7 +248,7 @@ void error_scope_forbidden() {
 
 void error_scope_not_handler() {
     write_error_prefix();
-    stderr.write("scope statements may only be used with @handler functions");
+    stderr.write("scope statements may only reference @handler functions");
     write_error_suffix();
     error_action();
 }

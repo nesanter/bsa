@@ -27,13 +27,13 @@ struct driver {
     unsigned int fn_count;
 };
 
-// [manifest] .console               0   0   w,s
-// [manifest] .console.tx            0   1   w,v
-// [manifest] .console.tx.block      0   2   rw,v
-// [manifest] .console.rx.block      0   3   rw,v
-// [manifest] .console.rx.ready      0   4   r
+// [manifest] .console               0   0   wB,s
+// [manifest] .console.tx            0   1   wB,v
+// [manifest] .console.tx.block      0   2   rwB,v
+// [manifest] .console.rx.block      0   3   rwB,v
+// [manifest] .console.rx.ready      0   4   rB
 // [manifest] .console.rx            0   5   r
-// [manifest] .console.tx.ready      0   6   r
+// [manifest] .console.tx.ready      0   6   rB
 // [manifest] .console.rx.wait       0   0   b
 // [manifest] .led                   1   0   rw,v
 // [manifest] .led.select            1   1   rw,v
@@ -43,7 +43,7 @@ struct driver {
 // [manifest] .sw.wait               2   0   b
 // [manifest] .system.delay          3   0   w,v
 // [manifest] .timer                 4   0   rw,v
-// [manifest] .timer.enable          4   1   w,v
+// [manifest] .timer.enable          4   1   rwB,v
 // [manifest] .timer.select          4   2   rw,v
 // [manifest] .timer.period          4   3   rw,v
 // [manifest] .timer.prescaler       4   4   rw,v
@@ -98,7 +98,7 @@ const driver_read_fn all_read_fns[] = {
     0, // 3.0
 
     &drv_timer_read, // 4.0
-    0, // 4.1
+    &drv_timer_enable_read, // 4.1
     &drv_timer_select_read, // 4.2
     &drv_timer_period_read, // 4.3
 
@@ -452,6 +452,15 @@ int drv_timer_enable_write(int val, char *str) {
     }
     u_timerb_save_config(selected_timer, config);
     return DRV_SUCCESS;
+}
+
+int drv_timer_enable_read(int val, char *str) {
+    u_timerb_config config = u_timerb_load_config(selected_timer);
+    if (config.on) {
+        return DRV_TRUE;
+    } else {
+        return DRV_FALSE;
+    }
 }
 
 int drv_timer_prescaler_write(int val, char *str) {

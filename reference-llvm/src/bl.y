@@ -26,7 +26,7 @@
 %token TRUE FALSE
 
 %precedence PAREN
-%left IS BANG_IS
+%right IS BANG_IS
 %left OR
 %left XOR
 %left AND

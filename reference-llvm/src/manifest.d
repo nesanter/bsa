@@ -5,13 +5,18 @@ import std.conv;
 class Manifest {
     entry[string] entries;
 
+    struct call_info {
+        bool accepted;
+        bool boolean_result;
+    }
+
     struct entry {
         uint index;
-        bool[string] accepted_calls;
+        call_info[string] accepted_calls;
         bool accept_string, accept_value;
 
         bool syscall_allowed(string call) {
-            if (!accepted_calls.get(call, false)) {
+            if (!accepted_calls.get(call, call_info(false)).accepted) {
                 return false;
             }
             return true;
@@ -22,6 +27,10 @@ class Manifest {
                 return false;
             }
             return true;
+        }
+
+        bool syscall_boolean(string call) {
+            return accepted_calls.get(call, call_info(false,false)).boolean_result;
         }
     }
 
@@ -75,14 +84,14 @@ class Manifest {
                             stderr.writeln("Manifest: unknown attribute '", attr, "' in entry (line ",linenum,")");
                             break;
                         case "r":
-                            ent.accepted_calls["read"] = true;
+                            ent.accepted_calls["read"] = call_info(true);
                             break;
                         case "w":
-                            ent.accepted_calls["write"] = true;
+                            ent.accepted_calls["write"] = call_info(true);
                             break;
                         case "rw":
-                            ent.accepted_calls["read"] = true;
-                            ent.accepted_calls["write"] = true;
+                            ent.accepted_calls["read"] = call_info(true);
+                            ent.accepted_calls["write"] = call_info(true);
                             break;
                         case "s":
                         case "sv":
@@ -99,8 +108,19 @@ class Manifest {
                             ent.accept_value = false;
                             break;
                         case "b":
-                            ent.accepted_calls["block"] = true;
+                            ent.accepted_calls["block"] = call_info(true);
                             break;
+                        case "rB":
+                            ent.accepted_calls["read"] = call_info(true,true);
+                            break;
+                        case "wB":
+                            ent.accepted_calls["write"] = call_info(true,true);
+                            break;
+                        case "rwB":
+                            ent.accepted_calls["read"] = call_info(true,true);
+                            break;
+                        case "bB":
+                            ent.accepted_calls["block"] = call_info(true,true);
                     }
                 }
             }

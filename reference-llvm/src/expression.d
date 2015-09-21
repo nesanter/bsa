@@ -313,6 +313,11 @@ extern (C) {
             }
         }
 
+        if (ent.syscall_boolean(text(ident))) {
+            res.value = current_builder.icmp_ne(res.value, false_numeric_value);
+            res.is_bool = true;
+        }
+
         return res.reference();
     }
 
