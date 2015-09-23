@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export PATH=../out:$PATH
+
+for FILE in $(find should-fail -type f) ; do
+    { cat $FILE | muc 2> /dev/null; } && { echo "$FILE did not fail" ; }
+done

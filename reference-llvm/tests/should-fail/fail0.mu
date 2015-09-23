@@ -1,0 +1,5 @@
+// no @entry
+
+function foo() {
+    ;
+}
