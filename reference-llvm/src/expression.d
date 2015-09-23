@@ -20,13 +20,24 @@ Value void_value, false_value, true_value,
       false_numeric_value, true_numeric_value,
       eh_default_flags, null_eh;
 
-Value yield_fn, fork_fn;
+Value yield_fn, fork_fn, fail_fn, trace_fn;
 
 SystemCall[string] system_calls;
 
 IfElse active_ifelse;
 
 Manifest current_manifest;
+
+bool include_trace_names = false;
+
+enum HandlerEntryField {
+    PARENT = 0,
+    NAME = 1,
+    FLAGS = 2,
+    ALWAYS = 3,
+    SUCCESS = 4,
+    FAILURE = 5
+}
 
 enum HandlerNumber {
     ALWAYS = 0,
@@ -122,6 +133,7 @@ void init(string manifest_file) {
     eh_type = Type.named_struct_type("eh_t");
     eh_type.set_body([
         Type.pointer_type(eh_type),
+        Type.pointer_type(Type.int_type(8)),
         Type.int_type(32),
         Type.pointer_type(Type.function_type(Type.void_type(), [])), //always
         Type.pointer_type(Type.function_type(Type.void_type(), [])), //success
@@ -147,6 +159,8 @@ void init(string manifest_file) {
 
     yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), []));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
+    fail_fn = current_module.add_function("___fail_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
+    trace_fn = current_module.add_function("___trace_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
 
     if (manifest_file.length > 0)
         current_manifest = Manifest.load(File(manifest_file, "r"));
@@ -173,6 +187,9 @@ extern (C) {
 //            generic_error();
 //            error_occured++;
 //            return ulong.max;
+        }
+        if (sym.type != SymbolType.VARIABLE) {
+            error_symbol_of_different_type(text(s));
         }
         auto res = new Expression;
 
@@ -955,6 +972,9 @@ extern (C) {
 
     void statement_assign(char *lhs, ulong rhs_ref) {
         auto sym = find_or_create_symbol(text(lhs));
+        if (sym.type != SymbolType.VARIABLE && sym.type != SymbolType.NONE) {
+            error_symbol_of_different_type(text(lhs));
+        }
         if (sym.parent is null) {
             sym.parent = current_function;
         }
@@ -1566,11 +1586,19 @@ extern (C) {
 
     /* Functions */
 
-    Value make_eh(Value parent) {
+    Value make_eh(Value parent, string name) {
         auto eh = current_builder.alloca(eh_type);
-        auto pptr = current_builder.struct_gep(eh, 0);
+
+        auto pptr = current_builder.struct_gep(eh, HandlerEntryField.PARENT);
         current_builder.store(parent, pptr);
-        auto fptr = current_builder.struct_gep(eh, 1);
+
+        if (include_trace_names) {
+            auto fnameptr = current_builder.struct_gep(eh, HandlerEntryField.NAME);
+            auto fname = current_builder.global_string_ptr(name);
+            current_builder.store(fname, fnameptr);
+        }
+
+        auto fptr = current_builder.struct_gep(eh, HandlerEntryField.FLAGS);
         current_builder.store(eh_default_flags, fptr);
         return eh;
     }
@@ -1619,7 +1647,7 @@ extern (C) {
         } else if (attr & FunctionAttribute.PARENTSCOPE) {
             current_eh = current_function.get_param(0);
         } else {
-            current_eh = make_eh(current_function.get_param(0));
+            current_eh = make_eh(current_function.get_param(0), text(ident));
         }
 
         if (attr & FunctionAttribute.ENTRY) {
@@ -1674,7 +1702,7 @@ extern (C) {
     }
 
     void function_handler_check(int type) {
-        auto epflags = current_builder.struct_gep(current_eh, 1);
+        auto epflags = current_builder.struct_gep(current_eh, HandlerEntryField.FLAGS);
         auto flags = current_builder.load(epflags);
         auto bit = current_builder.and(flags, Value.create_const_int(numeric_type, (1 << type)));
         auto bb_handler = current_function.append_basic_block("handler_"~to!string(type));
@@ -1682,7 +1710,7 @@ extern (C) {
         auto cond = current_builder.icmp_ne(bit, false_numeric_value);
         auto br = current_builder.cond_br(cond, bb_handler, bb_posthandler);
         current_builder.position_at_end(bb_handler);
-        auto epfn = current_builder.struct_gep(current_eh, 2+type);
+        auto epfn = current_builder.struct_gep(current_eh, HandlerEntryField.ALWAYS+type);
         auto fn = current_builder.load(epfn);
         current_builder.call(fn, []);
         current_builder.br(bb_posthandler);
@@ -1845,13 +1873,25 @@ extern (C) {
                 error_scope_not_handler();
             }
         }
-        auto epflags = current_builder.struct_gep(current_eh, 1);
+        auto epflags = current_builder.struct_gep(current_eh, HandlerEntryField.FLAGS);
         auto flags = current_builder.load(epflags);
         auto newflags = current_builder.or(flags, Value.create_const_int(numeric_type, 1 << type));
         current_builder.store(newflags, epflags);
-        auto fptr = current_builder.struct_gep(current_eh, type + 2);
+        auto fptr = current_builder.struct_gep(current_eh, HandlerEntryField.ALWAYS + type);
         current_function_has_handlers[type] = true;
         current_builder.store(fn.values[null], fptr);
+    }
+
+    /* $ Builtins */
+
+    void statement_hidden_fail() {
+        current_builder.call(fail_fn, [current_eh]);
+        current_value = void_value;
+    }
+
+    void statement_hidden_trace() {
+        current_builder.call(trace_fn, [current_eh]);
+        current_value = void_value;
     }
 }
 

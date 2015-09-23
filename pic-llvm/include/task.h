@@ -53,6 +53,8 @@ void scheduler_loop();
 
 void task_exit();
 
+void kill_task(struct task_info *task);
+
 void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data);
 void unblock_tasks(enum block_reason reason, unsigned int info);
 

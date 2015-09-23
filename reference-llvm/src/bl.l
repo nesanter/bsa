@@ -67,6 +67,8 @@
 "sync_r" { return SYNC_READ; }
 "sync_w" { return SYNC_WRITE; }
 "scope" { BEGIN(SCOPETYPE); return SCOPE; }
+"$fail" { return HIDDEN_FAIL; }
+"$trace" { return HIDDEN_TRACE; }
 <SCOPETYPE>"always" { BEGIN(INITIAL); return ALWAYS; }
 <SCOPETYPE>"success" { BEGIN(INITIAL); return SUCCESS; }
 <SCOPETYPE>"failure" { BEGIN(INITIAL); return FAILURE; }

@@ -72,20 +72,39 @@ int main(string[] args) {
     string manifest_file;
     bool print_ir;
     bool no_entry;
+    bool delay_implement;
+    bool help;
 
     try {
         getopt(args,
-                "o", &output_file,
-                "m", &manifest_file,
-                "d", &print_ir,
-                "show-error-ir", &dump_on_error,
-                "color", &color_errors,
-                "strict", &conditional_definitions_are_errors,
-                "lib", &no_entry
-              );
+               "o", &output_file,
+               "m", &manifest_file,
+               "d", &print_ir,
+               "show-error-ir", &dump_on_error,
+               "color", &color_errors,
+               "strict",  &conditional_definitions_are_errors,
+               "lib", &no_entry,
+               "delayed-implementation", &delay_implement,
+               "trace-support", &include_trace_names,
+               "help", &help
+        );
     } catch (Exception e) {
         stderr.writeln(e.msg);
         return 1;
+    }
+
+    if (help) {
+        writeln("muc -- the \u03BC compiler -- \u00A9 Noah Santer 2015");
+        writeln("options:");
+        writeln("    -o\t\t\t\toutput file [print to stdout]");
+        writeln("    -m\t\t\t\tmanifest file [no manifest]");
+        writeln("    -d\t\t\t\tprint LLVM ir [false]");
+        writeln("    --show-error-ir\t\tprint LLVM ir on error [false]");
+        writeln("    --color\t\t\tenable colors [true]");
+        writeln("    --strict\t\t\tstrict handling of warnings [false]");
+        writeln("    --lib\t\t\tcompile without @entry function [false]");
+        writeln("    --delayed-implementation\tunimplemented functions are not errors [false]");
+        return 2;
     }
 
     init(manifest_file);
@@ -105,7 +124,7 @@ int main(string[] args) {
         return 1;
     }
 
-    if (unimplemented_functions()) {
+    if (!delay_implement && unimplemented_functions()) {
         return 1;
     }
 

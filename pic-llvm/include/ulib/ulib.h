@@ -379,12 +379,12 @@ int u_ana_get_mux_a_positive();
 int u_ana_get_mux_b_negative();
 int u_ana_get_mux_b_positive();
 
-int u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos);
+void u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos);
 
 int u_ana_get_scan_select(int pin_bit);
 void u_ana_set_scan_select(int pin_bit, int select);
 
-int volatile *u_ana_buffer_ptr(int n);
+unsigned int volatile *u_ana_buffer_ptr(int n);
 #endif	/* ULIB_H */
 
 

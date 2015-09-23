@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 struct eh_t {
     struct eh_t *parent;
+    char *ident;
     unsigned int flags;
     void (*always_handler)();
     void (*success_handler)();
@@ -35,3 +37,23 @@ int ___read_builtin(struct eh_t *eh, int target) {
 int ___fork_builtin(int (*fn) ()) { return 0; }
 int ___yield_builtin() { return 0; }
 
+void ___fail_builtin(struct eh_t *eh) {
+    while (eh) {
+        if (eh->flags & 0x4) {
+            eh->failure_handler(0);
+        }
+        if (eh->flags & 0x1) {
+            eh->always_handler();
+        }
+        eh = eh->parent;
+    }
+    exit(1);
+}
+
+void ___trace_builtin(struct eh_t *eh) {
+    while (eh) {
+        if (eh->ident)
+            printf("%s\n", eh->ident);
+        eh = eh->parent;
+    }
+}

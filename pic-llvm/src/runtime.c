@@ -198,6 +198,11 @@ void ___fork_builtin(struct eh_t *eh, int (*fn)(void*)) {
     }
 }
 
+void ___fail_builtin(struct eh_t *eh) {
+    throw_exception(0);
+
+}
+
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
     __vector_table[entry] = handler;
 }
@@ -315,6 +320,7 @@ int drv_led_write(int val, char *str) {
         pin_set(selected_led);
     else
         pin_clear(selected_led);
+    return DRV_SUCCESS;
 }
 
 int drv_led_select_read() {
@@ -503,6 +509,7 @@ int rx_block_init = 0;
 
 int drv_console_rx_block() {
     block_task(current_task, &block_util_match_data, BLOCK_REASON_CONSOLE_RX, 0);
+    return DRV_SUCCESS;
 }
 
 int sw_block_init = 0;

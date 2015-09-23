@@ -66,6 +66,9 @@ void statement_scope(int type, char * ident);
 
 void statement_fork(char *ident);
 
+void statement_hidden_fail(void);
+void statement_hidden_trace(void);
+
 void function_begin(char *ident, unsigned long args_ref, unsigned long attr);
 void statement_sync(int read, int write);
 

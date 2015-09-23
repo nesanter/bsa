@@ -253,6 +253,13 @@ void error_scope_not_handler() {
     error_action();
 }
 
+void error_symbol_of_different_type(string s) {
+    write_error_prefix();
+    stderr.write("incompatible symbol exists");
+    write_error_suffix();
+    error_action();
+}
+
 void warn_boolean_parameter() {
     write_warn_prefix();
     stderr.write("boolean parameter will be passed as numeric");

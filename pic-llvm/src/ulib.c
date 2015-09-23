@@ -1842,7 +1842,7 @@ int u_ana_get_mux_a_positive() {
     return (AD1CHS & (BITS(16) | BITS(17) | BITS(18) | BITS(19))) >> 16;
 }
 
-int u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos) {
+void u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos) {
     AD1CHS = (a_neg << 23) | (a_pos << 16) | (b_neg << 31) | (b_pos << 24);
 }
 
@@ -1856,7 +1856,7 @@ void u_ana_set_scan_select(int pin_bit, int select) {
         AD1CSSLCLR = pin_bit;
 }
 
-int volatile *u_ana_buffer_ptr(int n) {
+unsigned int volatile *u_ana_buffer_ptr(int n) {
     return &ADC1BUF0 + n;
 }
 

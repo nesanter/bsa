@@ -5,7 +5,7 @@ if [ -z "$1" ] ; then
     exit 1
 fi
 
-./bl2 -m manifest -o output.bc < $1 && \
+../reference-llvm/out/muc --trace-support -m manifest -o output.bc < $1 && \
 llc -relocation-model=static output.bc && \
 gcc -o dummy -static dummy.c output.s
 

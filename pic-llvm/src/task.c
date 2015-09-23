@@ -186,8 +186,24 @@ void task_exit() {
         scheduler_loop();
 }
 
+void kill_task(struct task_info *task) {
+    uart_print("[killing task]\r\n");
+    task->state = TASK_STATE_EMPTY;
+
+    for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
+        if (task_stack_slots[i] == task) {
+            task_stack_slots[i] = 0;
+        }
+    }
+
+    if (task == current_task) {
+        if (schedule_task())
+            scheduler_loop();
+    }
+}
+
 void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data) {
-    uart_print("[blocking task]");
+    uart_print("[blocking task]\r\n");
     task->state = TASK_STATE_HARD_BLOCKED;
     task->reason = reason;
     task->block_data = data;

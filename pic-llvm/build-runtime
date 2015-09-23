@@ -3,5 +3,5 @@
 [ ! -d out ] && mkdir out
 cd out
 rm -f *
-clang -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -Wa,--noexecstack -D__LANGUAGE_C__ -fno-stack-protector -Os -I ../include $(find ../src -type f -regex '.*[csS]') && \
+clang -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -Wa,--noexecstack -D__LANGUAGE_C__ -fno-stack-protector -Os -I ../include $(find ../src -type f -regex '.*\.[csS]$') && \
 ../../util/mipsel-unknown-elf-ar r bl-runtime.a *.o

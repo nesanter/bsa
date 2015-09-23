@@ -1,32 +1,29 @@
-function entry() {
+function @entry start() {
+    scope (failure) fail;
+    foo();
 //    [write fact(10), .console];
-    [write "Hi", .console];
-    nl();
+}
+
+function foo() {
+    scope (failure) fail;
     [write fact(10), .console];
-    nl();
-    [write "Done with user", .console];
-    nl();
 }
 
-function fact(x) {
-    f = 1;
-    if (x == -1) {
-        f = -1;
-    }// else {
-//        f = 1;
-//    }
-    while { x > 0; } do {
-        [write x, .console];
-        nl();
-        f = f * x;
-        x = x - 1;
-    }
-    f;
+function fact(n) {
+    scope (always) h;
+    x = 1;
+    while { n > 1; } do { x = x * n; n = n - 1; }
+    x;
+    $trace;
+    $fail;
 }
 
-function nl() {
-    while { [read .console.tx] == false; } do { ; }
-    [write 10, .console.tx];
-    while { [read .console.tx] == false; } do { ; }
-    [write 13, .console.tx];
+function @handler h() {
+    [write "snrkle", .console];
 }
+
+function @handler fail(n) {
+    [write "fail!", .console];
+    [write n, .console];
+}
+
