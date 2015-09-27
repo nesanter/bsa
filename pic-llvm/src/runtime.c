@@ -29,8 +29,8 @@ struct driver {
 
 // [manifest] .console               0   0   wB,s
 // [manifest] .console.tx            0   1   wB,v
-// [manifest] .console.tx.block      0   2   rwB,v
-// [manifest] .console.rx.block      0   3   rwB,v
+// [manifest] .console.tx.block      0   2   rwB,vB
+// [manifest] .console.rx.block      0   3   rwB,vB
 // [manifest] .console.rx.ready      0   4   rB
 // [manifest] .console.rx            0   5   r
 // [manifest] .console.tx.ready      0   6   rB
@@ -43,7 +43,7 @@ struct driver {
 // [manifest] .sw.wait               2   0   b
 // [manifest] .system.delay          3   0   w,v
 // [manifest] .timer                 4   0   rw,v
-// [manifest] .timer.enable          4   1   rwB,v
+// [manifest] .timer.enable          4   1   rwB,vB
 // [manifest] .timer.select          4   2   rw,v
 // [manifest] .timer.period          4   3   rw,v
 // [manifest] .timer.prescaler       4   4   rw,v

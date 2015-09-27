@@ -13,7 +13,7 @@ class Manifest {
     struct entry {
         uint index;
         call_info[string] accepted_calls;
-        bool accept_string, accept_value;
+        bool accept_string, accept_value, accept_bool;
 
         bool syscall_allowed(string call) {
             if (!accepted_calls.get(call, call_info(false)).accepted) {
@@ -22,8 +22,8 @@ class Manifest {
             return true;
         }
 
-        bool syscall_arguments_allowed(bool has_string_arg, bool has_value_arg) {
-            if ((has_string_arg && !accept_string) || (has_value_arg && !accept_value)) {
+        bool syscall_arguments_allowed(bool has_string_arg, bool has_value_arg, bool value_is_bool) {
+            if ((has_string_arg && !accept_string) || (has_value_arg && !accept_value) || (value_is_bool && !accept_bool)) {
                 return false;
             }
             return true;
@@ -107,6 +107,8 @@ class Manifest {
                             ent.accept_string = true;
                             ent.accept_value = false;
                             break;
+                        case "vB":
+                            ent.accept_bool = true;
                         case "b":
                             ent.accepted_calls["block"] = call_info(true);
                             break;
