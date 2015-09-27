@@ -4,7 +4,7 @@ PROCESSOR=32MX250F128B
 NAME=bl-bootloader
 
 if [ -z "$1" ] ; then
-    XCVERSION=v1.33
+    XCVERSION=v1.40
 else
     XCVERSION=$1
 fi
@@ -16,7 +16,7 @@ cd out-boot
 
 [ -f .error ] && rm .error
 
-for FILE in $(find -L ../boot -type f) ; do
+for FILE in $(find -L ../boot -type f -regex '.*\.[csS]$') ; do
     case $FILE in
         *.c)
             echo "Compiling $FILE"

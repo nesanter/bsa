@@ -104,6 +104,7 @@ int main(string[] args) {
         writeln("    --strict\t\t\tstrict handling of warnings [false]");
         writeln("    --lib\t\t\tcompile without @entry function [false]");
         writeln("    --delayed-implementation\tunimplemented functions are not errors [false]");
+        writeln("    --trace-support\t\tsupport runtime $trace [false]");
         return 2;
     }
 

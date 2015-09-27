@@ -1,7 +1,8 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define BOOTLOADER_VERSION "v0.1"
+#define BOOTLOADER_VERSION 1
 #define SYSTEM_FREQ (40000000)
+#define DEFAULT_BAUD (9600)
 
 #endif /* VERSION_H */

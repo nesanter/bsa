@@ -5,7 +5,7 @@ NAME=bl-hard-runtime
 USERPROGRAM=$(pwd)/../example/output.s
 
 if [ -z "$1" ] ; then
-    XCVERSION=v1.33
+    XCVERSION=v1.40
 else
     XCVERSION=$1
 fi

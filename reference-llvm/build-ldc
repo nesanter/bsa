@@ -1,0 +1,8 @@
+mkdir -p out && \
+cd out && \
+rm -f *.o && \
+flex ../src/bl.l && \
+bison -d ../src/bl.y && \
+clang -I../include -c lex.yy.c bl.tab.c && \
+ldc2 -of=muc-ldc $(find ../src -name '*.d') *.o -L=-lfl -L=-lLLVM-3.6
+

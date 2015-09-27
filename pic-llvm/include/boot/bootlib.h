@@ -2,8 +2,13 @@
 #ifdef IS_BOOTLOADER
 
 void boot_uart_init();
+void boot_uart_change_baud(unsigned int baud);
 void boot_print(char *s);
+void boot_print_n(char *s, unsigned int len);
+void boot_print_int(int n);
 void boot_read_blocking(char *s, unsigned int length);
+unsigned int boot_read_nonblocking(char *buffer, unsigned int length);
+int boot_expect(char *s);
 
 #define TRANSFER_BUFFER_SIZE (4096)
 #define TRANSFER_BUFFER_HEADER_SIZE (3)
