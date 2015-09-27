@@ -23,6 +23,7 @@ boot_regs boot_exception_context;
 unsigned int __attribute__((nomips16)) boot_handler_setup(unsigned int *errorepc);
 
 void boot_print_enable(void);
+void boot_print_disable(void);
 
 //extern int u_syscall(int a, int b, int c);
 void boot_syscall(void);

@@ -33,7 +33,7 @@ void boot_uart_init() {
     RPB3R = 0x1; // TX
 
     // baud
-    unsigned int baud = ((SYSTEM_FREQ / 9600) / 16) - 1;
+    unsigned int baud = ((SYSTEM_FREQ / DEFAULT_BAUD) / 16) - 1;
     U1BRG = baud;
 
     // uart1 setup
@@ -50,6 +50,20 @@ void boot_uart_init() {
     
     U1STA = cur_status;
     U1MODE = cur_mode;
+
+    boot_print_enable();
+}
+
+void boot_uart_change_baud(unsigned int baud) {
+    boot_print_disable();
+    U1MODECLR = 0x00008000;
+
+    asm volatile ("nop");
+    asm volatile ("nop");
+
+    U1BRG = ((SYSTEM_FREQ / baud) / 16) - 1;
+
+    U1MODESET = 0x00008000;
 
     boot_print_enable();
 }
@@ -126,6 +140,32 @@ void boot_print(char *s) {
     }
 }
 
+void boot_print_n(char *s, unsigned int len) {
+    while (len) {
+        while (!(U1STA & 0x200) && len) {
+            U1TXREG = s[len++];
+        }
+    }
+}
+
+void boot_print_int(int n) {
+    for (int i = 0 ; i < 4; i++) {
+        while (U1STA & 0x200);
+        U1TXREG = (n & 0xFF000000) >> 24;
+        n <<= 8;
+    }
+}
+
+int boot_expect(char *s) {
+    while (*s) {
+        while (U1STA & 0x1) {
+            if (*s++ != U1RXREG)
+                return 1;
+        }
+    }
+    return 0;
+}
+
 void boot_read_blocking(char *buffer, unsigned int length) {
     while (length) {
         while ((U1STA & 0x1)) {
@@ -135,6 +175,20 @@ void boot_read_blocking(char *buffer, unsigned int length) {
     }
 }
 
+unsigned int boot_read_nonblocking(char *buffer, unsigned int length) {
+    unsigned int n = 0;
+    while ((n < length) && (U1STA & 0x1)) {
+        *buffer++ = U1RXREG;
+        n++;
+    }
+    return n;
+}
+
+int boot_strcmpn(char *stra, char *strb, unsigned int len) {
+    int i = 0;
+    while (i++ < len && (*stra++ == *strb++) && *stra);
+    return (i == len) || *stra == *strb;
+}
 
 unsigned int __attribute__((nomips16)) flash_unlock(nvm_op op) {
     unsigned int int_status;
@@ -236,6 +290,10 @@ void boot_signal_set(boot_signal sig, unsigned int on) {
         PORTACLR = sig;
 }
 
+int boot_run_read() {
+    return PORTB & 0x8000;
+}
+
 void boot_internal_error(int single) {
     PORTACLR = SIGNAL_USER | SIGNAL_BOOT;
     
@@ -262,14 +320,14 @@ void boot_internal_error(int single) {
 }
 
 unsigned int physical_address(void * const virt) {
-    if (virt >= 0xBF800000)
-        return (unsigned int)(virt - 0xA0000000); //sfrs
-    if (virt >= 0xBD000000)
-        return (unsigned int)(virt - 0xA0000000); //kseg1
-    if (virt >= 0xA0000000)
-        return (unsigned int)(virt - 0xA0000000); //ram
-    if (virt >= 0x9D000000)
-        return (unsigned int)(virt - 0x80000000); //kseg0
+    if (virt >= (void*)0xBF800000)
+        return (unsigned int)(virt - (void*)0xA0000000); //sfrs
+    if (virt >= (void*)0xBD000000)
+        return (unsigned int)(virt - (void*)0xA0000000); //kseg1
+    if (virt >= (void*)0xA0000000)
+        return (unsigned int)(virt - (void*)0xA0000000); //ram
+    if (virt >= (void*)0x9D000000)
+        return (unsigned int)(virt - (void*)0x80000000); //kseg0
     return 0; //error
 }
 
@@ -287,5 +345,40 @@ void soft_reset() {
     dummy = RSWRSTSET;
 
     while (1);
+}
+
+void __attribute((interrupt(IPL2SOFT), nomips16)) boot_timeout_handler() {
+    boot_internal_error(1);
+    soft_reset();
+}
+
+// timeout = ~60 seconds
+void boot_timeout_init() {
+    int tcon = T2CON;
+    tcon |= 0x00000078; // PRESCALER = 256, 32-bit
+    
+    boot_set_vector_table_entry(12, &boot_timeout_handler);
+
+    PR3 = (4687500 & 0xFFFF0000) >> 16;
+    PR2 = (4687500 & 0x0000FFFF);
+
+    IPC3SET = 0x00000008;
+    IPC3CLR = 0x00000017;
+    IFS0CLR = 0x00004000;
+    IEC0SET = 0x00040000;
+
+    T2CON = tcon;
+}
+
+void boot_timeout_start() {
+    T2CONSET = 0x00008000; // ON
+}
+
+void boot_timeout_stop() {
+    T2CONCLR = 0x00008000; // OFF
+}
+
+void boot_timeout_reset() {
+    TMR2 = TMR3 = 0;
 }
 

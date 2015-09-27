@@ -138,7 +138,7 @@ class Loader:
         if verbose:
             print("Version check...")
         # version check
-        port.write(b"VERSION?")
+        port.write(b"VER?")
         response = int.from_bytes(port.read(4), byteorder=sys.byteorder, signed=False)
         if response < min_version:
             print("Incompatible bootloader version (" + str(response) + " < " + str(min_version), file=sys.stderr)
@@ -163,7 +163,7 @@ class Loader:
         if verbose:
             print("Requesting preferred block size...")
 
-        # enquire for block size
+        # inquire for block size
         port.write(b"BSZ?")
         self.block_size = int.from_bytes(response(4), byteorder=sys.byteorder, signed=False)
         
@@ -171,7 +171,7 @@ class Loader:
             print(self.block_size)
 
         # end preamble
-        port.write(b"LOAD")
+        port.write(b"DONE")
         response = port.read(2) # should get OK back
         if response != b"OK":
             print("Error in preamble (2)", file=sys.stderr)

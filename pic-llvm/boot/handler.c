@@ -100,6 +100,10 @@ void boot_print_enable(void) {
     boot_print_enabled = 1;
 }
 
+void boot_print_disable(void) {
+    boot_print_enabled = 0;
+}
+
 void boot_syscall(void) {
     asm volatile("syscall");
 }
