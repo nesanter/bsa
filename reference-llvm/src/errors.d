@@ -61,7 +61,7 @@ void error_internal() {
 
 void error_unimplemented_function(string name) {
     write_error_prefix();
-    stderr.write("unimplemented function ",name);
+    stderr.writeln("unimplemented function ",name);
 }
 
 void error_unknown_identifier(string ident) {
