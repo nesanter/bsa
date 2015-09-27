@@ -203,6 +203,16 @@ void ___fail_builtin(struct eh_t *eh) {
 
 }
 
+void ___trace_builtin(struct eh_t *eh) {
+    while (eh) {
+        if (eh->ident) {
+            uart_print(eh->ident);
+            uart_print("\r\n");
+        }
+        eh = eh->parent;
+    }
+}
+
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
     __vector_table[entry] = handler;
 }

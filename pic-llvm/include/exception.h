@@ -12,6 +12,7 @@
 
 struct eh_t {
     struct eh_t *parent;
+    char *ident;
     unsigned int flags;
     void (*always_handler)();
     void (*success_handler)();
