@@ -42,8 +42,6 @@ struct driver {
 // [manifest] .console.rx.wait       0   0   b
 // [manifest] .led                   1   0   rw,v
 // [manifest] .led.select            1   1   rw,v
-// [manifest] .led.low               1   2   rw,v
-// [manifest] .led.high              1   3   rw,v
 // [manifest] .sw                    2   0   r
 // [manifest] .sw.select             2   1   rw,v
 // [manifest] .sw.edge               2   2   rw,v
@@ -72,8 +70,6 @@ const driver_write_fn console_write_fns[] = {
 const driver_write_fn led_write_fns[] = {
     &drv_led_write, // 1.0
     &drv_led_select_write, // 1.1
-    &drv_led_low_write, // 1.2
-    &drv_led_high_write // 1.3
 };
 
 const driver_write_fn sw_write_fns[] = {
