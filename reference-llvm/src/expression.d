@@ -270,11 +270,13 @@ extern (C) {
 
         Value[] praw = [Value.create_const_int(numeric_type, ent.index)];
         string[] prawstr;
+        bool has_bool_args;
 
         foreach (v; p.values) {
             if (v.is_constant_string()) {
                 prawstr ~= text(v.as_string);
             } else if (v.type.same(bool_type)) {
+                has_bool_args = true;
                 praw ~= current_builder.select(v, true_numeric_value, false_numeric_value);
             } else {
                 praw ~= v;
@@ -284,7 +286,7 @@ extern (C) {
         if (!ent.syscall_allowed(text(ident))) {
             error_intrinsic_not_allowed_for_target(text(ident), qname);
         }
-        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 1)) {
+        if (!ent.syscall_arguments_allowed(prawstr.length > 0, praw.length > 1, has_bool_args)) {
             error_intrinsic_args_not_allowed_for_target(text(ident), qname);
         }
 

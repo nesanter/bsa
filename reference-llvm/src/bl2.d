@@ -65,6 +65,7 @@ extern (C) {
 bool dump_on_error = false;
 bool color_errors = true;
 bool conditional_definitions_are_errors = false;
+bool enable_all_warnings = false;
 
 int main(string[] args) {
 
@@ -86,6 +87,7 @@ int main(string[] args) {
                "lib", &no_entry,
                "delayed-implementation", &delay_implement,
                "trace-support", &include_trace_names,
+               "warn", &enable_all_warnings,
                "help", &help
         );
     } catch (Exception e) {
@@ -105,6 +107,7 @@ int main(string[] args) {
         writeln("    --lib\t\t\tcompile without @entry function [false]");
         writeln("    --delayed-implementation\tunimplemented functions are not errors [false]");
         writeln("    --trace-support\t\tsupport runtime $trace [false]");
+        writeln("    --warn\t\t\tenable all warnings [false]");
         return 2;
     }
 
