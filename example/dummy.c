@@ -34,6 +34,18 @@ int ___read_builtin(struct eh_t *eh, int target) {
     return 1;
 }
 
+int ___write_addr_builtin(struct eh_t *eh, int target, int value, int addr) {
+    printf("write_addr [%d, %d] %d %d\n", target & 0xFFFF, (target & 0xFFFF0000) >> 16, value, addr);
+
+    return 1;
+}
+
+int ___read_addr_builtin(struct eh_t *eh, int target, int addr) {
+    printf("read_addr [%d, %d] %d\n", target & 0xFFFF, (target & 0xFFFF0000) >> 16, addr);
+
+    return 1;
+}
+
 int ___fork_builtin(int (*fn) ()) { return 0; }
 int ___yield_builtin() { return 0; }
 

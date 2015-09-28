@@ -27,6 +27,8 @@ struct driver {
     const driver_write_fn *write_fns;
     const driver_read_fn *read_fns;
     const driver_block_fn *block_fns;
+    const driver_write_addr_fn *write_addr_fns;
+    const driver_read_addr_fn *read_addr_fns;
     unsigned int fn_count;
 };
 
@@ -40,6 +42,8 @@ struct driver {
 // [manifest] .console.rx.wait       0   0   b
 // [manifest] .led                   1   0   rw,v
 // [manifest] .led.select            1   1   rw,v
+// [manifest] .led.low               1   2   rw,v
+// [manifest] .led.high              1   3   rw,v
 // [manifest] .sw                    2   0   r
 // [manifest] .sw.select             2   1   rw,v
 // [manifest] .sw.edge               2   2   rw,v
@@ -67,7 +71,9 @@ const driver_write_fn console_write_fns[] = {
 
 const driver_write_fn led_write_fns[] = {
     &drv_led_write, // 1.0
-    &drv_led_select_write // 1.1
+    &drv_led_select_write, // 1.1
+    &drv_led_low_write, // 1.2
+    &drv_led_high_write // 1.3
 };
 
 const driver_write_fn sw_write_fns[] = {
@@ -142,12 +148,12 @@ const driver_block_fn all_block_fns[] = {
 };
 
 const struct driver drivers[] = {
-    { console_write_fns, console_read_fns, &all_block_fns[0], 7 }, /* .console */
-    { led_write_fns, led_read_fns, 0, 2 }, /* .led */
-    { sw_write_fns, sw_read_fns, &all_block_fns[1], 2 }, /* .sw */
-    { sys_write_fns, sys_read_fns, 0, 1 }, /* .system */
-    { timer_write_fns, timer_read_fns, &all_block_fns[2], 1}, /* .timer */
-    { ldr_write_fns, ldr_read_fns, 0, 1 }, /* .ldr */
+    { console_write_fns, console_read_fns, &all_block_fns[0], 0, 0, 7 }, /* .console */
+    { led_write_fns, led_read_fns, 0, 0, 0, 2 }, /* .led */
+    { sw_write_fns, sw_read_fns, &all_block_fns[1], 0, 0, 2 }, /* .sw */
+    { sys_write_fns, sys_read_fns, 0, 0, 0, 1 }, /* .system */
+    { timer_write_fns, timer_read_fns, &all_block_fns[2], 0, 0, 1}, /* .timer */
+    { ldr_write_fns, ldr_read_fns, 0, 0, 0, 1 }, /* .ldr */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -194,6 +200,38 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
     }
 restore:
     return 1;
+}
+
+int ___write_addr_builtin(struct eh_t *eh, unsigned int target, int val, int addr) {
+    unsigned int low = target & 0xFFFF;
+    unsigned int high = (target & 0xFFFF0000) >> 16;
+
+    if (drivers[low].write_addr_fns) {
+        driver_write_addr_fn fn = drivers[low].write_addr_fns[high];
+        if (fn) {
+            return fn(val, addr);
+        } else {
+            return 0;
+        }
+    } else {
+        return 0;
+    }
+}
+
+int ___read_addr_builtin(struct eh_t *eh, unsigned int target, int addr) {
+    unsigned int low = target & 0xFFFF;
+    unsigned int high = (target & 0xFFFF0000) >> 16;
+
+    if (drivers[low].read_addr_fns) {
+        driver_read_addr_fn fn = drivers[low].read_addr_fns[high];
+        if (fn) {
+            return fn(addr);
+        } else {
+            return 0;
+        }
+    } else {
+        return 0;
+    }
 }
 
 void ___yield_builtin() {

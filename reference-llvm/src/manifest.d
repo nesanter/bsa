@@ -109,20 +109,28 @@ class Manifest {
                             break;
                         case "vB":
                             ent.accept_bool = true;
+                            break;
                         case "b":
                             ent.accepted_calls["block"] = call_info(true);
                             break;
                         case "rB":
-                            ent.accepted_calls["read"] = call_info(true,true);
+                            ent.accepted_calls["read"] = call_info(true, true);
                             break;
                         case "wB":
-                            ent.accepted_calls["write"] = call_info(true,true);
+                            ent.accepted_calls["write"] = call_info(true, true);
                             break;
                         case "rwB":
-                            ent.accepted_calls["read"] = call_info(true,true);
+                            ent.accepted_calls["read"] = call_info(true, true);
                             break;
                         case "bB":
-                            ent.accepted_calls["block"] = call_info(true,true);
+                            ent.accepted_calls["block"] = call_info(true, true);
+                            break;
+                        case "wA":
+                            ent.accepted_calls["store"] = call_info(true, false);
+                            break;
+                        case "rA":
+                            ent.accepted_calls["load"] = call_info(true, false);
+                            break;
                     }
                 }
             }
