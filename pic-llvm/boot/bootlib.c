@@ -55,17 +55,20 @@ void boot_uart_init() {
 }
 
 void boot_uart_change_baud(unsigned int baud) {
-    boot_print_disable();
-    U1MODECLR = 0x00008000;
-
-    asm volatile ("nop");
-    asm volatile ("nop");
+//    boot_print_disable();
+//    U1MODECLR = 0x00008000;
+//
+//    unsigned int count;
+//    asm volatile ("mtc0 $zero, $9");
+//    do {
+//        asm volatile ("mfc0 %0, $9" : "=r" (count));
+//    } while (count < 40000000);
 
     U1BRG = ((SYSTEM_FREQ / baud) / 16) - 1;
 
-    U1MODESET = 0x00008000;
+//    U1MODESET = 0x00008000;
 
-    boot_print_enable();
+//    boot_print_enable();
 }
 
 void __attribute((interrupt(IPL2SOFT), nomips16)) boot_transfer_handler() {
@@ -132,6 +135,10 @@ unsigned int boot_get_crc() {
     return DCRCDATA;
 }
 
+void boot_print_flush() {
+    while (!(U1STA & 0x100));
+}
+
 void boot_print(char *s) {
     while (*s) {
         while (!(U1STA & 0x200) && *s) {
@@ -182,12 +189,6 @@ unsigned int boot_read_nonblocking(char *buffer, unsigned int length) {
         n++;
     }
     return n;
-}
-
-int boot_strcmpn(char *stra, char *strb, unsigned int len) {
-    int i = 0;
-    while (i++ < len && (*stra++ == *strb++) && *stra);
-    return (i == len) || *stra == *strb;
 }
 
 unsigned int __attribute__((nomips16)) flash_unlock(nvm_op op) {

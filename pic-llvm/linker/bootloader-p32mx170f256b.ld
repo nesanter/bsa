@@ -736,6 +736,7 @@ SECTIONS
     _sbss_end = . ;
     . = ALIGN(4) ;
   } >kseg1_data_mem
+
   /*
    *  Align here to ensure that the .bss section occupies space up to
    *  _end.  Align after .bss to ensure correct alignment even if the

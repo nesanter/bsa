@@ -45,6 +45,12 @@ char *todecimal(int n) {
     }
 }
 
+int strcmpn(char *stra, char *strb, unsigned int len) {
+    int i = 0;
+    while (i++ < len && (*stra++ == *strb++) && *stra);
+    return (i == len) || *stra == *strb;
+}
+
 void *memset(void *s, int c, unsigned int n) {
     unsigned int fill = (c << 24 | c << 16 | c << 8 | c);
     void *sorig = s;

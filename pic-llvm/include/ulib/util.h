@@ -11,6 +11,7 @@
 char *tohex(unsigned int n, int length);
 char *todecimal(int n);
 void *memset(void *s, int c, unsigned int n);
+int strcmpn(char *stra, char *strb, unsigned int len);
 
 #endif	/* UTIL_H */
 

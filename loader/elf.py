@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import serial, sys, argparse
+import serial, sys, argparse, time, math
 
 class Image:
     
@@ -126,6 +126,7 @@ class Loader:
 
 
     def preamble(self, new_baud, min_version, verbose=False):
+        port = self.port
         if verbose:
             print("Beginning preamble")
         # opening message
@@ -139,7 +140,7 @@ class Loader:
             print("Version check...")
         # version check
         port.write(b"VER?")
-        response = int.from_bytes(port.read(4), byteorder=sys.byteorder, signed=False)
+        response = int.from_bytes(port.read(4), byteorder='big', signed=False)
         if response < min_version:
             print("Incompatible bootloader version (" + str(response) + " < " + str(min_version), file=sys.stderr)
             exit(1)
@@ -153,7 +154,7 @@ class Loader:
 
         # set post-preamble baud
         port.write(b"BAUD")
-        port.write(int.to_bytes(new_baud, 4, byteorder=sys.byteorder, signed=False))
+        port.write(int.to_bytes(new_baud, 4, byteorder='little', signed=False))
         response = port.read(2) # should get OK back
         if response != b"OK":
             print("Error in preamble (1)", file=sys.stderr)
@@ -165,7 +166,8 @@ class Loader:
 
         # inquire for block size
         port.write(b"BSZ?")
-        self.block_size = int.from_bytes(response(4), byteorder=sys.byteorder, signed=False)
+        self.block_size = int.from_bytes(port.read(4), byteorder='big', signed=False)
+        port.write(b"OK")
         
         if verbose:
             print(self.block_size)
@@ -181,11 +183,14 @@ class Loader:
             print("Ended preamble, reopening port")
 
         # re-open port
-        port.close()
-        port = serial.Serial(self.port_name, baudrate=new_baud, timeout=30)
+#        port.close()
+        print(new_baud)
+        self.port = serial.Serial(self.port_name, baudrate=new_baud, timeout=30)
+        port = self.port
 
         # wait for ready
         response = port.read(16)
+        print(response)
         if response != b"BOOTLOADER READY":
             print("Error in preamble (3)", file=sys.stderr)
             exit(1)
@@ -195,6 +200,7 @@ class Loader:
             print("Preamble complete")
 
     def load(self, verbose=False):
+        port = self.port
         if verbose:
             print("Beginning load")
 
@@ -210,7 +216,7 @@ class Loader:
 
         # send entry
         port.write(b"ENTR")
-        port.write(int.to_bytes(image.e_entry, 4, byteorder=sys.byteorder, signed=False))
+        port.write(int.to_bytes(self.image.e_entry, 4, byteorder=sys.byteorder, signed=False))
         response = port.read(2) # should get OK back
         if response != b"OK":
             print("Error in load (5)", file=sys.stderr)
@@ -221,23 +227,32 @@ class Loader:
 
         # send pre-data information
         # --> allows client to allocate space for initialized memory
-        for n in rnage(image.e_phnum):
-            image.read_program_header(n)
+        for n in range(self.image.e_phnum):
+            self.image.read_prog_header(n)
 
-            if image.p_type != 1: # only LOAD is important
+            if self.image.p_type != 1: # only LOAD is important
                 continue
 
             port.write(b"PHDR")
-            port.write(int.to_bytes(image.p_vaddr, 4, byteorder=sys.byteorder, signed=False))
-            port.write(int.to_bytes(image.p_memsz, 4, byteorder=sys.byteorder, signed=False))
-            port.write(int.to_bytes(image.p_filesz, 4, byteorder=sys.byteorder, signed=False))
+            port.write(int.to_bytes(self.image.p_vaddr, 4, byteorder=sys.byteorder, signed=False))
+            port.write(int.to_bytes(self.image.p_memsz, 4, byteorder=sys.byteorder, signed=False))
+            port.write(int.to_bytes(self.image.p_filesz, 4, byteorder=sys.byteorder, signed=False))
             response = port.read(2) # should get OK back
             if response != b"OK":
                 print("Error in load (6)", file=sys.stderr)
                 exit(1)
 
             if verbose:
-                print("Sent header " + str(n+1) + "/" + str(image.e_phnum))
+                print("Sent header " + str(n+1))
+        port.write(b"\x00")
+
+        if verbose:
+            print("Confirming that image can be loaded")
+        response = port.read(2) # should get OK back
+        if response != b"OK":
+            print(response)
+            print("Error in load (7)", file=sys.stderr)
+            exit(1)
 #
 #    
 #
@@ -265,41 +280,50 @@ class Loader:
             print("Sending data")
 
         # send actual data
-        for n in range(image.e_phnum):
-            image.read_program_header(n)
+        for n in range(self.image.e_phnum):
+            self.image.read_prog_header(n)
 
             # check header type
-            if image.p_type != 1: # only LOAD is important
+            if self.image.p_type != 1: # only LOAD is important
                 continue
 
             # transfer in blocks
             port.write(b"DATA")
-            nblocks = math.ceil(image.p_filesz / self.block_size)
+            nblocks = math.ceil(self.image.p_filesz / self.block_size)
             port.write(int.to_bytes(nblocks, 4, byteorder=sys.byteorder, signed=False)) # number of blocks
 
-            print("Sending " + str(nblocks) + " blocks...")
+            if verbose:
+                print("Sending " + str(nblocks) + " blocks...")
 
-            image.seek(image.p_offset)
+            self.image.seek(self.image.p_offset)
             for i in range(0, nblocks):
-                data = image.read_bytes(self.block_size)
+                if verbose:
+                    print(i)
+                data = self.image.read_bytes(self.block_size)
                 port.write(data)
+                if (len(data) < self.block_size):
+                    for j in range(self.block_size - len(data)):
+                        port.write(b"\x00")
                 response = port.read(2)
                 if response != b"OK":
-                    print("Error in load (7)", file=sys.stderr)
+                    print(response)
+                    print("Error in load (8)", file=sys.stderr)
                     exit(1)
             response = port.read(4)
             if response != b"DONE":
-                print("Error in load (8)", file=sys.stderr)
+                print("Error in load (9)", file=sys.stderr)
                 exit(1)
 
             if verbose:
                 print("sent")
 
+        port.write(b"\x00")
+
         # all data sent
         port.write(b"ALLCLEAR")
         response = port.read(2)
-        if respone != b"OK":
-            print("Error in load (9)", file=sys.stderr)
+        if response != b"OK":
+            print("Error in load (10)", file=sys.stderr)
             exit(1)
 
         if verbose:
@@ -310,11 +334,12 @@ class Loader:
 parser = argparse.ArgumentParser(description="BoMu Image Loader")
 parser.add_argument("image")
 parser.add_argument("port", nargs="?", default="/dev/ttyUSB0")
-parser.add_argument("-b", "--baud", "--load-baud", type=int, dest="postbaud")
-parser.add_argument("-B", "--preamble-baud", type=int, dest="prebaud")
+parser.add_argument("-b", "--baud", "--load-baud", type=int, dest="postbaud", default=9600)
+parser.add_argument("-B", "--preamble-baud", type=int, dest="prebaud", default=9600)
 parser.add_argument("-v", "--verbose", action="store_true", dest="verbose")
 
 args = parser.parse_args()
 
-img = Image(args.image)
-img.dump()
+ldr = Loader(Image(args.image), args.port, args.prebaud, verbose=args.verbose)
+ldr.preamble(args.postbaud, 0, verbose=args.verbose)
+ldr.load(verbose=args.verbose)

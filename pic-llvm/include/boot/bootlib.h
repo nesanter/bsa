@@ -3,6 +3,7 @@
 
 void boot_uart_init();
 void boot_uart_change_baud(unsigned int baud);
+void boot_print_flush();
 void boot_print(char *s);
 void boot_print_n(char *s, unsigned int len);
 void boot_print_int(int n);
@@ -28,6 +29,8 @@ typedef enum {
 
 void boot_signal_init();
 void boot_signal_set(boot_signal sig, unsigned int on);
+
+int boot_run_read();
 
 void boot_internal_error(int single);
 

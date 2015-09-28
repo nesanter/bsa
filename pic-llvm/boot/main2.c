@@ -46,6 +46,11 @@ int check_reset_reason(unsigned int epc) {
 int main(void) {
 //    flash_write_word_unsafe(boot_flags & 0x40, physical_address(&boot_flags));
 
+    TRISA = 0;
+    TRISB = 0;
+    ANSELA = 0;
+    ANSELB = 0;
+
     unsigned int errorepc;
     boot_handler_setup(&errorepc);
     boot_uart_init();
@@ -72,18 +77,35 @@ int main(void) {
     boot_signal_set(SIGNAL_BOOT, 1);
     boot_signal_set(SIGNAL_USER, 0);
 
+    TRISBSET = 0x8000;
+
     char buffer [16];
-    unsigned int n;
+    unsigned int n = 0;
 
     while (1) {
-        if ((n = boot_read_nonblocking(&buffer[n], 16 - n)) > 0) {
-            if (n >= 12) {
-                if (boot_strcmpn(buffer, "BSA PREAMBLE")) {
-                    preamble();
-                } else {
+        if ((n += boot_read_nonblocking(&buffer[n], 16 - n)) > 0) {
+            if (n == 1 && buffer[0] == '?') {
+                boot_print("OK");
+                n = 0;
+            }
+            if (n == 4) {
+                buffer[n] = '\0';
+                if (strcmpn(buffer, "LOAD", 4)) {
+                    boot_print("OK");
+                    load();
                     n = 0;
                 }
             }
+            if (n >= 12) {
+                buffer[n] = '\0';
+                if (strcmpn(buffer, "BSA PREAMBLE", 12)) {
+                    boot_print("OK");
+                    preamble();
+                    n = 0;
+                }
+            }
+            if (n == 16)
+                n = 0;
         }
         /*
         if (boot_flag & BOOT_FLAG_LOADED) {
