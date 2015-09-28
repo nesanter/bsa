@@ -204,14 +204,39 @@ void load(void) {
 
     // get data
     unsigned int n_blocks, n = 0;
+    unsigned int ptr;
     while (!boot_expect("DATA")) {
-        boot_read_blocking((char*)&n_blocks, 4);
-        for (int i = 0 ; i < n_blocks ; i++) {
-            boot_read_blocking(block_buffer, BLOCK_SIZE);
+        if (load_headers[n].seg & SEG_IS_INITIALIZED) {
+            // todo
+        } else {
+            ptr = physical_address((void*)load_headers[n].vaddr);
+            boot_read_blocking((char*)&n_blocks, 4);
+            for (int i = 0 ; i < n_blocks ; i++) {
+                boot_read_blocking(block_buffer, BLOCK_SIZE);
 
-            
+                for (int j = 0 ; j < BLOCK_SIZE ; j += PAGE_SIZE) {
+                    flash_page_erase(ptr + j);
+                }
+                for (int j = 0 ; j < BLOCK_SIZE ; j += ROW_SIZE) {
+                    if (flash_write_row(block_buffer_phys, ptr + j)) {
+                        boot_print("FL");
+                        boot_internal_error(1);
+                        soft_reset();
+                    }
+                }
 
-            boot_print("OK");
+                char * check_ptr = (char*)load_headers[n].vaddr;
+                for (int j = 0 ; j < BLOCK_SIZE ; j++) {
+                    if (check_ptr[j] != block_buffer[j]) {
+                        boot_print("DC");
+                        boot_internal_error(1);
+                        soft_reset();
+                    }
+                }
+
+                ptr += BLOCK_SIZE;
+                boot_print("OK");
+            }
         }
         boot_print("DONE");
         n++;
