@@ -261,12 +261,16 @@ void error_symbol_of_different_type(string s) {
 }
 
 void warn_boolean_parameter() {
+    if (!enable_all_warnings)
+        return;
     write_warn_prefix();
     stderr.write("boolean parameter will be passed as numeric");
     write_error_suffix();
 }
 
 void warn_boolean_return() {
+    if (!enable_all_warnings)
+        return;
     write_warn_prefix();
     stderr.write("boolean function will evaluate to a numeric value");
     write_error_suffix();
