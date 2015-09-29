@@ -4,5 +4,5 @@ rm -f *.o && \
 flex ../src/bl.l && \
 bison -d ../src/bl.y && \
 gcc -I../include -c lex.yy.c bl.tab.c && \
-gdc -o bl2 $(find ../src -name '*.d') *.o /usr/lib/libLLVM-3.6.so -Xlinker -lfl
+gdc -o muc $(find ../src -name '*.d') *.o /usr/lib/libLLVM-3.6.so -Xlinker -lfl
 
