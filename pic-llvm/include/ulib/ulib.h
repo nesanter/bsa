@@ -311,7 +311,7 @@ typedef struct {
        slew_rate_control_disable,
        smbus_input_levels_disable,
        general_call_enable,
-       scl_clock_stretch_enable,
+       scl_clock_stretch_enable;
 //       ack_data,
 //       ack_sequence_enable,
 //       receive_enable,

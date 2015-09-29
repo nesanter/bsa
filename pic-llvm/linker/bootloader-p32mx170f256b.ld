@@ -107,9 +107,10 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
  *************************************************************************/
 MEMORY
 {
-  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x3000
-  initializer_map_mem   (r)   : ORIGIN = 0xBD003000, LENGTH = 0x400
-  kseg0_rt_program_mem  (rx)  : ORIGIN = 0x9D003400, LENGTH = 0x3BC00
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000000, LENGTH = 0x2C00
+  boot_status_mem       (r!x)   : ORIGIN = 0x9D002C00, LENGTH = 0x400
+/*  initializer_map_mem   (r)   : ORIGIN = 0xBD003000, LENGTH = 0x400*/
+  kseg0_rt_program_mem  (rx)  : ORIGIN = 0x9D003000, LENGTH = 0x3C000
   exception_mem               : ORIGIN = 0x9D03F000, LENGTH = 0x1000
   debug_exec_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x760
   kseg0_boot_mem              : ORIGIN = 0x9FC00490, LENGTH = 0x0
@@ -507,16 +508,18 @@ SECTIONS
   } > exception_mem
   ASSERT (_vector_spacing == 0 || SIZEOF(.vector_63) <= (_vector_spacing << 5), "function at exception vector 63 too large")
 
+  /*
   .boot_flags :
   {
       . = ALIGN(4);
       KEEP(*(.boot_flags))
   } > kseg0_program_mem
+  */
 
-  .initializer_map :
+  .boot_status ORIGIN(boot_status_mem) (NOLOAD):
   {
-      KEEP(*(.initializer_map))
-  } > initializer_map_mem
+      . += LENGTH(boot_status_mem);
+  } > boot_status_mem
 
   /*  The startup code is in the .reset.startup section.
    *  Keep this here for backwards compatibility with older

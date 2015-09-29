@@ -44,6 +44,8 @@ struct task_attributes {
     enum task_size size;
 };
 
+void init_tasks(void);
+
 void context_save(struct context *save, void *ra);
 void context_switch(struct context *restore, void (*on_exit)());
 int create_task(int (*fn)(void *), struct task_attributes attributes);

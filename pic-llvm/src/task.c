@@ -41,6 +41,18 @@ void create_new_context(struct context *context, int (*entry)(void*), void *sp) 
     context->ra = entry;
 }
 
+void init_tasks(void) {
+    for (unsigned int i = 0 ; i < MAX_TASKS ; i++) {
+        task_list[i].state = TASK_STATE_EMPTY;
+    }
+
+    for (unsigned int i = 0 ; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
+        task_stack_slots[i] = 0;
+    }
+
+    current_task = 0;
+}
+
 int create_task(int (*fn)(void *), struct task_attributes attributes) {
     struct task_info *new_task = 0;
     for (unsigned int i = 0; i < MAX_TASKS; i++) {
@@ -65,11 +77,13 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
     else
         needed = LARGE_TASK_SLOTS;
 
+    uart_print(tohex(needed, 8));
+    uart_print("\r\n");
     for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
         if (task_stack_slots[i] == 0) {
             found++;
             if (found == needed) {
-                stack_ptr = task_stack + (0x100 * i);
+                stack_ptr = task_stack + ((TASK_SLOT_SIZE >> 2) * (i+1));
                 for (unsigned int j = 0; j < found; j++) {
                     task_stack_slots[i-j] = new_task;
                 }
@@ -91,6 +105,10 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
 }
 
 int schedule_task() {
+    unsigned int sp;
+    asm volatile ("move %0, $sp;" : "=r"(sp));
+    uart_print(tohex(sp, 8));
+
     struct task_info *next_task = 0;
     int any_tasks = 0;
 
@@ -101,6 +119,8 @@ int schedule_task() {
             case TASK_STATE_NEW:
             case TASK_STATE_READY:
             case TASK_STATE_RUNNING: /* this one shouldn't happen */
+                uart_print(tohex(i, 1));
+                uart_print("\r\n");
                 if (!next_task || next_task->depth > task_list[i].depth) {
                     next_task = &task_list[i];
                 }

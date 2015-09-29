@@ -3,7 +3,28 @@
 #include "boot/bootlib.h"
 #include "boot/loader2.h"
 #include "proc/segments.h"
+#include "boot/flags.h"
+#include "ulib/util.h"
 #include "version.h"
+
+/* Stack placement:
+ *
+ * Currently, a "dumb" placement strategy is used
+ * that always places the stack at the end of available
+ * memory.
+ *
+ * A rudimentary double-check is made to ensure there is
+ * sufficient space beneath the end of memory for the minium
+ * stack size.
+ *
+ * Since the runtime hardly uses this stack, it can be small,
+ * and this strategy should work just fine.
+ */
+
+#define STACK_PADDING (0x40)
+#define MIN_STACK_SIZE (0x200 + STACK_PADDING)
+
+extern struct boot_status * volatile boot_status;
 
 struct load_info {
     unsigned int vaddr,
@@ -78,8 +99,8 @@ int create_initialization_map(unsigned int initspace, unsigned int progspace, un
     }
 
     // and virtual addresses
-    map_virt_address = (void*)(map_phys_address + 0xC0000000);
-    init_virt_start_address = (void*)(init_phys_start_address + 0xC0000000);
+    map_virt_address = (void*)(map_phys_address + 0x80000000);
+    init_virt_start_address = (void*)(init_phys_start_address + 0x80000000);
 
     return 0;
 }
@@ -87,8 +108,10 @@ int create_initialization_map(unsigned int initspace, unsigned int progspace, un
 int set_initializer(unsigned int phys_addr, unsigned int * data) {
     // calculate place in map
     unsigned int slot = (phys_addr - SEG_PHYS_RAM_START) / MAP_GRANULARITY;
-    unsigned int map_byte = slot >> 5;
+    unsigned int map_byte = slot >> 5; // word aligned
     unsigned int mask = 0xFFFFFFFF ^ (1 << (slot & 0x1F));
+
+    boot_print(tohex(mask, 8));
 
     if (flash_write_word(mask, map_phys_address + (map_byte << 2))) {
         return 1;
@@ -171,6 +194,27 @@ enum load_seg get_segment(unsigned int vaddr) {
 
 // triggered after "LOAD" is received
 void load(void) {
+    // clear persistant info
+    boot_print(tohex((unsigned int)boot_status, 8));
+    if ((unsigned int)boot_status & PAGE_MASK) {
+        boot_print("PG");
+        boot_internal_error(1);
+        soft_reset();
+    }
+    int rrr = flash_page_erase(physical_address(boot_status));
+    if (rrr == 1)
+        boot_print("N1");
+    else if (rrr & 0x1000)
+        boot_print("N2");
+    else if (rrr & 0x2000)
+        boot_print("N3");
+    else if (rrr)
+        boot_print("N?");
+    if (rrr) {
+        boot_internal_error(1);
+        soft_reset();
+    }
+
     // get entry
     unsigned int entry;
     if (boot_expect("ENTR")) {
@@ -178,11 +222,14 @@ void load(void) {
         boot_internal_error(1);
         soft_reset();
     }
-
-    boot_read_blocking((char*)&entry, 4);
+    
     boot_print("OK");
 
-    // get pre-info
+    boot_read_blocking((char*)&entry, 4);
+    
+    boot_print("OK");
+
+    // get pre-info (also double check safety of dumb stack placement)
     unsigned int n_phdrs = 0, initspace = 0, ramspace = 0, progspace = 0, progmaxaddr = 0;
     while (!boot_expect("PHDR")) {
         if (n_phdrs >= MAX_LOAD_HEADERS) {
@@ -199,6 +246,11 @@ void load(void) {
         if (load_headers[n_phdrs].seg & SEG_IS_INITIALIZED) {
             initspace += load_headers[n_phdrs].initsz;
             ramspace += load_headers[n_phdrs].memsz;
+            if (physical_address((void*)load_headers[n_phdrs].vaddr) + load_headers[n_phdrs].memsz > (SEG_PHYS_RAM_END - MIN_STACK_SIZE)) {
+                boot_print(">S");
+                boot_internal_error(1);
+                soft_reset();
+            }
         } else {
             progspace += load_headers[n_phdrs].memsz;
             unsigned int phys = physical_address((void*)load_headers[n_phdrs].vaddr) + load_headers[n_phdrs].memsz;
@@ -266,7 +318,7 @@ void load(void) {
     while (!boot_expect("DATA")) {
         boot_read_blocking((char*)&n_blocks, 4);
         if (load_headers[n].seg & SEG_IS_INITIALIZED) {
-            ptr = physical_address(load_headers[n].vaddr);
+            ptr = physical_address((void*)load_headers[n].vaddr);
             unsigned int memsz = 0;
             for (int i = 0 ; i < n_blocks ; i++) {
                 boot_read_blocking(block_buffer, BLOCK_SIZE);
@@ -345,8 +397,100 @@ void load(void) {
         soft_reset();
     }
 
+    // write persistant info
+    if (flash_write_word((unsigned int)map_virt_address, physical_address(&boot_status->init_map)) ||
+        flash_write_word((unsigned int)init_virt_start_address, physical_address(&boot_status->init_data)) ||
+        flash_write_word(entry, physical_address(&boot_status->runtime_entry))) {
+        boot_print("NO");
+        boot_internal_error(1);
+        soft_reset();
+    }
+
     boot_print("OK");
 
     // done!
+    
+    soft_reset();
 }
 
+void run(void) {
+    // check for valid entry
+    if (boot_status->runtime_entry == (void*)0 || boot_status->runtime_entry == (void*)0xFFFFFFFF) {
+        boot_internal_error(1);
+        soft_reset();
+    }
+
+    // load pre-init data
+    unsigned int * init_map = boot_status->init_map;
+    unsigned int * init_data = boot_status->init_data;
+    unsigned int * dest = (unsigned int *)SEG_K0_RAM_START;
+    unsigned int map_words = (SEG_RAM_SIZE / MAP_GRANULARITY) >> 5;
+
+    /*
+    boot_print(tohex((unsigned int)init_map, 8));
+    boot_print(tohex((unsigned int)init_data, 8));
+    boot_print(tohex((unsigned int)dest, 8));
+    */
+
+    for (int i = 0; i < map_words ; i++) {
+        unsigned int word = init_map[i];
+        for (int j = 0 ; j < 32 ; j++) {
+            if (!(word & 0x1)) {
+                for (int k = 0 ; k < MAP_GRANULARITY >> 2 ; k++) {
+                    dest[k] = init_data[k];
+                    boot_print("@");
+                    boot_print(tohex((unsigned int)&dest[k], 8));
+                    boot_print(" = ");
+                    boot_print(tohex((unsigned int)&init_data[k], 8));
+                    boot_print(" (");
+                    boot_print(tohex(init_data[k], 8));
+                    boot_print(")\r\n");
+                }
+                init_data += (MAP_GRANULARITY >> 2);
+            } else {
+                
+                for (int k = 0 ; k < MAP_GRANULARITY >> 2 ; k++) {
+                    dest[k] = 0;
+                }
+                
+            }
+            dest += (MAP_GRANULARITY >> 2);
+            word >>= 1;
+        }
+    }
+
+    // enter runtime
+    void * stack_ptr = (void*)(SEG_K1_RAM_END - STACK_PADDING);
+    void * gp = 0; // does not actually need initialization
+    void * entry = boot_status->runtime_entry;
+    asm volatile ("move $sp, %0; \
+                   move $gp, %1; \
+                   j %2" : "+r" (stack_ptr),
+                           "+r" (gp),
+                           "+r" (entry));
+}
+
+void dump_map(void) {
+    unsigned int * init_map = boot_status->init_map;
+    unsigned int map_words = (SEG_RAM_SIZE / MAP_GRANULARITY) >> 5;
+
+    for (int i = 0; i < map_words ; i += 2) {
+        unsigned int word = init_map[i];
+        for (int j = 0 ; j < 32 ; j++) {
+            if (word & 0x1)
+                boot_print("1");
+            else
+                boot_print("0");
+            word >>= 1;
+        }
+        word = init_map[i+1];
+        for (int j = 0 ; j < 32 ; j++) {
+            if (word & 0x1)
+                boot_print("1");
+            else
+                boot_print("0");
+            word >>= 1;
+        }
+        boot_print("\r\n");
+    }
+}

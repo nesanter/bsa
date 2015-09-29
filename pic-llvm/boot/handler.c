@@ -38,7 +38,7 @@ void soft_reset() {
     while (1);
 }
 #else
-extern unsigned int __attribute((section(".boot_flags"))) boot_flags;
+//extern unsigned int __attribute((section(".boot_flags"))) boot_flags;
 #endif
 
 //private functions
@@ -163,7 +163,8 @@ void __attribute__((nomips16)) boot_exception_handler(unsigned int code, unsigne
             boot_print("(interrupt)\r\n");
             break;
         case 0x04: //address error (load/fetch)
-            boot_print("(address error during load/fetch\r\n");
+            boot_print("(address error during load/fetch)\r\n");
+            break;
         case 0x05: //address error (store)
             boot_print("(address error during store)\r\n");
             break;

@@ -24,6 +24,8 @@
  *   BOOT/USER alternating -- a general exception has occured
  */
 
+struct boot_status * volatile boot_status = (void*)0x9D002C00;
+
 int check_reset_reason(unsigned int epc) {
     unsigned int rcon = RCON;
 
@@ -77,6 +79,17 @@ int main(void) {
     boot_signal_set(SIGNAL_BOOT, 1);
     boot_signal_set(SIGNAL_USER, 0);
 
+    boot_print("program loaded:");
+    int has_program;
+
+    if (boot_status->runtime_entry != (void*)0xFFFFFFFF && boot_status->runtime_entry != (void*)0) {
+        boot_print("yes\r\n");
+        has_program = 1;
+    } else {
+        boot_print("no\r\n");
+        has_program = 0;
+    }
+
     TRISBSET = 0x8000;
 
     char buffer [16];
@@ -87,6 +100,25 @@ int main(void) {
             if (n == 1 && buffer[0] == '?') {
                 boot_print("OK");
                 n = 0;
+            }
+            if (n == 3) {
+                buffer[n] = '\0';
+                if (strcmpn(buffer, "RUN", 3)) {
+                    if (has_program) {
+                        boot_print("OK");
+                        run();
+                    } else {
+                        boot_print("NO");
+                        n = 0;
+                    }
+                } else if (strcmpn(buffer, "MAP", 3)) {
+                    if (has_program) {
+                        dump_map();
+                    } else {
+                        boot_print("NO");
+                    }
+                    n = 0;
+                }
             }
             if (n == 4) {
                 buffer[n] = '\0';
@@ -114,7 +146,8 @@ int main(void) {
             }
         }
         */
-        if (boot_run_read())
-            boot_internal_error(0);
+        if (boot_run_read() && has_program) {
+            run();
+        }
     }
 }

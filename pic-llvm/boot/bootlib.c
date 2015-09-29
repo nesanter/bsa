@@ -7,8 +7,8 @@
 
 #define VIRT_OFFSET (0xA0000000)
 
-int transfer_ready = 0;
-unsigned char __attribute__((section(".transfer_buffer"))) transfer_buffer[TRANSFER_BUFFER_SIZE_WITH_HEADER];
+//int transfer_ready = 0;
+//unsigned char __attribute__((section(".transfer_buffer"))) transfer_buffer[TRANSFER_BUFFER_SIZE_WITH_HEADER];
 
 /*  The bootloader enables UART1:
  *  9600 baud 81N, no interrupts
@@ -183,7 +183,7 @@ unsigned int flash_write_word_unsafe(unsigned int value, unsigned int dest_addr)
 */
 
 unsigned int flash_write_word(unsigned int value, unsigned int dest_addr) {
-    if (dest_addr < 0x1D002400 || dest_addr >= 0x1D040000 || dest_addr & 0x3) {
+    if (dest_addr < 0x1D002C00 || dest_addr >= 0x1D040000 || dest_addr & 0x3) {
         return 1;
     }
     NVMDATA = value;
@@ -196,7 +196,7 @@ unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr) {
     if (/*src_addr >= 0x8000 || */src_addr & 0x3) {
         return 1;
     }
-    if (dest_addr < 0x1D002400 || dest_addr >= 0x1D040000 || dest_addr & ROW_MASK) {
+    if (dest_addr < 0x1D002C00 || dest_addr >= 0x1D040000 || dest_addr & ROW_MASK) {
         return 1;
     }
     
@@ -207,7 +207,7 @@ unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr) {
 }
 
 unsigned int flash_page_erase(unsigned int page_addr) {
-    if (page_addr < 0x1D002400 || page_addr >= 0x1D040000 || page_addr & PAGE_MASK) {
+    if (page_addr < 0x1D002C00 || page_addr >= 0x1D040000 || page_addr & PAGE_MASK) {
         return 1;
     }
     NVMADDR = page_addr;
@@ -228,7 +228,7 @@ void boot_signal_set(boot_signal sig, unsigned int on) {
 }
 
 int boot_run_read() {
-    return PORTB & 0x8000;
+    return PORTB & 0x8000 ? 0 /* HOLD */ : 1 /* RUN */;
 }
 
 void boot_internal_error(int single) {
@@ -290,6 +290,7 @@ void __attribute((interrupt(IPL2SOFT), nomips16)) boot_timeout_handler() {
 }
 
 // timeout = ~60 seconds
+/*
 void boot_timeout_init() {
     int tcon = T2CON;
     tcon |= 0x00000078; // PRESCALER = 256, 32-bit
@@ -318,4 +319,4 @@ void boot_timeout_stop() {
 void boot_timeout_reset() {
     TMR2 = TMR3 = 0;
 }
-
+*/

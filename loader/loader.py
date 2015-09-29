@@ -213,13 +213,21 @@ class Loader:
 
         if verbose:
             print("Sending entry point")
-
+        
+        print(port.read(8))
+    
         # send entry
         port.write(b"ENTR")
+        response = port.read(2) # should get OK back
+        if response != b"OK":
+            print(response)
+            print("Error in load (5a)", file=sys.stderr)
+            exit(1)
         port.write(int.to_bytes(self.image.e_entry, 4, byteorder=sys.byteorder, signed=False))
         response = port.read(2) # should get OK back
         if response != b"OK":
-            print("Error in load (5)", file=sys.stderr)
+            print(response)
+            print("Error in load (5b)", file=sys.stderr)
             exit(1)
 
         if verbose:
@@ -302,20 +310,28 @@ class Loader:
                 print("Sending " + str(nblocks) + " blocks...")
 
             self.image.seek(self.image.p_offset)
+            fsz = self.image.p_filesz;
             for i in range(0, nblocks):
                 if verbose:
                     print(i)
-                data = self.image.read_bytes(self.block_size)
+                if fsz > self.block_size:
+                    data = self.image.read_bytes(self.block_size)
+                else:
+                    data = self.image.read_bytes(fsz)
+
                 port.write(data)
                 if len(data) < self.block_size:
                     print("padding block")
                     for j in range(self.block_size - len(data)):
                         port.write(b"\x00")
                 response = port.read(2)
-                if response != b"OK":
+                while response != b"OK":
                     print(response)
-                    print("Error in load (8)", file=sys.stderr)
-                    exit(1)
+                    response = port.read(2)
+#                    print("Error in load (8)", file=sys.stderr)
+#                    exit(1)
+                fsz -= self.block_size
+
             response = port.read(4)
             if response != b"DONE":
                 print("Error in load (9)", file=sys.stderr)

@@ -20,6 +20,10 @@
 
 int ___entry(void *);
 
+extern int uart_enabled;
+
+int a [3] = { 12, 47, 1020 };
+
 void runtime_entry(void) {
 //    int i;
 
@@ -32,11 +36,27 @@ void runtime_entry(void) {
 
 //    uart_print("Hello, world!\r\n");
 
+    uart_enabled = 1;
+
+    uart_print("[runtime]\r\n");
+
+    /*
+    for (int i = 0 ; i < 3 ; i++) {
+        uart_print(tohex(a[i], 8));
+    }
+    */
+ 
+    init_tasks();
+
     struct task_attributes attr = { TASK_SIZE_LARGE };
-    create_task(&___entry, attr);
+    if (create_task(&___entry, attr)) {
+        uart_print("failed to create task\r\n");
+    }
     schedule_task();
 
     /* unreachable */
+
+    uart_print("???\r\n");
 
     while (1);
 }

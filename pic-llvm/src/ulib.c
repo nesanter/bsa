@@ -1495,6 +1495,7 @@ int u_cn_changed(u_cn_select select) {
 
 /* ------------------------- I2C ------------------------- */
 
+/*
 u_i2c_config u_i2c_load_config(u_i2c_select select) {
   int cur_config;
   u_i2c_config config;
@@ -1806,7 +1807,7 @@ void u_i2c_start_condition_enable(u_i2c_select select) {
         I2C2CONSET = BITS(0);
     }
 }
-
+*/
 /* ------------------------- ANA ------------------------- */
 
 u_ana_config u_ana_load_config() {

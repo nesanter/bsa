@@ -3,6 +3,8 @@
 
 void preamble(void);
 void load(void);
+void run(void);
+void dump_map(void);
 
 #else
 #error "runtime cannot access loader2"
