@@ -17,14 +17,17 @@
 \section{Console API}
 \textbf{Availabe:} always
 
+~\\
 The text console is a character-based bidirectional interface exposed on the controller board. Transmit and receive (TX and RX) queues are present on the chip and operate autonomously.
 The API exposes a simple string-based transmit option as well as both a blocking and non-blocking single-character API for both TX and RX. Task-level blocking is implemented for receive events.
 
+~\\
 \textit{Implementation details:} characters are transmitted in 8N1 mode at 9600 baud. In the future, this may be configurable.
 
 \subsection{\texttt{.console}}
 \textbf{Valid for:} write
 
+~\\
 \textit{Write} (accepts strings)
 
 Write a string, or the string representation of a value, to the text console. Always returns ``true''.
@@ -32,6 +35,7 @@ Write a string, or the string representation of a value, to the text console. Al
 \subsection{\texttt{.console.tx}}
 \textbf{Valid for:} write
 
+~\\
 \textit{Write}
 
 Write a single ASCII character to the text console. If TX blocking is enabled, wait until the character is added to the TX queue before returning ``true''.
@@ -40,6 +44,7 @@ If TX blocking is disabled, return ``true'' if the character was added to the TX
 \subsection{\texttt{.console.tx.ready}}
 \textbf{Valid for:} read
 
+~\\
 \textit{Read}
 
 Returns ``true'' if there is room in the TX queue and ``false'' otherwise.
@@ -47,10 +52,12 @@ Returns ``true'' if there is room in the TX queue and ``false'' otherwise.
 \subsection{\texttt{.console.tx.block}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns ``true'' if TX blocking is enabled and ``false'' otherwise.
 
+~\\
 \textit{Write} (boolean value)
 
 Enable or disable TX blocking. Always returns ``true''.
@@ -58,6 +65,7 @@ Enable or disable TX blocking. Always returns ``true''.
 \subsection{\texttt{.console.rx}}
 \textbf{Valid for:} read
 
+~\\
 \textit{Read}
 Read a single ASCII character from the text console. If RX blocking is enabled, wait until a character is available before returning it.
 If RX blocking is disabled, return $-1$ if there is no character available.
@@ -65,6 +73,7 @@ If RX blocking is disabled, return $-1$ if there is no character available.
 \subsection{\texttt{.console.rx.ready}}
 \textbf{Valid for:} read
 
+~\\
 \textit{Read}
 
 Returns ``true'' if there is a character in the RX queue and ``false'' otherwise.
@@ -72,10 +81,12 @@ Returns ``true'' if there is a character in the RX queue and ``false'' otherwise
 \subsection{\texttt{.console.rx.block}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns ``true'' if RX blocking is enabled and ``false'' otherwise.
 
+~\\
 \textit{Write} (boolean value)
 
 Enable or disable RX blocking. Always returns ``true''.
@@ -83,6 +94,7 @@ Enable or disable RX blocking. Always returns ``true''.
 \subsection{\texttt{.console.rx.wait}}
 \textbf{Valid for:} block
 
+~\\
 \textit{Block}
 
 Blocks the current task until a character is available in the RX queue. Always returns ``true''.
@@ -90,17 +102,21 @@ Blocks the current task until a character is available in the RX queue. Always r
 \section{Timer API}
 \textbf{Available:} always
 
+~\\
 Timers are implemented as monotonic counters with a configurable prescaler and period. Once the period is reached, the timer expires and automatically resumes counting from zero.
 
+~\\
 \textit{Note:} there are 4 16-bit timers available (indexed 0-3) that can be combined into two 32-bit pairs (indexed 4-5). Timers used in pairs cannot be used seperately.
 
 \subsection{\texttt{.timer}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the value of the currently selected timer.
 
+~\\
 \textit{Write}
 
 Sets the value of the currently selected timer.
@@ -108,11 +124,13 @@ Sets the value of the currently selected timer.
 \subsection{\texttt{.timer.enable}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns ``true'' if the currently selected timer is enabled, and ``false'' otherwise. The behavior of this intrinsic is undefined if a component timer of an enabled
 pair is currently selected.
 
+~\\
 \textit{Write}
 
 Enables or disables the currently selected timer. The behavior of this intrinsic is undefined if a component timer of an enabled pair is currently selected. Always returns ``true''.
@@ -120,10 +138,12 @@ Enables or disables the currently selected timer. The behavior of this intrinsic
 \subsection{\texttt{.timer.select}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the index of the currently selected timer.
 
+~\\
 \textit{Write}
 
 Sets the currently selected timer. Returns ``true'' if the value is a valid index and ``false'' otherwise.
@@ -131,10 +151,12 @@ Sets the currently selected timer. Returns ``true'' if the value is a valid inde
 \subsection{\texttt{.timer.period}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the period of the currently selected timer.
 
+~\\
 \textit{Write}
 
 Sets the period of the currently selected timer. Always returns ``true''.
@@ -142,12 +164,15 @@ Sets the period of the currently selected timer. Always returns ``true''.
 \subsection{\texttt{.timer.prescaler}}
 \textbf{Valid for:} read, write
 
+~\\
 The prescaler supports values from 0 through 7, corresponding to a $2^n$ clock scale, e.g. a timer with a prescaler of 4 counts 16 times slower than one with a prescaler of 0.
 
+~\\
 \textit{Read}
 
 Returns the prescaler of the currently selected timer.
 
+~\\
 \textit{Write}
 
 Sets the prescaler of the currently selected timer.
@@ -155,6 +180,7 @@ Sets the prescaler of the currently selected timer.
 \subsection{\texttt{.timer.wait}}
 \textbf{Valid for:} block
 
+~\\
 \textit{Block}
 
 Blocks the current task until the currently selected timer expires.
@@ -162,17 +188,21 @@ Blocks the current task until the currently selected timer expires.
 \section{LED API}
 \textbf{Available:} as part of the Basic I/O board
 
-The LED interface controls the state of the LED bank on the board. LEDs are accesable individually or as two four-bit blocks.
+~\\
+The LED interface controls the state of the LED bank on the board. LEDs are accessible individually. % or as two four-bit blocks.
 
+~\\
 \textit{Note:} there are 8 LEDs provided by the Basic I/O board, indexed 0 through 7.
 
 \subsection{\texttt{.led}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the state of the currently selected LED as a numeric value: either 0, indicating ``off'', or 1, indicating ``on''.
 
+~\\
 \textit{Write}
 
 Sets the state of the currently selected LED based on a numeric value: either 0, indicating ``turn off'', or 1, indicating ``turn on''. Always returns ``true''.
@@ -180,10 +210,12 @@ Sets the state of the currently selected LED based on a numeric value: either 0,
 \subsection{\texttt{.led.select}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the index of the currently selected LED.
 
+~\\
 \textit{Write}
 
 Sets the currently selected LED. Returns ``true'' if the value is a valid index and ``false'' otherwise.
@@ -214,9 +246,11 @@ Sets the currently selected LED. Returns ``true'' if the value is a valid index 
 \section{Switch API}
 \textbf{Available:} as part of the Basic I/O board
 
+~\\
 The switch interface allows testing the state of the switch bank on the board. Switches are only accessable indivually. (A 4-bit interface may be implemented in the future.)
 Task-level blocking is implemented for edge events on configurable edges.
 
+~\\
 \textit{Note:} there are 4 switches provided by the Basic I/O board, indexed 0 through 3.
 
 \textit{Implementation details:} on the Basic I/O board, the switch bank is active-low.
@@ -224,16 +258,19 @@ Task-level blocking is implemented for edge events on configurable edges.
 \subsection{\texttt{.sw}}
 \textbf{Valid for:} read
 
+~\\
 \textit{Read}
 Returns the state of the currently selected switch as a numeric value: either 0, indicating ``high'', or 1, indicating ``low''.
 
 \subsection{\texttt{.sw.select}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the index of the currently selected switch.
 
+~\\
 \textit{Write}
 
 Sets the currently selected swwitch. Returns ``true'' if the value is a valid index and ``false'' otherwise.
@@ -241,6 +278,7 @@ Sets the currently selected swwitch. Returns ``true'' if the value is a valid in
 \subsection{\texttt{.sw.edge}}
 \textbf{Validfor:} read, write
 
+~\\
 \begin{tabular}{rl}
 Value & Condition \\ \hline
 0 & High-to-low edge \\
@@ -248,10 +286,12 @@ Value & Condition \\ \hline
 2 & Any edge \\
 \end{tabular}
 
+~\\
 \textit{Read}
 
 Returns the current edge trigger condition.
 
+~\\
 \textit{Write}
 
 Sets the current edge trigger condition.
@@ -259,17 +299,20 @@ Sets the current edge trigger condition.
 \subsection{\texttt{.sw.wait}}
 \textbf{Valid for:} block
 
+~\\
+\textit{block}
 Blocks the current task until the an edge occurs that matches the selected trigger condition.
 
 \section{LDR API}
-
-The LDR on the Basic I/O board provides an analog measurement of light reaching its face.
-
 \textbf{Available:} as part of the Basic I/O board
+
+~\\
+The LDR on the Basic I/O board provides an analog measurement of light reaching its face.
 
 \subsection{\texttt{.ldr}}
 \textbf{Valid for:} read
 
+~\\
 \textit{Read}
 
 Returns the most recent value captured from the LDR in the range $\pm512$. The value is larger when the LDR is more lit (i.e. brighter light), and smaller when it is less lit (i.e. dimmer light.)
@@ -283,17 +326,35 @@ Returns the most recent value captured from the LDR in the range $\pm512$. The v
 %\subsection{\texttt{.rom.address}}
 %\textbf{Valid for:} read, write
 %
+
+\section{Generic I\textsuperscript{2}C API}
+\textbf{Available:} with any compatible daughter
+
+~\\
+An I\textsuperscript{2}C interface is broken out on dedicated pins on the controller board, meaning it is available to any daughter, including ad-hoc ones. If a application-specific API exists, it will often be preferable to this one.
+
+Briefly, I\textsuperscript{2}C is a two-wire interface supporting multiple-master, multiple-slave configurations. It is capable of robust bus sharing including collision detection. Care must be taken to insure that no two slaves have the same address on the bus -- most slaves, however, support multiple address configurations.
+
+~\\
+\textit{Hardware note:} per specifications, the total capacitance on the bus must not exceed 400pF. The maximum pull-up resistance also decreases as the capacitance increases. Practically, this means that the allowable length of the bus decreases as more slaves are added.
+
+~\\
+\textit{implementation pending}
+
 \section{System API}
 \textbf{Available:} always
 
+~\\
 A number of system features are grouped into this API, and many more will be in the future. Currently, it includes access to the CPU's Count register and control of the controller board's status LED.
 
+~\\
 \textit{Implementation details:} the rate at which the Count register increases is based on the core, not the peripheral, clock and thus will vary depending on the CPU clock speed.
 Currently, the CPU clock is fixed at 40Mhz, but this may change in the future.
 
 \subsection{\texttt{.system.delay}}
 \textbf{Valid for:} write
 
+~\\
 \textit{Write}
 
 Delays all tasks for a fixed amount of time. The value is in multiples of 50 nanoseconds, with a maximum delay of approximately 3.5 minutes.
@@ -301,21 +362,25 @@ Delays all tasks for a fixed amount of time. The value is in multiples of 50 nan
 \subsection{\texttt{.system.led}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the state of the user status LED (the green component of the general status LED) as a numeric value: either 0, indicating ``off'', or 1 (the default), indicating ``on''.
 
-\texttt{Write}
+~\\
+\textit{Write}
 
 Sets the state of the user status LED based on a numeric value: either 0, indicating ``turn off'', or 1, indicating ``turn on''. Always returns ``true''.
 
 \subsection{\texttt{.system.tick}}
 \textbf{Valid for:} read, write
 
+~\\
 \textit{Read}
 
 Returns the current system tick. The tick increases monotonically every 50ns whether or not any tasks are running, even during delays triggered by writing to \texttt{.system.delay}. The tick starts at zero and will roll over to $-2^{31}$ after reaching $+2^{32}-1$.
 
+~\\
 \textit{Write}
 
 Sets the current system tick to a new value, from which point it will continue to increase as usual every 50ns.
