@@ -296,26 +296,38 @@ int u_cn_changed(u_cn_select select);
 
 /* ------------------------- I2C ------------------------- */
 typedef struct {
-  char on,
+  char stop_condition_int_enable,
+       start_condition_int_enable,
+       buffer_overwrite_enable,
+       sda_hold_time,
+       slave_collision_int_enable,
+       address_hold_enable,
+       data_hold_enable,
+       on,
        stop_in_idle,
-       scl_release_control,
+//       scl_release_control,
        strict_reserved_address_rule_enable,
-       slave_address,
+       slave_address_10b,
        slew_rate_control_disable,
        smbus_input_levels_disable,
        general_call_enable,
        scl_clock_stretch_enable,
-       ack_data,
-       ack_sequence_enable,
-       receive_enable,
-       stop_condition_enable,
-       restart_condition_enable,
-       start_condition_enable;
+//       ack_data,
+//       ack_sequence_enable,
+//       receive_enable,
+//       stop_condition_enable,
+//       restart_condition_enable,
+//       start_condition_enable;
 } u_i2c_config;
 
 typedef enum {
   I2C1, I2C2
 } u_i2c_select;
+
+typedef enum {
+    I2C_ACK = 0,
+    I2C_NACK = BITS(5)
+} u_i2c_ack_data;
 
 u_i2c_config u_i2c_load_config(u_i2c_select select);
 void u_i2c_save_config(u_i2c_select select, u_i2c_config config);

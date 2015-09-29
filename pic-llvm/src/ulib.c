@@ -1509,21 +1509,28 @@ u_i2c_config u_i2c_load_config(u_i2c_select select) {
       break;
   }
 
+  config.stop_condition_int_enable = (cur_config & BITS(22)) >> 22;
+  config.start_condition_int_enable = (cur_config & BITS(21)) >> 21;
+  config.buffer_overwrite_enable = (cur_config & BITS(20)) >> 20;
+  config.sda_hold_time = (cur_config & BITS(19)) >> 19;
+  config.slave_collision_int_enable = (cur_config & BITS(18)) >> 18;
+  config.address_hold_enable = (cur_config & BITS(17)) >> 17;
+  config.data_hold_enable = (cur_config & BITS(16)) >> 16;
   config.on = (cur_config & BITS(15)) >> 15;
   config.stop_in_idle = (cur_config & BITS(13)) >> 13;
-  config.scl_release_control = (cur_config & BITS(12)) >> 12;
+//  config.scl_release_control = (cur_config & BITS(12)) >> 12;
   config.strict_reserved_address_rule_enable = (cur_config & BITS(11)) >> 11;
   config.slave_address = (cur_config & BITS(10)) >> 10;
   config.slew_rate_control_disable = (cur_config & BITS(9)) >> 9;
   config.smbus_input_levels_disable = (cur_config & BITS(8)) >> 8;
   config.general_call_enable = (cur_config & BITS(7)) >> 7;
   config.scl_clock_stretch_enable = (cur_config & BITS(6)) >> 6;
-  config.ack_data = (cur_config & BITS(5)) >> 5;
-  config.ack_sequence_enable = (cur_config & BITS(4)) >> 4;
-  config.receive_enable = (cur_config & BITS(3)) >> 3;
-  config.stop_condition_enable = (cur_config & BITS(2)) >> 2;
-  config.restart_condition_enable = (cur_config & BITS(1)) >> 1;
-  config.start_condition_enable = (cur_config & BITS(0)) >> 0;
+//  config.ack_data = (cur_config & BITS(5)) >> 5;
+//  config.ack_sequence_enable = (cur_config & BITS(4)) >> 4;
+//  config.receive_enable = (cur_config & BITS(3)) >> 3;
+//  config.stop_condition_enable = (cur_config & BITS(2)) >> 2;
+//  config.restart_condition_enable = (cur_config & BITS(1)) >> 1;
+//  config.start_condition_enable = (cur_config & BITS(0)) >> 0;
      
   return config;
 }
@@ -1531,21 +1538,28 @@ u_i2c_config u_i2c_load_config(u_i2c_select select) {
 void u_i2c_save_config(u_i2c_select select, u_i2c_config config) {
   int new_config;
 
+  new_config |= (config.stop_condition_int_enable & 1) << 22;
+  new_config |= (config.start_condition_int_enable & 1) << 21;
+  new_config |= (config.buffer_overwrite_enable & 1) << 20;
+  new_config |= (config.sda_hold_time & 1) << 19;
+  new_config |= (config.slave_collision_int_enable & 1) < 18;
+  new_config |= (config.address_hold_enable & 1) << 17;
+  new_config |= (config.data_hold_enable & 1) << 16;
   new_config |= (config.on & 1) << 15;
   new_config |= (config.stop_in_idle & 1) << 13;
-  new_config |= (config.scl_release_control & 1) << 12;
+//  new_config |= (config.scl_release_control & 1) << 12;
   new_config |= (config.strict_reserved_address_rule_enable & 1) << 11;
   new_config |= (config.slave_address & 1) << 10;
   new_config |= (config.slew_rate_control_disable & 1) << 9;
   new_config |= (config.smbus_input_levels_disable & 1) << 8;
   new_config |= (config.general_call_enable & 1) << 7;
   new_config |= (config.scl_clock_stretch_enable & 1) << 6;
-  new_config |= (config.ack_data & 1) << 5;
-  new_config |= (config.ack_sequence_enable & 1) << 4;
-  new_config |= (config.receive_enable & 1) << 3;
-  new_config |= (config.stop_condition_enable & 1) << 2;
-  new_config |= (config.restart_condition_enable & 1) << 1;
-  new_config |= (config.start_condition_enable & 1) << 0;
+//  new_config |= (config.ack_data & 1) << 5;
+//  new_config |= (config.ack_sequence_enable & 1) << 4;
+//  new_config |= (config.receive_enable & 1) << 3;
+//  new_config |= (config.stop_condition_enable & 1) << 2;
+//  new_config |= (config.restart_condition_enable & 1) << 1;
+//  new_config |= (config.start_condition_enable & 1) << 0;
 
   switch (select) {
     case I2C1:
@@ -1734,13 +1748,63 @@ void  u_i2c_tx_register_write(u_i2c_select select, char c) {
     }
 }
 
-char u_i2c_rx_register_read(u_uart_select select) {
+char u_i2c_rx_register_read(u_i2c_select select) {
     if (select == I2C1) {
         return I2C1RCV;
     } else if (select == I2C2) {
         return I2C2RCV;
     }
     return 0;
+}
+
+void u_i2c_slave_release_control(u_i2c_select select) {
+    if (select == I2C1) {
+        I2C1CONSET = BITS(12);
+    } else {
+        I2C2CONSET = BITS(12);
+    }
+}
+
+void u_i2c_send_acknowledge_sequence(u_i2c_select select, u_i2c_ack_data data) {
+    if (select == I2C1) {
+        I2C1CONSET = BITS(4) | data;
+        while (I2C1CON & BITS(4));
+    } else {
+        I2C2CONSET = BITS(4) | data;
+        while (I2C2CON & BITS(4));
+    }
+}
+
+void u_i2c_receive_enable(u_i2c_select select) {
+    if (select == I2C1) {
+        I2C1CONSET = BITS(3);
+    } else {
+        I2C2CONSET = BITS(3);
+    }
+}
+
+void u_i2c_stop_condition_enable(u_i2c_select select) {
+    if (select == I2C1) {
+        I2C1CONSET = BITS(2);
+    } else {
+        I2C2CONSET = BITS(2);
+    }
+}
+
+void u_i2c_restart_condition_enable(u_i2c_select select) {
+    if (select == I2C1) {
+        I2C1CONSET = BITS(1);
+    } else {
+        I2C2CONSET = BITS(1);
+    }
+}
+
+void u_i2c_start_condition_enable(u_i2c_select select) {
+    if (select == I2C1) {
+        I2C1CONSET = BITS(0);
+    } else {
+        I2C2CONSET = BITS(0);
+    }
 }
 
 /* ------------------------- ANA ------------------------- */
