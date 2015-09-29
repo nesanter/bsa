@@ -9,11 +9,11 @@ struct load_info {
     unsigned int vaddr,
                  memsz,
                  initsz;
-    enum load_seg seg; 
+    enum load_seg seg;
 };
 
 const unsigned int BLOCK_SIZE = 1024;
-char __attribute__((section(".rt_data"))) block_buffer [1024];
+char __attribute__((aligned(4),section(".rt_data"))) block_buffer [1024];
 
 const unsigned int MAX_LOAD_HEADERS = 8;
 struct load_info load_headers [8];
@@ -22,6 +22,7 @@ const unsigned int MAP_GRANULARITY = 16; // in bytes
 unsigned int map_phys_address = 0;
 void * map_virt_address = 0;
 unsigned int init_phys_start_address = 0;
+unsigned int init_phys_cur_address = 0;
 void * init_virt_start_address = 0;
 
 int create_initialization_map(unsigned int initspace, unsigned int progspace, unsigned int progmaxaddr) {
@@ -35,15 +36,18 @@ int create_initialization_map(unsigned int initspace, unsigned int progspace, un
     }
 
     unsigned int init_pages;
-    if (initspace % PAGE_SIZE == 0)
-        init_pages = initspace / PAGE_SIZE;
-    else
+    if (initspace & PAGE_MASK)
         init_pages = 1 + (initspace / PAGE_SIZE);
-
-    if (progmaxaddr % PAGE_SIZE == 0)
-        map_phys_address = progmaxaddr;
     else
-        map_phys_address = progmaxaddr + (PAGE_SIZE - progmaxaddr % PAGE_SIZE);
+        init_pages = initspace / PAGE_SIZE;
+
+    if (progmaxaddr == 0)
+        return 4;
+
+    if (progmaxaddr & PAGE_MASK)
+        map_phys_address = progmaxaddr + (PAGE_SIZE - (progmaxaddr & PAGE_MASK));
+    else
+        map_phys_address = progmaxaddr;
 
     if (map_phys_address + (map_pages * PAGE_SIZE) + (init_pages * PAGE_SIZE) > SEG_PHYS_PROG_END)
         return 1;
@@ -54,10 +58,13 @@ int create_initialization_map(unsigned int initspace, unsigned int progspace, un
             return 2;
         else if (r & 0x2000)
             return 3;
+        else if (r)
+            return 4;
     }
 
     // then record actual initspace address
     init_phys_start_address = map_phys_address + map_pages * PAGE_SIZE;
+    init_phys_cur_address = init_phys_start_address;
 
     // and create it
     for (int i = 0 ; i < init_pages ; i++) {
@@ -66,11 +73,35 @@ int create_initialization_map(unsigned int initspace, unsigned int progspace, un
             return 2;
         else if (r & 0x2000)
             return 3;
+        else if (r)
+            return 4;
     }
 
     // and virtual addresses
     map_virt_address = (void*)(map_phys_address + 0xC0000000);
     init_virt_start_address = (void*)(init_phys_start_address + 0xC0000000);
+
+    return 0;
+}
+
+int set_initializer(unsigned int phys_addr, unsigned int * data) {
+    // calculate place in map
+    unsigned int slot = (phys_addr - SEG_PHYS_RAM_START) / MAP_GRANULARITY;
+    unsigned int map_byte = slot >> 5;
+    unsigned int mask = 0xFFFFFFFF ^ (1 << (slot & 0x1F));
+
+    if (flash_write_word(mask, map_phys_address + (map_byte << 2))) {
+        return 1;
+    }
+
+    // record initial data
+    for (int i = 0 ; i < (MAP_GRANULARITY >> 2) ; i++) {
+        if (flash_write_word(data[i], init_phys_cur_address + 4 * i)) {
+            return 2;
+        }
+    }
+
+    init_phys_cur_address += MAP_GRANULARITY;
 
     return 0;
 }
@@ -170,7 +201,7 @@ void load(void) {
             ramspace += load_headers[n_phdrs].memsz;
         } else {
             progspace += load_headers[n_phdrs].memsz;
-            unsigned int phys = physical_address((void*)load_headers[n_phdrs].vaddr);
+            unsigned int phys = physical_address((void*)load_headers[n_phdrs].vaddr) + load_headers[n_phdrs].memsz;
             if (phys > progmaxaddr)
                 progmaxaddr = phys;
         }
@@ -186,6 +217,8 @@ void load(void) {
         boot_print("LV");
     else if (r == 3)
         boot_print("WE");
+    else if (r)
+        boot_print("??");
 
     if (r) {
         boot_internal_error(1);
@@ -200,32 +233,91 @@ void load(void) {
     }
     */
 
+    unsigned int ptr;
+    for (int i = 0 ; i < n_phdrs ; i++) {
+        if (load_headers[i].seg & SEG_IS_INITIALIZED) {
+
+        } else {
+            ptr = physical_address((void*)load_headers[i].vaddr);
+            ptr -= ptr & PAGE_MASK;
+
+            for (int j = 0 ; j < load_headers[i].initsz ; j += PAGE_SIZE) {
+                int r = flash_page_erase(ptr + j);
+                if (r & 0x1000)
+                    boot_print("V");
+                if (r & 0x2000)
+                    boot_print("X");
+                if (r) {
+                    boot_print("EP");
+                    boot_internal_error(1);
+                    soft_reset();
+                }
+            }
+
+        }
+    }
+
     boot_print("OK");
+
+    unsigned int block_buffer_phys = physical_address(block_buffer);
 
     // get data
     unsigned int n_blocks, n = 0;
-    unsigned int ptr;
     while (!boot_expect("DATA")) {
+        boot_read_blocking((char*)&n_blocks, 4);
         if (load_headers[n].seg & SEG_IS_INITIALIZED) {
-            // todo
-        } else {
-            ptr = physical_address((void*)load_headers[n].vaddr);
-            boot_read_blocking((char*)&n_blocks, 4);
+            ptr = physical_address(load_headers[n].vaddr);
+            unsigned int memsz = 0;
             for (int i = 0 ; i < n_blocks ; i++) {
                 boot_read_blocking(block_buffer, BLOCK_SIZE);
-
-                for (int j = 0 ; j < BLOCK_SIZE ; j += PAGE_SIZE) {
-                    flash_page_erase(ptr + j);
+                for (int j = 0 ; j < BLOCK_SIZE ; j += MAP_GRANULARITY) {
+                    unsigned int * word = (unsigned int *)(&block_buffer[j]);
+                    for (int k = 0 ; k < MAP_GRANULARITY >> 2; k++) {
+                        if (word[k]) {
+                            int r = set_initializer(ptr + j, word);
+                            if (r == 1)
+                                boot_print("I1");
+                            else if (r == 2)
+                                boot_print("I2");
+                            else if (r)
+                                boot_print("I?");
+                            if (r) {
+                                boot_print("IN");
+                                boot_internal_error(1);
+                                soft_reset(1);
+                            }
+                            break;
+                        }
+                    }
                 }
-                for (int j = 0 ; j < BLOCK_SIZE ; j += ROW_SIZE) {
-                    if (flash_write_row(block_buffer_phys, ptr + j)) {
-                        boot_print("FL");
+                ptr += BLOCK_SIZE;
+                boot_print("OK");
+            }
+        } else {
+            ptr = physical_address((void*)load_headers[n].vaddr);
+            for (int i = 0 ; i < n_blocks ; i++) {
+                boot_read_blocking(block_buffer, BLOCK_SIZE);
+                
+                unsigned int sz = BLOCK_SIZE;
+                if (ptr & ROW_MASK) {
+                    for (int j = 0 ; j < ROW_SIZE - (ptr & ROW_MASK); j += 4) {
+                        if (flash_write_word(*(unsigned int*)(&block_buffer[j]), ptr + j)) {
+                            boot_print("FW");
+                        }
+                    }
+                    sz -= ROW_SIZE - (ptr & ROW_MASK);
+                    ptr += (ptr & ROW_MASK) + ROW_SIZE;
+                }
+
+                for (int j = 0 ; j < sz ; j += ROW_SIZE) {
+                    if (flash_write_row(block_buffer_phys + j, ptr + j)) {
+                        boot_print("FR");
                         boot_internal_error(1);
                         soft_reset();
                     }
                 }
 
-                char * check_ptr = (char*)load_headers[n].vaddr;
+                char * check_ptr = (char*)load_headers[n].vaddr + i * BLOCK_SIZE;
                 for (int j = 0 ; j < BLOCK_SIZE ; j++) {
                     if (check_ptr[j] != block_buffer[j]) {
                         boot_print("DC");
@@ -241,17 +333,20 @@ void load(void) {
         boot_print("DONE");
         n++;
     }
-    
+
     if (boot_expect("ALLCLEAR")) {
         boot_internal_error(1);
         soft_reset();
     }
 
-    if (n_phdrs != n)
-        boot_print("OK");
-    else
+    if (n_phdrs != n) {
         boot_print("NO");
-    
+        boot_internal_error(1);
+        soft_reset();
+    }
+
+    boot_print("OK");
+
     // done!
 }
 

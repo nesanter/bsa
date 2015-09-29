@@ -132,7 +132,7 @@ unsigned int __attribute__((nomips16)) flash_unlock(nvm_op op) {
     asm volatile ("di %0" : "=r" (int_status));
 
     NVMCON = op;
-
+    NVMCONSET = 0x4000;
 //    NVMCONSET = 0x00040000;
     
     unsigned int volatile * nvmkeyaddr = &NVMKEY;
@@ -183,7 +183,7 @@ unsigned int flash_write_word_unsafe(unsigned int value, unsigned int dest_addr)
 */
 
 unsigned int flash_write_word(unsigned int value, unsigned int dest_addr) {
-    if (dest_addr < 0x1002400 || dest_addr >= 0x1DF000 || dest_addr & 0x3) {
+    if (dest_addr < 0x1D002400 || dest_addr >= 0x1D040000 || dest_addr & 0x3) {
         return 1;
     }
     NVMDATA = value;
@@ -193,10 +193,10 @@ unsigned int flash_write_word(unsigned int value, unsigned int dest_addr) {
 }
 
 unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr) {
-    if (src_addr >= 0x8000 || src_addr & 0x3) {
+    if (/*src_addr >= 0x8000 || */src_addr & 0x3) {
         return 1;
     }
-    if (dest_addr < 0x1D002400 || dest_addr >= 0x1D1F000 || dest_addr & 0x1FF) {
+    if (dest_addr < 0x1D002400 || dest_addr >= 0x1D040000 || dest_addr & ROW_MASK) {
         return 1;
     }
     
@@ -207,7 +207,7 @@ unsigned int flash_write_row(unsigned int src_addr, unsigned int dest_addr) {
 }
 
 unsigned int flash_page_erase(unsigned int page_addr) {
-    if (page_addr < 0x1D002400 || page_addr >= 0x1DF000 || page_addr & 0xFFF) {
+    if (page_addr < 0x1D002400 || page_addr >= 0x1D040000 || page_addr & PAGE_MASK) {
         return 1;
     }
     NVMADDR = page_addr;

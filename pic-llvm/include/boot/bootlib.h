@@ -35,10 +35,10 @@ int boot_run_read();
 void boot_internal_error(int single);
 
 typedef enum {
-    NVM_WRITE_WORD = 0x4001,
-    NVM_WRITE_ROW = 0x4003,
-    NVM_PAGE_ERASE = 0x4004,
-    NVM_NOP = 0x4000
+    NVM_WRITE_WORD = 0x1,
+    NVM_WRITE_ROW = 0x3,
+    NVM_PAGE_ERASE = 0x4,
+    NVM_NOP = 0x0
 } nvm_op;
 
 unsigned int flash_write_word(unsigned int value, unsigned int dest_addr);
@@ -50,6 +50,7 @@ unsigned int physical_address(void *virt);
 #define PAGE_SIZE (0x400)
 #define ROW_SIZE (0x80)
 #define PAGE_MASK (0x3FF)
+#define ROW_MASK (0x7F)
 #define ROWS_PER_PAGE (0x8)
 
 typedef enum {
