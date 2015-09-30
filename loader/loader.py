@@ -326,11 +326,11 @@ class Loader:
                     for j in range(self.block_size - len(data)):
                         port.write(b"\x00")
                 response = port.read(2)
-                while response != b"OK":
+                if response != b"OK":
                     print(response)
-                    response = port.read(2)
-#                    print("Error in load (8)", file=sys.stderr)
-#                    exit(1)
+#                    response = port.read(2)
+                    print("Error in load (8)", file=sys.stderr)
+                    exit(1)
                 fsz -= self.block_size
 
             response = port.read(4)

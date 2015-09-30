@@ -30,16 +30,20 @@ int check_reset_reason(unsigned int epc) {
     unsigned int rcon = RCON;
 
     if (rcon & REASON_BROWN_OUT) {
-        boot_print("mWarning: BOR\r\n");
+        boot_print("Warning: BOR\r\n");
         RCONCLR = REASON_BROWN_OUT;
     }
     if (rcon & REASON_POWER_ON) {
         RCONCLR = REASON_POWER_ON;
     }
+    if (rcon & REASON_SOFTWARE) {
+        RCONCLR = REASON_SOFTWARE;
+    }
     if (rcon & REASON_MCLR) {
         boot_print("MCLR @");
         boot_print(tohex(epc,8));
         boot_print("\r\n");
+        RCONCLR = REASON_MCLR;
     }
 
     return 0;

@@ -111,7 +111,7 @@ int set_initializer(unsigned int phys_addr, unsigned int * data) {
     unsigned int map_byte = slot >> 5; // word aligned
     unsigned int mask = 0xFFFFFFFF ^ (1 << (slot & 0x1F));
 
-    boot_print(tohex(mask, 8));
+//    boot_print(tohex(mask, 8));
 
     if (flash_write_word(mask, map_phys_address + (map_byte << 2))) {
         return 1;
@@ -387,6 +387,7 @@ void load(void) {
     }
 
     if (boot_expect("ALLCLEAR")) {
+        boot_print("ED");
         boot_internal_error(1);
         soft_reset();
     }

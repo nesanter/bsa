@@ -268,6 +268,7 @@ unsigned int physical_address(void * const virt) {
     return 0; //error
 }
 
+/*
 void soft_reset() {
     asm volatile ("di");
     DMACONSET = 0x00001000; //suspend any DMA
@@ -283,6 +284,7 @@ void soft_reset() {
 
     while (1);
 }
+*/
 
 void __attribute((interrupt(IPL2SOFT), nomips16)) boot_timeout_handler() {
     boot_internal_error(1);

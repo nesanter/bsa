@@ -22,7 +22,11 @@ unsigned int boot_flags = 0;
 void boot_print(char *s) {
     uart_print(s);
 }
+#endif
 void soft_reset() {
+    if (boot_print_enabled) {
+        boot_print_flush();
+    }
     asm volatile ("di");
     DMACONSET = 0x00001000; //suspend any DMA
 
@@ -37,9 +41,8 @@ void soft_reset() {
 
     while (1);
 }
-#else
+
 //extern unsigned int __attribute((section(".boot_flags"))) boot_flags;
-#endif
 
 //private functions
 void boot_cs_setup(void);

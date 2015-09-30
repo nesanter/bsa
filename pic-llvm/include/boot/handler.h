@@ -42,6 +42,8 @@ typedef void __attribute__((interrupt)) (*handler_t)(void);
 
 void boot_set_vector_table_entry(unsigned int entry, handler_t handler);
 
+void soft_reset();
+
 #else
 #error "runtime cannot access handler.h"
 #endif
