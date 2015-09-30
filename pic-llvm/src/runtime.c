@@ -70,6 +70,7 @@ extern struct task_info * current_task;
 // [manifest] .task.max              6   5   r
 // [manifest] .task.this.depth       6   6   rw,v
 // [manifest] .task.this.stack       6   7   r
+// [manifest] .task.this.allocation  6   8   r
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -117,7 +118,8 @@ const driver_write_fn task_write_fns[] = {
     0, // 6.4
     0, // 6.5
     &drv_task_this_depth_write, // 6.6
-    0 // 6.7
+    0, // 6.7
+    0 // 6.8
 };
 
 const driver_read_fn console_read_fns[] = {
@@ -165,7 +167,8 @@ const driver_read_fn task_read_fns[] = {
     &drv_task_count_read, // 6.4
     &drv_task_max_read, // 6.5
     &drv_task_this_depth_read, // 6.6
-    &drv_task_this_stack_read // 6.7
+    &drv_task_this_stack_read, // 6.7
+    &drv_task_this_allocation_read // 6.8
 };
 
 const driver_block_fn all_block_fns[] = {
@@ -689,9 +692,19 @@ int drv_task_this_depth_read() {
 }
 
 int drv_task_this_stack_read() {
+    /*
     int sp;
     asm volatile ("move %0, $sp;" : "=r"(sp));
     return sp;
+    */
+    void * start = task_stack_start(current_task);
+    void * sp;
+    asm volatile ("move %0, $sp;" : "=r"(sp));
+    return (int)(start - sp);
+}
+
+int drv_task_this_allocation_read() {
+    return task_stack_allocation(current_task);
 }
 
 int rx_block_init = 0;

@@ -281,10 +281,29 @@ unsigned int task_stack_free() {
     unsigned int free = 0;
     for (int i = 0 ; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
         if (task_stack_slots[i] == 0) {
-            free += TASK_SLOT_SIZE;
+            free++;
         }
     }
     return free;
+}
+
+void * task_stack_start(struct task_info *task) {
+    void * start = 0;
+    for (int i = 0 ; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
+        if (task_stack_slots[i] == task) {
+            start = task_stack + (TASK_SLOT_SIZE >> 2) * (i+1);
+        }
+    }
+    return start;
+}
+
+unsigned int task_stack_allocation(struct task_info * task) {
+    unsigned int n = 0;
+    for (int i = 0 ; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE) ; i++) {
+        if (task_stack_slots[i] == task)
+            n++;
+    }
+    return n;
 }
 
 void handler_sw_edge() {

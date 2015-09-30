@@ -385,4 +385,94 @@ Returns the current system tick. The tick increases monotonically every 50ns whe
 
 Sets the current system tick to a new value, from which point it will continue to increase as usual every 50ns.
 
+\section{Task API}
+\textbf{Available:} always
+
+~\\
+Selected task introspection and configuration features are exposed during runtime. Generally, this represents an advanced usage for special cases.
+
+\subsection{\texttt{.task.size}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{Read}
+
+Returns the current size class that will be used for new tasks. Currently, this means either 0, for small tasks, or 1, for large tasks.
+
+~\\
+\textit{Write}
+
+Sets the current size class based on a numeric value: either 0, for small tasks, or 1, for large tasks. Other values are currently invalid.
+Returns ``true'' on success and ``false'' on failure.
+
+\subsection{\texttt{.task.stack.small, .task.stack.large}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{Read}
+
+Returns the stack space that will be allocated for tasks created with size class 0 (.small) or 1 (.large), in multiples of 0x100 (256) bytes.
+
+~\\
+\textit{Write}
+
+Sets the stack space that will be allocated for tasks created with size class 0 (.small) or 1 (.large), in multiples of 0x100 (256) bytes. The value must be greater than zero.
+Returns ``true'' on success and ``false'' on failure.
+
+\subsection{\texttt{.task.stack.free}}
+\textbf{Valid for:} read
+
+~\\
+\textit{Read}
+
+Returns the available stack space for new tasks in multiples of 0x100 (256) bytes.
+
+\subsection{\texttt{.task.count}}
+\textbf{Valid for:} read
+
+~\\
+\textit{Read}
+
+Returns the current number of live (running, ready, or blocked) tasks.
+
+\subsection{\texttt{.task.max}}
+\textbf{Valid for:} read
+
+~\\
+\textit{read}
+
+Returns the maximum number of live (running, ready, or blocked) tasks. In practice, this may be an overestimate depending on the amount of stack space granted to each task.
+
+\subsection{\texttt{.task.this.depth}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{read}
+
+Returns the scheduling ``depth'' of the current task.
+
+~\\
+\textit{write}
+
+Sets the scheduling ``depth'' of the current task. Always returns ``true''.
+
+\subsection{\texttt{.task.this.stack [v1.0.1]}}
+\textbf{Valid for:} read
+
+~\\
+\textit{read}
+
+Returns the amount of stack space used by the currently running task in bytes.
+
+\textit{Implementation note:} the value returned includes the stack space taken up by this intrinsic call.
+Whether this is an overestimate depends on how you look at it.
+
+\subsection{\texttt{.task.this.allocation [v1.0.1]}}
+\textbf{Valid for:} read
+
+~\\
+\textit{read}
+
+Returns the amount of stack space allocated to the currently running task in multiples of 0x100 (256) bytes.
+
 \end{document}

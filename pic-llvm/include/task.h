@@ -68,6 +68,8 @@ void unblock_tasks(enum block_reason reason, unsigned int info);
 
 int task_count();
 unsigned int task_stack_free();
+void * task_stack_start(struct task_info * task);
+unsigned int task_stack_allocation(struct task_info * task);
 
 void handler_sw_edge();
 void handler_timer_b2();
