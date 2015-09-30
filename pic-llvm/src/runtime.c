@@ -3,6 +3,7 @@
 #include "driver/basic_io.h"
 #include "driver/timer.h"
 #include "driver/system.h"
+#include "driver/task.h"
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
@@ -32,6 +33,11 @@ struct driver {
     unsigned int fn_count;
 };
 
+struct task_attributes default_task_attributes = { TASK_SIZE_LARGE };
+
+extern unsigned int SMALL_TASK_SLOTS, LARGE_TASK_SLOTS;
+extern struct task_info * current_task;
+
 // [manifest] .console               0   0   wB,s
 // [manifest] .console.tx            0   1   wB,v
 // [manifest] .console.tx.block      0   2   rwB,vB
@@ -56,6 +62,14 @@ struct driver {
 // [manifest] .timer.prescaler       4   4   rw,v
 // [manifest] .timer.wait            4   0   b
 // [manifest] .ldr                   5   0   r
+// [manifest] .task.size             6   0   rw,v
+// [manifest] .task.stack.small      6   1   rw,v
+// [manifest] .task.stack.large      6   2   rw,v
+// [manifest] .task.stack.free       6   3   r
+// [manifest] .task.count            6   4   r
+// [manifest] .task.max              6   5   r
+// [manifest] .task.this.depth       6   6   rw,v
+// [manifest] .task.this.stack       6   7   r
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -95,6 +109,17 @@ const driver_write_fn ldr_write_fns[] = {
     0 // 5.0
 };
 
+const driver_write_fn task_write_fns[] = {
+    &drv_task_size_write, // 6.0
+    &drv_task_stack_small_write, // 6.1
+    &drv_task_stack_large_write, // 6.2
+    0, // 6.3
+    0, // 6.4
+    0, // 6.5
+    &drv_task_this_depth_write, // 6.6
+    0 // 6.7
+};
+
 const driver_read_fn console_read_fns[] = {
     0, // 0.0
     0, // 0.1
@@ -132,10 +157,21 @@ const driver_read_fn ldr_read_fns[] = {
     &drv_ldr_read // 5.0
 };
 
+const driver_read_fn task_read_fns[] = {
+    &drv_task_size_read, // 6.0
+    &drv_task_stack_small_read, // 6.1
+    &drv_task_stack_large_read, // 6.2
+    &drv_task_stack_free_read, // 6.3
+    &drv_task_count_read, // 6.4
+    &drv_task_max_read, // 6.5
+    &drv_task_this_depth_read, // 6.6
+    &drv_task_this_stack_read // 6.7
+};
+
 const driver_block_fn all_block_fns[] = {
     /* .console */
     &drv_console_rx_block, // 0.0
-    
+
     /* .sw */
     &drv_sw_block, // 2.0
 
@@ -250,7 +286,7 @@ restore:
  * in reality, it doesn't matter
  */
 void ___fork_builtin(struct eh_t *eh, int (*fn)(void*)) {
-    struct task_attributes attr  = { TASK_SIZE_LARGE };
+    struct task_attributes attr = default_task_attributes;
     if (create_task(fn, attr)) {
         // error situation
         uart_print("[error during fork]\r\n");
@@ -596,6 +632,66 @@ int drv_timer_period_read() {
 
 int drv_ldr_read() {
     return *u_ana_buffer_ptr(0);
+}
+
+int drv_task_size_write(int val ,char *str) {
+    if (val == 0) {
+        default_task_attributes.size = TASK_SIZE_SMALL;
+    } else if (val == 1) {
+        default_task_attributes.size = TASK_SIZE_LARGE;
+    } else {
+        return DRV_FAILURE;
+    }
+    return DRV_SUCCESS;
+}
+
+int drv_task_stack_small_write(int val, char *str) {
+    SMALL_TASK_SLOTS = val;
+    return DRV_SUCCESS;
+}
+
+int drv_task_stack_large_write(int val, char *str) {
+    LARGE_TASK_SLOTS = val;
+    return DRV_SUCCESS;
+}
+
+int drv_task_this_depth_write(int val, char *str) {
+    current_task->depth = val;
+    return DRV_SUCCESS;
+}
+
+int drv_task_size_read() {
+    return default_task_attributes.size == TASK_SIZE_SMALL ? 0 : 1;
+}
+
+int drv_task_stack_small_read() {
+    return SMALL_TASK_SLOTS;
+}
+
+int drv_task_stack_large_read() {
+    return LARGE_TASK_SLOTS;
+}
+
+int drv_task_stack_free_read() {
+    return task_stack_free();
+}
+
+int drv_task_count_read() {
+    return task_count(1);
+}
+
+int drv_task_max_read() {
+    return MAX_TASKS;
+}
+
+int drv_task_this_depth_read() {
+    return current_task->depth;
+}
+
+int drv_task_this_stack_read() {
+    int sp;
+    asm volatile ("move %0, $sp;" : "=r"(sp));
+    return sp;
 }
 
 int rx_block_init = 0;
