@@ -4,13 +4,6 @@
 #include "ulib/util.h"
 #include "proc/processor.h"
 
-
-enum {
-    TOTAL_STACK_SPACE = 0x4000,
-    TASK_SLOT_SIZE = 0x100,
-    TOTAL_STACK_SLOTS = (TOTAL_STACK_SPACE / TASK_SLOT_SIZE),
-    MAX_TASKS = 16,
-};
 unsigned int SMALL_TASK_SLOTS = 2;
 unsigned int LARGE_TASK_SLOTS = 4;
 
@@ -37,7 +30,7 @@ void create_new_context(struct context *context, int (*entry)(void*), void *sp) 
     context->gp = 0;
 #endif
     context->sp = sp;
-    context->fp = 0;
+    context->fp = sp;
     context->ra = entry;
 }
 
@@ -143,6 +136,9 @@ int schedule_task() {
                 break;
             case TASK_STATE_ERROR:
                 break;
+            default:
+                uart_print("OOPS!\r\n");
+                break;
         }
     }
 
@@ -239,6 +235,25 @@ void unblock_tasks(enum block_reason reason, unsigned int info) {
             }
         }
     }
+}
+
+int task_count() {
+    int count = 0;
+    for (int i = 0 ; i < MAX_TASKS ; i++) {
+        if (task_list[i].state != TASK_STATE_EMPTY)
+            count++;
+    }
+    return count;
+}
+
+unsigned int task_stack_free() {
+    unsigned int free = 0;
+    for (int i = 0 ; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
+        if (task_stack_slots[i] == 0) {
+            free += TASK_SLOT_SIZE;
+        }
+    }
+    return free;
 }
 
 void handler_sw_edge() {
