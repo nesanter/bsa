@@ -6,6 +6,7 @@ else
 fi
 
 ./muc -m manifest -o output.bc < $BLCSRC && \
-llc -soft-float -mattr=+noabicalls -march=mipsel -mcpu=mips32r2 -relocation-model=static -filetype=obj output.bc || { echo "Failed" ; exit 1 ; }
+llc -O2 -mattr=+noabicalls -march=mipsel -mcpu=mips32r2 -relocation-model=static -filetype=asm -float-abi=soft output.bc && \
+clang -O2 -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -Wa,--noexecstack output.s || { echo "Failed" ; exit 1 ; }
 
 ../util/mipsel-unknown-elf-ld -O3 -obl-firmware -T../pic-llvm/linker/runtime.ld output.o ../pic-llvm/out/bl-runtime.a
