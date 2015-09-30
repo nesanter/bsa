@@ -349,7 +349,7 @@ void load(void) {
             ptr = physical_address((void*)load_headers[n].vaddr);
             for (int i = 0 ; i < n_blocks ; i++) {
                 boot_read_blocking(block_buffer, BLOCK_SIZE);
-                
+
                 unsigned int sz = BLOCK_SIZE;
                 if (ptr & ROW_MASK) {
                     for (int j = 0 ; j < ROW_SIZE - (ptr & ROW_MASK); j += 4) {
@@ -378,7 +378,7 @@ void load(void) {
                     }
                 }
 
-                ptr += BLOCK_SIZE;
+                ptr += sz;
                 boot_print("OK");
             }
         }
@@ -438,6 +438,7 @@ void run(void) {
             if (!(word & 0x1)) {
                 for (int k = 0 ; k < MAP_GRANULARITY >> 2 ; k++) {
                     dest[k] = init_data[k];
+                    /*
                     boot_print("@");
                     boot_print(tohex((unsigned int)&dest[k], 8));
                     boot_print(" = ");
@@ -445,6 +446,7 @@ void run(void) {
                     boot_print(" (");
                     boot_print(tohex(init_data[k], 8));
                     boot_print(")\r\n");
+                    */
                 }
                 init_data += (MAP_GRANULARITY >> 2);
             } else {
@@ -465,9 +467,10 @@ void run(void) {
     void * entry = boot_status->runtime_entry;
     asm volatile ("move $sp, %0; \
                    move $gp, %1; \
-                   j %2" : "+r" (stack_ptr),
-                           "+r" (gp),
-                           "+r" (entry));
+                   move $t0, %2; \
+                   jr $t0" : "+r" (stack_ptr),
+                             "+r" (gp),
+                             "+r" (entry));
 }
 
 void dump_map(void) {

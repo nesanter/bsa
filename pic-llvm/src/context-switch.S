@@ -65,6 +65,7 @@ Lentry:
 
     lw $gp, 32($a0)
     lw $sp, 36($a0)
+    lw $fp, 40($a0)
     lw $t0, 44($a0)
     
     add $a0, $zero, $zero /* set eh_t* */

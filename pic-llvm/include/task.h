@@ -1,10 +1,9 @@
 #ifndef TASK_H
 #define TASK_H
 
-struct __attribute__((packed)) context {
+struct context {
     int s0, s1, s2, s3, s4, s5, s6, s7, gp;
-    void *sp;
-    int fp;
+    void *sp, *fp;
     int (*ra)(void *);
 };
 
@@ -29,7 +28,7 @@ struct task_info {
     enum task_state state;
     struct task_info *parent;
     unsigned int depth;
-    struct context context;
+    struct context __attribute__((aligned(4))) context;
     enum block_reason reason;
     unsigned int block_data;
     int (*block_fn)(struct task_info *, unsigned int);
@@ -38,6 +37,13 @@ struct task_info {
 enum task_size {
     TASK_SIZE_SMALL,
     TASK_SIZE_LARGE
+};
+
+enum {
+    TOTAL_STACK_SPACE = 0x4000,
+    TASK_SLOT_SIZE = 0x100,
+    TOTAL_STACK_SLOTS = (TOTAL_STACK_SPACE / TASK_SLOT_SIZE),
+    MAX_TASKS = 16,
 };
 
 struct task_attributes {
@@ -59,6 +65,9 @@ void kill_task(struct task_info *task);
 
 void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data);
 void unblock_tasks(enum block_reason reason, unsigned int info);
+
+int task_count();
+unsigned int task_stack_free();
 
 void handler_sw_edge();
 void handler_timer_b2();

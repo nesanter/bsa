@@ -22,7 +22,7 @@ int ___entry(void *);
 
 extern int uart_enabled;
 
-int a [3] = { 12, 47, 1020 };
+//int a [3] = { 12, 47, 1020 };
 
 void runtime_entry(void) {
 //    int i;
@@ -40,17 +40,17 @@ void runtime_entry(void) {
 
     uart_print("[runtime]\r\n");
 
-    /*
-    for (int i = 0 ; i < 3 ; i++) {
-        uart_print(tohex(a[i], 8));
-    }
-    */
+//    for (int i = 0 ; i < 3 ; i++) {
+//        uart_print(tohex(a[i], 8));
+//        uart_print("\r\n");
+//    }
  
     init_tasks();
 
     struct task_attributes attr = { TASK_SIZE_LARGE };
     if (create_task(&___entry, attr)) {
         uart_print("failed to create task\r\n");
+        while (1);
     }
     schedule_task();
 

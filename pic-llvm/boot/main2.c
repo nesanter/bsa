@@ -113,6 +113,11 @@ int main(void) {
                     }
                 } else if (strcmpn(buffer, "MAP", 3)) {
                     if (has_program) {
+                        boot_print("map @ ");
+                        boot_print(tohex((unsigned int)boot_status->init_map, 8));
+                        boot_print("\r\ndata @ ");
+                        boot_print(tohex((unsigned int)boot_status->init_data, 8));
+                        boot_print("\r\n");
                         dump_map();
                     } else {
                         boot_print("NO");

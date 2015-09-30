@@ -37,6 +37,8 @@ void create_new_context(struct context *context, int (*entry)(void*), void *sp) 
 void init_tasks(void) {
     for (unsigned int i = 0 ; i < MAX_TASKS ; i++) {
         task_list[i].state = TASK_STATE_EMPTY;
+//        uart_print(tohex((unsigned int)task_list[i].state, 8));
+//        uart_print("\r\n");
     }
 
     for (unsigned int i = 0 ; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
@@ -47,6 +49,17 @@ void init_tasks(void) {
 }
 
 int create_task(int (*fn)(void *), struct task_attributes attributes) {
+
+    /*
+    uart_print("[creating task]\r\n");
+    for (unsigned int i = 0 ; i < MAX_TASKS ; i++) {
+        if (task_list[i].state) {
+            uart_print(tohex(i, 1));
+            uart_print("\r\n");
+        }
+    }
+    */
+    
     struct task_info *new_task = 0;
     for (unsigned int i = 0; i < MAX_TASKS; i++) {
         if (task_list[i].state == TASK_STATE_EMPTY) {
@@ -70,13 +83,19 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
     else
         needed = LARGE_TASK_SLOTS;
 
-    uart_print(tohex(needed, 8));
-    uart_print("\r\n");
+//    uart_print(tohex(needed, 8));
+//    uart_print("\r\n");
     for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
+//        uart_print("slot ");
+//        uart_print(tohex(task_stack_slots[i], 8));
+//        uart_print("\r\n");
         if (task_stack_slots[i] == 0) {
             found++;
             if (found == needed) {
                 stack_ptr = task_stack + ((TASK_SLOT_SIZE >> 2) * (i+1));
+//                uart_print("stack_ptr = ");
+//                uart_print(tohex((unsigned int)stack_ptr, 8));
+//                uart_print("\r\n");
                 for (unsigned int j = 0; j < found; j++) {
                     task_stack_slots[i-j] = new_task;
                 }
@@ -94,26 +113,38 @@ int create_task(int (*fn)(void *), struct task_attributes attributes) {
 
     create_new_context(&new_task->context, fn, stack_ptr);
 
+//    uart_print("[created new task]\r\n");
+
+//    for (unsigned int i = 0 ; i < MAX_TASKS ; i++) {
+//        if (task_list[i].state) {
+//            uart_print(tohex(i, 1));
+//            uart_print("\r\n");
+//        }
+//    }
+
     return 0;
 }
 
 int schedule_task() {
-    unsigned int sp;
-    asm volatile ("move %0, $sp;" : "=r"(sp));
-    uart_print(tohex(sp, 8));
+//    unsigned int sp;
+//    asm volatile ("move %0, $sp;" : "=r"(sp));
+//    uart_print(tohex(sp, 8));
 
     struct task_info *next_task = 0;
     int any_tasks = 0;
 
     for (int i = 0; i < MAX_TASKS; i++) {
+//        uart_print("state = ");
+//        uart_print(tohex(task_list[i].state, 8));
+//        uart_print("\r\n");
         switch (task_list[i].state) {
             case TASK_STATE_EMPTY:
                 break;
             case TASK_STATE_NEW:
             case TASK_STATE_READY:
             case TASK_STATE_RUNNING: /* this one shouldn't happen */
-                uart_print(tohex(i, 1));
-                uart_print("\r\n");
+//                uart_print(tohex(i, 1));
+//                uart_print("\r\n");
                 if (!next_task || next_task->depth > task_list[i].depth) {
                     next_task = &task_list[i];
                 }
@@ -137,7 +168,7 @@ int schedule_task() {
             case TASK_STATE_ERROR:
                 break;
             default:
-                uart_print("OOPS!\r\n");
+                uart_print("[unknown task state]\r\n");
                 break;
         }
     }
@@ -180,8 +211,8 @@ void scheduler_loop() {
 //        asm volatile ("wait");
     }
     // there are no tasks left, return to bootloader
-#ifdef HARD_RUNTIME
     uart_print("[all tasks ended]\r\n");
+#ifdef HARD_RUNTIME
     while (1);
 #else
     asm volatile ("syscall");
