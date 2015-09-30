@@ -184,13 +184,13 @@ class Loader:
 
         # re-open port
 #        port.close()
-        print(new_baud)
         self.port = serial.Serial(self.port_name, baudrate=new_baud, timeout=30)
         port = self.port
 
         # wait for ready
         response = port.read(16)
-        print(response)
+        if verbose:
+            print(response)
         if response != b"BOOTLOADER READY":
             print("Error in preamble (3)", file=sys.stderr)
             exit(1)
@@ -213,8 +213,8 @@ class Loader:
 
         if verbose:
             print("Sending entry point")
-        
-        print(port.read(8))
+
+#        print(port.read(8))
     
         # send entry
         port.write(b"ENTR")
@@ -321,7 +321,8 @@ class Loader:
 
                 port.write(data)
                 if len(data) < self.block_size:
-                    print("padding block")
+                    if verbose:
+                        print("padding block")
                     for j in range(self.block_size - len(data)):
                         port.write(b"\x00")
                 response = port.read(2)
