@@ -195,7 +195,7 @@ enum load_seg get_segment(unsigned int vaddr) {
 // triggered after "LOAD" is received
 void load(void) {
     // clear persistant info
-    boot_print(tohex((unsigned int)boot_status, 8));
+//    boot_print(tohex((unsigned int)boot_status, 8));
     if ((unsigned int)boot_status & PAGE_MASK) {
         boot_print("PG");
         boot_internal_error(1);

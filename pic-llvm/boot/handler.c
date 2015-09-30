@@ -33,7 +33,7 @@ void soft_reset() {
     RSWRSTSET = 0x1;
 
     unsigned int volatile dummy;
-    dummy = RSWRSTSET;
+    dummy = RSWRST;
 
     while (1);
 }
