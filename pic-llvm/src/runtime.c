@@ -222,7 +222,9 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
     unsigned int low = target & 0xFFFF;
     unsigned int high = (target & 0xFFFF0000) >> 16;
 
+#ifdef RUNTIME_INFO
     uart_print("[block builtin]\r\n");
+#endif
 
     driver_block_fn fn = drivers[low].block_fns[high];
     if (fn) {
@@ -277,10 +279,14 @@ void ___yield_builtin() {
     void *ra;
     asm volatile ("add %0, $ra, $zero" : "=r"(ra));
     */
+#ifdef RUNTIME_INFO
     uart_print("[saving old task]\r\n");
+#endif
     context_save(&current_task->context, &&restore);
     current_task->state = TASK_STATE_SOFT_BLOCKED;
+#ifdef RUNTIME_INFO
     uart_print("[yielding]\r\n");
+#endif
     if (schedule_task()) {
         scheduler_loop();
     }
@@ -315,12 +321,6 @@ void ___trace_builtin(struct eh_t *eh) {
 }
 
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
-    uart_print("vector ");
-    uart_print(tohex(entry, 8));
-    uart_print(" handler ");
-    uart_print(tohex((unsigned int)handler, 8));
-    uart_print("\r\n");
-
     __vector_table[entry] = handler;
 }
 

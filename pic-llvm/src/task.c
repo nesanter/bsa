@@ -185,11 +185,15 @@ int schedule_task() {
 
     if (current_task) {
         if (next_task->state == TASK_STATE_NEW) {
+#ifdef RUNTIME_INFO
             uart_print("[scheduled new task]\r\n");
+#endif
             next_task->state = TASK_STATE_RUNNING;
             context_switch(&next_task->context, &task_exit);
         } else {
+#ifdef RUNTIME_INFO
             uart_print("[scheduled old task]\r\n");
+#endif
             next_task->state = TASK_STATE_RUNNING;
             context_switch(&next_task->context, 0);
         }
@@ -202,7 +206,9 @@ int schedule_task() {
 }
 
 void scheduler_loop() {
+#ifdef RUNTIME_INFO
     uart_print("[entering scheduler loop]\r\n");
+#endif
     int res;
     while (schedule_task() == 1) {
         // there are still tasks, but none are schedulable
@@ -211,7 +217,9 @@ void scheduler_loop() {
 //        asm volatile ("wait");
     }
     // there are no tasks left, return to bootloader
+#ifdef RUNTIME_INFO
     uart_print("[all tasks ended]\r\n");
+#endif
 #ifdef HARD_RUNTIME
     while (1);
 #else
@@ -220,7 +228,9 @@ void scheduler_loop() {
 }
 
 void task_exit() {
+#ifdef RUNTIME_INFO
     uart_print("[task exit]\r\n");
+#endif
     current_task->state = TASK_STATE_EMPTY;
 
     for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
@@ -234,7 +244,9 @@ void task_exit() {
 }
 
 void kill_task(struct task_info *task) {
+#ifdef RUNTIME_INFO
     uart_print("[killing task]\r\n");
+#endif
     task->state = TASK_STATE_EMPTY;
 
     for (unsigned int i = 0; i < (TOTAL_STACK_SPACE / TASK_SLOT_SIZE); i++) {
@@ -250,7 +262,9 @@ void kill_task(struct task_info *task) {
 }
 
 void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data) {
+#ifdef RUNTIME_INFO
     uart_print("[blocking task]\r\n");
+#endif
     task->state = TASK_STATE_HARD_BLOCKED;
     task->reason = reason;
     task->block_data = data;
@@ -314,7 +328,9 @@ void handler_console_rx() {
 }
 
 void handler_sw_edge() {
+#ifdef RUNTIME_INFO
     uart_print("[handling sw edge]\r\n");
+#endif
     int changed_a = u_cn_changed(CNA);
     int changed_b = u_cn_changed(CNB);
     int val_a = PORTA;
@@ -362,25 +378,21 @@ void handler_sw_edge() {
 }
 
 void handler_timer_b2() {
-    uart_print("h_t_b2\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 2);
     IFS0CLR = BITS(9);
     IEC0CLR = BITS(9);
 }
 void handler_timer_b3() {
-    uart_print("h_t_b3\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 3);
     IFS0CLR = BITS(14);
     IEC0CLR = BITS(14);
 }
 void handler_timer_b4() {
-    uart_print("h_t_b4\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 4);
     IFS0CLR = BITS(19);
     IEC0CLR = BITS(19);
 }
 void handler_timer_b5() {
-    uart_print("h_t_b5\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 5);
     IFS0CLR = BITS(24);
     IEC0CLR = BITS(24);

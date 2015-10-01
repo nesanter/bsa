@@ -46,7 +46,9 @@ void runtime_entry(void) {
 
     uart_enabled = 1;
 
+#ifdef RUNTIME_INFO
     uart_print("[runtime]\r\n");
+#endif
 
 //    for (int i = 0 ; i < 3 ; i++) {
 //        uart_print(tohex(a[i], 8));
@@ -85,14 +87,12 @@ void runtime_entry(void) {
 
     struct task_attributes attr = { TASK_SIZE_LARGE };
     if (create_task(&___entry, attr)) {
-        uart_print("failed to create task\r\n");
+        uart_print("[failed to create initial task]\r\n");
         while (1);
     }
     schedule_task();
 
     /* unreachable */
-
-    uart_print("???\r\n");
 
     while (1);
 }
