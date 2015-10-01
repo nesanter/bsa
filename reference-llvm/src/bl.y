@@ -6,13 +6,28 @@
 
     // forward declare to suppress error
     int yylex();
+
+/*
+    struct {
+        int value;
+        int is_bool;
+    } tagged_int32;
+*/
 %}
+
+%code requires {
+    struct tagged_int32 {
+        int value;
+        int is_bool;
+    };
+}
 
 %union {
     uint64_t llu;
     int32_t d;
     char *text;
     unsigned long refid;
+    struct tagged_int32 tagged_d;
 }
 
 %define parse.error verbose
@@ -44,7 +59,8 @@
 
 %type <llu> attributes
 %type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
-%type <d> constant_atom constant_expression scope_type
+%type <tagged_d> constant_atom constant_expression
+%type <d> scope_type
 
 %%
 
@@ -65,7 +81,7 @@ attributes: AT IDENT { $$ = attribute_value(0, $2); }
           | attributes AT IDENT { $$ = attribute_value($1, $3); }
           ;
 
-global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3); }
+global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3.value, $3.is_bool); }
           ;
 
 args: %empty { $$ = args_empty(); }
@@ -156,9 +172,9 @@ expression: atom { $$ = $1; }
           | expression OR expression { $$ = expr_op_lor($1, $3); }
           | expression XOR expression { $$ = expr_op_lxor($1, $3); }
           | expression AND expression { $$ = expr_op_land($1, $3); }
-          | expression VERTICAL_BAR expression { expr_op_bor($1, $3); }
-          | expression CARET expression { expr_op_bxor($1, $3); }
-          | expression AMPERSAND expression { expr_op_band($1, $3); }
+          | expression VERTICAL_BAR expression { $$ = expr_op_bor($1, $3); }
+          | expression CARET expression { $$ = expr_op_bxor($1, $3); }
+          | expression AMPERSAND expression { $$ = expr_op_band($1, $3); }
           | expression IS expression { $$ = expr_op_is($1, $3); }
           | expression BANG_IS expression { $$ = expr_op_nis($1, $3); }
           | expression EQUAL_EQUAL expression { $$ = expr_op_eq($1, $3); }
@@ -167,9 +183,9 @@ expression: atom { $$ = $1; }
           | expression RANGLE expression { $$ = expr_op_gt($1, $3); }
           | expression LANGLE_EQUAL expression { $$ = expr_op_lte($1, $3); }
           | expression RANGLE_EQUAL expression { $$ = expr_op_gte($1, $3); }
-          | expression LANGLE_LANGLE expression { $$ = expr_op_shl($1, $3); }
-          | expression RANGLE_RANGLE expression { $$ = expr_op_shrl($1, $3); }
-          | expression RANGLE_RANGLE_RANGLE expression { $$ = expr_op_shra($1, $3); }
+          | expression LANGLE_LANGLE NUMERIC { $$ = expr_op_shl($1, $3); }
+          | expression RANGLE_RANGLE NUMERIC { $$ = expr_op_shrl($1, $3); }
+          | expression RANGLE_RANGLE_RANGLE NUMERIC { $$ = expr_op_shra($1, $3); }
           | expression PLUS expression { $$ = expr_op_add($1, $3); }
           | expression MINUS expression { $$ = expr_op_sub($1, $3); }
           | expression STAR expression { $$ = expr_op_mul($1, $3); }
@@ -183,25 +199,27 @@ expression: atom { $$ = $1; }
 
 constant_expression: constant_atom { $$ = $1; }
           | LPAREN constant_expression RPAREN { $$ = $2; }
-          | constant_expression OR constant_expression { $$ = (($1 != 0) || ($3 != 0)) ? 1 : 0; }
-          | constant_expression XOR constant_expression { $$ = ((($1 != 0) ? 1 : 0) != (($3 != 0) ? 1 : 0)) ? 1 : 0; }
-          | constant_expression AND constant_expression { $$ = (($1 != 0) && ($3 != 0)) ? 1 : 0; }
-          | constant_expression EQUAL_EQUAL constant_expression { $$ = ($1 == $3) ? 1 : 0; }
-          | constant_expression LANGLE constant_expression { $$ = ($1 < $3) ? 1 : 0; }
-          | constant_expression RANGLE constant_expression { $$ = ($1 > $3) ? 1 : 0; }
-          | constant_expression LANGLE_EQUAL constant_expression { $$ = ($1 <= $3) ? 1 : 0; }
-          | constant_expression RANGLE_EQUAL constant_expression { $$ = ($1 >= $3) ? 1 : 0; }
-          | constant_expression PLUS constant_expression { $$ = $1 + $3; }
-          | constant_expression MINUS constant_expression { $$ = $1 - $3; }
-          | constant_expression STAR constant_expression { $$ = $1 * $3; }
-          | constant_expression FSLASH constant_expression { $$ = $1 / $3; }
-          | constant_expression PERCENT constant_expression { $$ = $1 % $3; }
-          | NOT constant_expression %prec UNARY { $$ = ($2 != 0) ? 0 : 1; }
-          | MINUS constant_expression %prec UNARY { $$ = -$2; }
-          | PLUS constant_expression %prec UNARY { $$ = $2; }
+          | constant_expression OR constant_expression { $$.value = (($1.value != 0) || ($3.value != 0)) ? 1 : 0; $$.is_bool = 1;}
+          | constant_expression XOR constant_expression { $$.value = ((($1.value != 0) ? 1 : 0) != (($3.value != 0) ? 1 : 0)) ? 1 : 0; $$.is_bool = 1; }
+          | constant_expression AND constant_expression { $$.value = (($1.value != 0) && ($3.value != 0)) ? 1 : 0; $$.is_bool = 1; }
+          | constant_expression EQUAL_EQUAL constant_expression { $$.value = ($1.value == $3.value) ? 1 : 0; $$.is_bool = 1;}
+          | constant_expression LANGLE constant_expression { $$.value = ($1.value < $3.value) ? 1 : 0; $$.is_bool = 1; }
+          | constant_expression RANGLE constant_expression { $$.value = ($1.value > $3.value) ? 1 : 0; $$.is_bool = 1; }
+          | constant_expression LANGLE_EQUAL constant_expression { $$.value = ($1.value <= $3.value) ? 1 : 0; $$.is_bool = 1; }
+          | constant_expression RANGLE_EQUAL constant_expression { $$.value = ($1.value >= $3.value) ? 1 : 0; $$.is_bool = 1; }
+          | constant_expression PLUS constant_expression { $$.value = $1.value + $3.value; $$.is_bool = 0; }
+          | constant_expression MINUS constant_expression { $$.value = $1.value - $3.value; $$.is_bool = 0; }
+          | constant_expression STAR constant_expression { $$.value = $1.value * $3.value; $$.is_bool = 0;}
+          | constant_expression FSLASH constant_expression { $$.value = $1.value / $3.value; $$.is_bool = 0; }
+          | constant_expression PERCENT constant_expression { $$.value = $1.value % $3.value; $$.is_bool = 0; }
+          | NOT constant_expression %prec UNARY { $$.value = ($2.value != 0) ? 0 : 1; $$.is_bool = 1; }
+          | MINUS constant_expression %prec UNARY { $$.value = -$2.value; $$.is_bool = 0; }
+          | PLUS constant_expression %prec UNARY { $$.value = $2.value; $$.is_bool = 0; }
           ;
 
-constant_atom: NUMERIC { $$ = $1; }
+constant_atom: NUMERIC { $$.value = $1; $$.is_bool = 0; }
+             | TRUE { $$.value = 1; $$.is_bool = 1; }
+             | FALSE { $$.value = 0; $$.is_bool = 1; }  
              ;
 
 atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }

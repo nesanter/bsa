@@ -1,5 +1,12 @@
-#ifndef BL_H
-#define BL_H
+//#ifndef BL_H
+//#define BL_H
+
+/*
+struct {
+    int value;
+    int is_bool;
+} tagged_int32;
+*/
 
 void yyerror(const char *s, ...);
 void flex_error(char *s, int length);
@@ -16,9 +23,9 @@ unsigned long expr_op_land(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_bor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_bxor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_band(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_shl(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_shrl(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_shra(unsigned long lhs_ref, unsigned long rhs_ref);
+unsigned long expr_op_shl(unsigned long lhs_ref, unsigned long rhs);
+unsigned long expr_op_shrl(unsigned long lhs_ref, unsigned long rhs);
+unsigned long expr_op_shra(unsigned long lhs_ref, unsigned long rhs);
 unsigned long expr_op_is(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_nis(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_eq(unsigned long lhs_ref, unsigned long rhs_ref);
@@ -91,6 +98,6 @@ unsigned long qident_add(unsigned long qident_ref, char *ident);
 
 char *escape_string(char *s);
 
-void global_create(char *ident, int value);
+void global_create(char *ident, int value, int is_bool);
 
-#endif /* BL_H */
+//#endif /* BL_H */

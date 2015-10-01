@@ -197,7 +197,10 @@ extern (C) {
 
         if (sym.is_global && sym.parent != current_function) {
             res.value = current_builder.load(sym.global_value);
-            res.is_bool = false;
+            if (sym.is_bool) {
+                res.value = current_builder.icmp_ne(res.value, false_numeric_value);
+            }
+            res.is_bool = sym.is_bool;
 //            sym.parent = current_function;
         } else {
             res.value = sym.values[sym.last_block];
@@ -508,41 +511,68 @@ extern (C) {
 
         return res.reference();
     }
-    ulong expr_op_shl(ulong lhs_ref, ulong rhs_ref) {
+    ulong expr_op_shl(ulong lhs_ref, ulong constant) {
         auto lhs = Expression.lookup(lhs_ref);
-        auto rhs = Expression.lookup(rhs_ref);
+//        auto rhs = Expression.lookup(rhs_ref);
+        auto rhs = Value.create_const_int(numeric_type, constant);
 
-        if (lhs.is_bool || rhs.is_bool) {
+        // shifts > 31 are undefined per LLVM standards
+        // fix that here
+        if (constant > 31) {
+            auto res = new Expression;
+            res.value = Value.create_const_int(numeric_type, 0);
+            return res.reference();
+        }
+
+        if (lhs.is_bool) {
             error_arithmetic_op_requires_numerics("<<");
         }
         auto res = new Expression;
-        res.value = current_builder.shl(lhs.value, rhs.value);
+        res.value = current_builder.shl(lhs.value, rhs);
         
         return res.reference();
     }
     
-    ulong expr_op_shrl(ulong lhs_ref, ulong rhs_ref) {
+    ulong expr_op_shrl(ulong lhs_ref, ulong constant) {
         auto lhs = Expression.lookup(lhs_ref);
-        auto rhs = Expression.lookup(rhs_ref);
+//        auto rhs = Expression.lookup(rhs_ref);
+        auto rhs = Value.create_const_int(numeric_type, constant);
 
-        if (lhs.is_bool || rhs.is_bool) {
+        // shifts > 31 are undefined per LLVM standards
+        // fix that here
+        if (constant > 31) {
+            auto res = new Expression;
+            res.value = Value.create_const_int(numeric_type, 0);
+            return res.reference();
+        }
+
+        if (lhs.is_bool) {
             error_arithmetic_op_requires_numerics(">>");
         }
         auto res = new Expression;
-        res.value = current_builder.shrl(lhs.value, rhs.value);
+        res.value = current_builder.shrl(lhs.value, rhs);
         
         return res.reference();
     }
     
-    ulong expr_op_shra(ulong lhs_ref, ulong rhs_ref) {
+    ulong expr_op_shra(ulong lhs_ref, ulong constant) {
         auto lhs = Expression.lookup(lhs_ref);
-        auto rhs = Expression.lookup(rhs_ref);
+//        auto rhs = Expression.lookup(rhs_ref);
+        auto rhs = Value.create_const_int(numeric_type, constant);
 
-        if (lhs.is_bool || rhs.is_bool) {
+        // shifts > 31 are undefined per LLVM standards
+        // fix that here
+        if (constant > 31) {
+            auto res = new Expression;
+            res.value = Value.create_const_int(numeric_type, 0xFFFFFFFFU);
+            return res.reference();
+        }
+
+        if (lhs.is_bool) {
             error_arithmetic_op_requires_numerics(">>>");
         }
         auto res = new Expression;
-        res.value = current_builder.shra(lhs.value, rhs.value);
+        res.value = current_builder.shra(lhs.value, rhs);
         
         return res.reference();
     }
@@ -1580,10 +1610,18 @@ extern (C) {
     void statement_sync(int read, int write) {
         foreach (sym; SymbolTable.symbols) {
             if (sym.is_global && sym.parent == current_function) {
-                if (write)
-                    current_builder.store(sym.values[current_block], sym.global_value);
-                if (read)
+                if (write) {
+                    Value tmp;
+                    if (sym.is_bool) {
+                        tmp = current_builder.select(sym.values[current_block], true_numeric_value, false_numeric_value);
+                    } else {
+                        tmp = sym.values[current_block];
+                    }
+                    current_builder.store(tmp, sym.global_value);
+                }
+                if (read) {
                     sym.parent = null;
+                }
             }
         }
     }
@@ -1684,7 +1722,13 @@ extern (C) {
 
         foreach (sym; SymbolTable.symbols) {
             if (sym.is_global && sym.parent == current_function) {
-                current_builder.store(sym.values[sym.last_block], sym.global_value);
+                Value tmp;
+                if (sym.is_bool) {
+                    tmp = current_builder.select(sym.values[sym.last_block], true_numeric_value, false_numeric_value);
+                } else {
+                    tmp = sym.values[sym.last_block];
+                }
+                current_builder.store(tmp, sym.global_value);
                 sym.parent = null;
             }
         }
@@ -1842,11 +1886,12 @@ extern (C) {
 
     /* Global */
 
-    void global_create(char *ident, int value) {
+    void global_create(char *ident, int value, int is_bool) {
         auto sym = create_symbol(text(ident));
 
         sym.is_global = true;
         sym.type = SymbolType.VARIABLE;
+        sym.is_bool = is_bool != 0;
 
         sym.global_value = Value.create_global_variable(current_module, numeric_type, text(ident));
         sym.global_value.set_initializer(Value.create_const_int(numeric_type, value));

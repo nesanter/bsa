@@ -109,6 +109,7 @@ class Manifest {
                             break;
                         case "vB":
                             ent.accept_bool = true;
+                            ent.accept_value = true;
                             break;
                         case "b":
                             ent.accepted_calls["block"] = call_info(true);
@@ -121,6 +122,7 @@ class Manifest {
                             break;
                         case "rwB":
                             ent.accepted_calls["read"] = call_info(true, true);
+                            ent.accepted_calls["write"] = call_info(true, true);
                             break;
                         case "bB":
                             ent.accepted_calls["block"] = call_info(true, true);
