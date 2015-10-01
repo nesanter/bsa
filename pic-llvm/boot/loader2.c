@@ -159,11 +159,13 @@ void preamble(void) {
                 boot_print("OK");
                 boot_print_flush();
                 boot_uart_change_baud(new_baud);
+#ifdef SLOW_PORT_SWITCH
                 asm volatile ("mtc0 $zero, $9");
                 do {
                     asm volatile ("mfc0 %0, $9" : "=r" (count));
                 } while (count < 40000000);
                 boot_internal_error(1);
+#endif
                 boot_print("BOOTLOADER READY");
                 if (boot_expect("OK")) {
                     boot_internal_error(1);
