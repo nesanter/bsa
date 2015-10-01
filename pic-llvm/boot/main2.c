@@ -56,6 +56,8 @@ int main(void) {
     TRISB = 0;
     ANSELA = 0;
     ANSELB = 0;
+    PORTA = 0;
+    PORTB = 0;
 
     unsigned int errorepc;
     boot_handler_setup(&errorepc);
