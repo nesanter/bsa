@@ -1,5 +1,11 @@
 #define IS_BOOTLOADER
 
+#ifdef SLOW_BAUD_SWITCH
+#define BAUD_SWITCH_DELAY (40000000)
+#else
+#define BAUD_SWITCH_DELAY (1000000)
+#endif
+
 #include "boot/bootlib.h"
 #include "boot/loader2.h"
 #include "proc/segments.h"
@@ -159,13 +165,11 @@ void preamble(void) {
                 boot_print("OK");
                 boot_print_flush();
                 boot_uart_change_baud(new_baud);
-#ifdef SLOW_PORT_SWITCH
                 asm volatile ("mtc0 $zero, $9");
                 do {
                     asm volatile ("mfc0 %0, $9" : "=r" (count));
-                } while (count < 40000000);
-                boot_internal_error(1);
-#endif
+                } while (count < BAUD_SWITCH_DELAY);
+//                boot_internal_error(1);
                 boot_print("BOOTLOADER READY");
                 if (boot_expect("OK")) {
                     boot_internal_error(1);
