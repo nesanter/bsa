@@ -11,6 +11,8 @@ fi
 
 export PATH=/opt/microchip/xc32/$XCVERSION/bin:$PATH
 
+./gen-sources
+
 mkdir -p out-boot
 cd out-boot
 
