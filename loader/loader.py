@@ -375,5 +375,5 @@ if args.dump:
     exit(0)
 
 ldr = Loader(Image(args.image), args.port, args.prebaud, verbose=args.verbose)
-ldr.preamble(args.postbaud, min_version, verbose=args.verbose)
+ldr.preamble(args.postbaud, args.min_version, verbose=args.verbose)
 ldr.load(verbose=args.verbose)
