@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+MIN_VERSION = 2
+
 import serial, sys, argparse, time, math
 
 class Image:
@@ -363,6 +365,7 @@ parser.add_argument("-b", "--baud", "--load-baud", type=int, dest="postbaud", de
 parser.add_argument("-B", "--preamble-baud", type=int, dest="prebaud", default=9600)
 parser.add_argument("-v", "--verbose", action="store_true", dest="verbose")
 parser.add_argument("-d", "--dump", action="store_true", dest="dump")
+parser.add_argument("-M", "--min-version", type=int, dest="min_version", default=MIN_VERSION)
 
 args = parser.parse_args()
 
@@ -372,5 +375,5 @@ if args.dump:
     exit(0)
 
 ldr = Loader(Image(args.image), args.port, args.prebaud, verbose=args.verbose)
-ldr.preamble(args.postbaud, 0, verbose=args.verbose)
+ldr.preamble(args.postbaud, min_version, verbose=args.verbose)
 ldr.load(verbose=args.verbose)
