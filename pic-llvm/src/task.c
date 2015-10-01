@@ -263,6 +263,7 @@ void unblock_tasks(enum block_reason reason, unsigned int info) {
             if (task_list[i].block_fn(&task_list[i], info)) {
                 task_list[i].state = TASK_STATE_READY;
                 task_list[i].reason = BLOCK_REASON_UNBLOCKED;
+                task_list[i].unblock_info = info;
             }
         }
     }
@@ -304,6 +305,12 @@ unsigned int task_stack_allocation(struct task_info * task) {
             n++;
     }
     return n;
+}
+
+void handler_console_rx() {
+    unblock_tasks(BLOCK_REASON_CONSOLE_RX, U1RXREG);
+    IEC1CLR = BITS(8);
+    IFS1CLR = BITS(8);
 }
 
 void handler_sw_edge() {
@@ -355,21 +362,25 @@ void handler_sw_edge() {
 }
 
 void handler_timer_b2() {
+    uart_print("h_t_b2\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 2);
     IFS0CLR = BITS(9);
     IEC0CLR = BITS(9);
 }
 void handler_timer_b3() {
+    uart_print("h_t_b3\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 3);
     IFS0CLR = BITS(14);
     IEC0CLR = BITS(14);
 }
 void handler_timer_b4() {
+    uart_print("h_t_b4\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 4);
     IFS0CLR = BITS(19);
     IEC0CLR = BITS(19);
 }
 void handler_timer_b5() {
+    uart_print("h_t_b5\r\n");
     unblock_tasks(BLOCK_REASON_TIMER, 5);
     IFS0CLR = BITS(24);
     IEC0CLR = BITS(24);

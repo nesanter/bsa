@@ -8,6 +8,7 @@
 #define UART_RX_FAILURE 1
 
 void uart_setup(void);
+void uart_setup_rx_interrupts(void);
 
 int uart_tx(char c);
 void uart_print(char *s);

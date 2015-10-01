@@ -286,10 +286,12 @@ void soft_reset() {
 }
 */
 
+/*
 void __attribute((interrupt(IPL2SOFT), nomips16)) boot_timeout_handler() {
     boot_internal_error(1);
     soft_reset();
 }
+*/
 
 // timeout = ~60 seconds
 /*

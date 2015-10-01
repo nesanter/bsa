@@ -8,6 +8,7 @@
 #include "ulib/uart.h"
 #include "ulib/util.h"
 #include "ulib/pins.h"
+#include "ulib/ldr.h"
 #include "exception.h"
 #include "task.h"
 #include "proc/processor.h"
@@ -62,6 +63,7 @@ extern struct task_info * current_task;
 // [manifest] .timer.prescaler       4   4   rw,v
 // [manifest] .timer.wait            4   0   b
 // [manifest] .ldr                   5   0   r
+// [manifest] .ldr.enable            5   1   wB,vB
 // [manifest] .task.size             6   0   rw,v
 // [manifest] .task.stack.small      6   1   rw,v
 // [manifest] .task.stack.large      6   2   rw,v
@@ -107,7 +109,8 @@ const driver_write_fn timer_write_fns[] = {
 };
 
 const driver_write_fn ldr_write_fns[] = {
-    0 // 5.0
+    0, // 5.0
+    &drv_ldr_enable_write // 5.1
 };
 
 const driver_write_fn task_write_fns[] = {
@@ -234,7 +237,7 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
         return 0;
     }
 restore:
-    return 1;
+    return current_task->unblock_info;
 }
 
 int ___write_addr_builtin(struct eh_t *eh, unsigned int target, int val, int addr) {
@@ -312,6 +315,12 @@ void ___trace_builtin(struct eh_t *eh) {
 }
 
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler) {
+    uart_print("vector ");
+    uart_print(tohex(entry, 8));
+    uart_print(" handler ");
+    uart_print(tohex((unsigned int)handler, 8));
+    uart_print("\r\n");
+
     __vector_table[entry] = handler;
 }
 
@@ -323,6 +332,10 @@ int block_util_match_data(struct task_info * task, unsigned int info) {
 
 int block_util_match_sw(struct task_info * task, unsigned int info) {
     return (task->block_data & 0xFFFF) == (info & 0xFFFF) && (task->block_data & info & 0xFFFF0000);
+}
+
+int block_util_always(struct task_info * task, unsigned int info) {
+    return 1;
 }
 
 /* driver functions */
@@ -637,6 +650,12 @@ int drv_ldr_read() {
     return *u_ana_buffer_ptr(0);
 }
 
+int drv_ldr_enable_write(int val, char *str) {
+    if (val)
+        init_ldr();
+    return DRV_SUCCESS;
+}
+
 int drv_task_size_write(int val ,char *str) {
     if (val == 0) {
         default_task_attributes.size = TASK_SIZE_SMALL;
@@ -710,7 +729,13 @@ int drv_task_this_allocation_read() {
 int rx_block_init = 0;
 
 int drv_console_rx_block() {
-    block_task(current_task, &block_util_match_data, BLOCK_REASON_CONSOLE_RX, 0);
+    if (!rx_block_init) {
+        runtime_set_vector_table_entry(_UART_1_VECTOR, &handler_console_rx);
+        uart_setup_rx_interrupts(); 
+        rx_block_init = 1;
+    }
+    IEC1SET = BITS(8);
+    block_task(current_task, &block_util_always, BLOCK_REASON_CONSOLE_RX, 0);
     return DRV_SUCCESS;
 }
 
@@ -762,6 +787,7 @@ int drv_timer_block() {
         case 5:
             n = 5;
             runtime_set_vector_table_entry(_TIMER_5_VECTOR, &handler_timer_b5);
+            IEC0SET = BITS(24);
             break;
     }
     block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER, n);
@@ -773,7 +799,7 @@ int drv_timer_block() {
     else if (n == 4)
         IEC0SET = BITS(19);
     else if (n == 5)
-        IEC0SET = BITS(19);
+        IEC0SET = BITS(24);
 
     return 1;
 }

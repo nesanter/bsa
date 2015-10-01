@@ -25,6 +25,14 @@ extern int uart_enabled;
 //int a [3] = { 12, 47, 1020 };
 
 void runtime_entry(void) {
+    TRISA = 0;
+    TRISB = BITS(15) | BITS(2);
+
+    PORTACLR = 0x1;
+    PORTASET = 0x2;
+
+    ANSELA = 0;
+    ANSELB = 0;
 //    int i;
 
 //    unsigned int errorepc;
@@ -44,7 +52,35 @@ void runtime_entry(void) {
 //        uart_print(tohex(a[i], 8));
 //        uart_print("\r\n");
 //    }
- 
+    unsigned int tmp;
+    asm volatile ("mfc0 %0, $13" : "=r"(tmp));
+    tmp |= 0x00800000;
+    asm volatile ("mtc0 %0, $13" : "+r"(tmp));
+
+    INTCONSET = BITS(12);
+
+//    CNCONASET = BITS(15);
+//    CNCONBSET = BITS(15);
+
+    IPC8SET = BITS(19);
+    IPC8CLR = BITS(20) | BITS(18);
+    IFS1CLR = BITS(13);
+//    IEC1SET = BITS(13) | BITS(14);
+
+    IPC2SET = BITS(2) | BITS(3);
+    IPC2CLR = BITS(4);
+
+    IPC3SET = BITS(2) | BITS(3);
+    IPC3CLR = BITS(4);
+
+    IPC4SET = BITS(2) | BITS(3);
+    IPC4CLR = BITS(4);
+
+    IPC5SET = BITS(2) | BITS(3);
+    IPC5CLR = BITS(4);
+
+    asm volatile ("ei");
+
     init_tasks();
 
     struct task_attributes attr = { TASK_SIZE_LARGE };
@@ -83,12 +119,7 @@ int main(void) {
 /*    asm volatile ("di");
     asm volatile ("ehb");
     asm volatile ("mtc0 %0, $15, $1" : "+r"(ebase_val));*/
-    asm volatile ("mfc0 %0, $13" : "=r"(tmp));
-    tmp |= 0x00800000;
-    asm volatile ("mtc0 %0, $13" : "+r"(tmp));
-
-    INTCONSET = BITS(12);
-
+y
     while (!(PORTB & BITS(15)));
 
     CNCONASET = BITS(15);
@@ -96,8 +127,8 @@ int main(void) {
 
     IPC8SET = BITS(19);
     IPC8CLR = BITS(20) | BITS(18);
-    IFS1CLR = BITS(13);
-    IEC1SET = BITS(13) | BITS(14);
+//    IFS1CLR = BITS(13);
+//    IEC1SET = BITS(13) | BITS(14);
 
     IPC2SET = BITS(2) | BITS(3);
     IPC2CLR = BITS(4);

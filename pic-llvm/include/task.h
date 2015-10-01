@@ -31,6 +31,7 @@ struct task_info {
     struct context __attribute__((aligned(4))) context;
     enum block_reason reason;
     unsigned int block_data;
+    unsigned int unblock_info;
     int (*block_fn)(struct task_info *, unsigned int);
 };
 
@@ -71,6 +72,7 @@ unsigned int task_stack_free();
 void * task_stack_start(struct task_info * task);
 unsigned int task_stack_allocation(struct task_info * task);
 
+void handler_console_rx();
 void handler_sw_edge();
 void handler_timer_b2();
 void handler_timer_b3();
