@@ -1,0 +1,120 @@
+Files:
+    reference-llvm/src
+
+--------------
+
+Meta:
+    Title: Channels Extension
+    Date: 10/2/15
+    Project: compiler
+    Groups: extensions
+
+--------------
+
+Body:
+
+1.) What will the channel extension provide?
+
+    The primary goal is task-to-task communication using unidirectional FIFOs.
+    These will be provided as direct syntax elements, not intrinsics, and
+    managed by the compiler, not the runtime.
+
+2.) Why not the runtime?
+
+    Having compiler-managed channels allows the extension to be transparently
+    enabled and disabled without runtime changes, and theoretically will lead
+    to betted integration with the language and better performance.
+
+    Additionally, more channel errors will be able to be caught at compile-time.
+
+3.) How do channels work?
+
+    Channels are modeled after Unix sockets. Because of this, there are two
+    types of channels: listen channels and communication channels.
+
+    Listen channels are created by a task that wishes to allow another task
+    to communicate with it. They are registered with a numeric index which
+    must be unique among all listen channels, even those in other tasks.
+    This is because listen channels are not tied to a particular task,
+    like sockets are to an address. A task does not have to know anything about
+    the task it is connecting to for communication to take place.
+
+    Once a listen channel has been established by a task, that task can wait
+    for communication to be opened in a blocking or non-blocking manner.
+    The task then receives the index of a communication channel which it can
+    use to receive messages.
+
+    Connections may (undecided as yet) automatically include a reverse channel
+    that the listening task can use to send messages.
+
+    this isn't true {
+    It is theoretically possible for a task to spoof a communication channel
+    index without having opened it via a listen channel. This is likely to not
+    work very well, and it's behavior is officially undefined.
+    It's possible that it could be used intentionally, although care would
+    have to be taken.
+    }
+
+    Channels can buffer a fixed number of messages before they are "full."
+    Operations will likely provided to query the status of a channel, e.g.
+    the space remaining or whether messages are available to be read.
+    Like listen channels, communcation channels can be accessed in a blocking
+    or non-blocking manner on both ends.
+
+4.) What benefit do channels provide over globals?
+
+    A few: one, they encourage a "right is easy" way of task-to-task
+    communication; two, they can more easily be adapted to a runtime that
+    requires critical sections, as it is clear that all channel accesses
+    are by their nature shared -- in fact, fine-grained critical sections
+    could be placed around channels, as the only shared data is the insert
+    location and message count; three, they have clearly defined access
+    semantics, there is no concept of local caching -- a channel is either
+    read-only or write-only, this at least simplifies, if not solves, the
+    recently discovered issue with globals.
+
+5.) What are the proposed syntax elements for channels?
+
+    An example:
+
+        function server() {
+            open l; // creates listen channel "l"
+            accept c0 from l; // creates communication channel "c0" (blocking)
+            close l; // stop listening
+            msg = *c0; // receives mesage (blocking)
+            if (msg == 0) {
+                *c0 = 7; // reply with 7
+            } else {
+                *c0 = msg + 1;
+            }
+            close c0; // stop receiving
+        }
+
+6.) Why this syntax? (Especially the business with *?)
+
+    This syntax was designed so that channels can be kept in an entirely
+    seperate namespace from variables -- preserving the type system.
+    All actions refer unambiguously to channels or variables.
+
+    The "accept" syntax was chosen for listen sockets over * syntax because
+    it creates a new channel, not a new variable. This means that *c always
+    returns a numeric, never a channel. Additionally, the accept syntax
+    was chosen so that it does not involve an "=", further seperating it
+    from variables.
+    The * syntax allows reading to be included in expressions, while the
+    version for writing is easily identified by the grammar as different
+    from an assignment statement -- another benfit of "=" not being an operator.
+
+7.) Okay, what about blocking vs nonblocking and checking the number of
+    messages?
+
+    Reading and writing with *, and creation with "accept" are blocking
+    operations. The only way to avoid blocking is with some sort of "ready"
+    check. The proposed syntax must be part of the expression language, as a
+    key use will be in an if or while statement.
+    The working idea is to introduce a unary $ operator that only works on
+    channels, and returns the number of acceptable connections for a listener,
+    the number of available spaces for a sender, and the number of waiting
+    messages for a receiver.
+
+--------------
