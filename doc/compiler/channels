@@ -79,15 +79,21 @@ Body:
 
         function server() {
             open l; // creates listen channel "l"
-            accept c0 from l; // creates communication channel "c0" (blocking)
+            accept c0 from l on 17; // creates communication channel "c0" (blocking)
             close l; // stop listening
             msg = *c0; // receives mesage (blocking)
             if (msg == 0) {
-                *c0 = 7; // reply with 7
+                // do something
             } else {
-                *c0 = msg + 1;
+                // do something else
             }
             close c0; // stop receiving
+        }
+
+        function client() {
+            open c0;
+            connect c0 to 17;
+            *c0 = 7;
         }
 
 6.) Why this syntax? (Especially the business with *?)
@@ -116,5 +122,56 @@ Body:
     channels, and returns the number of acceptable connections for a listener,
     the number of available spaces for a sender, and the number of waiting
     messages for a receiver.
+
+    An example:
+
+        while { $c0 > 0; } do {
+            m = *c0; // read message
+        }
+
+8.) Is there a limit on the number of channels?
+
+    The only hard limit is on the number of actively listening channels.
+    This is fixed at compile time and is simply an array of pointers
+    to channels.
+
+    The channels themselves are allocated on their owning task's stack:
+    the server for listening channels and the client for communication
+    channels. Communication channels pass a pointer when connecting and
+    listening channels register one in the aforementioned array.
+
+    This means, however, that channels "go away" when the function that
+    created them returns! Something to alleviate this problem may be
+    developed in the future...
+
+    Channels should be closed if there is any chance of them being
+    accessed after their owning function returns, and probably even if there
+    isn't.
+
+    This does mean that the true limit is from the stack size allocated to
+    a given task. The size of a channel is four times queue size plus 16
+    bytes, so for a queue size of 8, 11 channels would overflow a "small"
+    task (less if it has called functions.)
+
+9.) What about performance?
+
+    Channel performance should be very good, with messages being sent and
+    received in constant time. Registering a listening socket takes constant
+    time as well (well, it's O(n) with the size of the listener array, which
+    is fixed at compile time) because it has to loop over the whole array to
+    make sure no one else is listening on the requested port.
+
+    Connecting is similar, although it can bail out early as soon as it finds
+    a matching port, so in practice it will be slightly faster.
+
+    Transmit and receive are performed in-line without a function call,
+    further increasing their performance at the expense of a potentially
+    larger code footprint.
+    By default, they operate in "safe" mode, checking that their operation
+    will succeed before performing it, but this can be disabled at compile
+    time. This also has the effect of disabling repeat-port verification.
+
+    Accept and connect operations are not inlined and instead call small, fast
+    leaf functions. Open is simply an alloca.
 
 --------------

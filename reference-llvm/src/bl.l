@@ -75,6 +75,7 @@
  /* ------------------ */
 "$fail" { return HIDDEN_FAIL; }
 "$trace" { return HIDDEN_TRACE; }
+"$canary" { return HIDDEN_CANARY; }
 <SCOPETYPE>"always" { BEGIN(INITIAL); return ALWAYS; }
 <SCOPETYPE>"success" { BEGIN(INITIAL); return SUCCESS; }
 <SCOPETYPE>"failure" { BEGIN(INITIAL); return FAILURE; }

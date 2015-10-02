@@ -37,7 +37,7 @@
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL AT
 %token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
-%token HIDDEN_FAIL HIDDEN_TRACE
+%token HIDDEN_FAIL HIDDEN_TRACE HIDDEN_CANARY
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
 
@@ -177,6 +177,7 @@ send_statement: STAR IDENT EQUAL expression { statement_channel_send($2, $4); }
 
 hidden_statement: HIDDEN_FAIL { statement_hidden_fail(); }
                 | HIDDEN_TRACE { statement_hidden_trace(); }
+                | HIDDEN_CANARY { statement_hidden_canary(); }
                 ;
 
 expression: atom { $$ = $1; }

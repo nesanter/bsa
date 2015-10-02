@@ -5,7 +5,7 @@ import std.stdio;
 import std.conv;
 import core.vararg;
 
-import expression, util, errors;
+import expression, util, errors, channels;
 import symbol_table;
 
 /*
@@ -88,6 +88,9 @@ int main(string[] args) {
                "delayed-implementation", &delay_implement,
                "trace-support", &include_trace_names,
                "warn", &enable_all_warnings,
+               "channel-unsafe", &channels_unsafe,
+               "channel-fifo-size", &channel_fifo_size,
+               "channel-listener-max", &channel_max_listeners,
                "help", &help
         );
     } catch (Exception e) {
@@ -108,6 +111,10 @@ int main(string[] args) {
         writeln("    --delayed-implementation\tunimplemented functions are not errors [false]");
         writeln("    --trace-support\t\tsupport runtime $trace [false]");
         writeln("    --warn\t\t\tenable all warnings [false]");
+        writeln("Extension options:");
+        writeln("    --channel-unsafe\t\tenable unsafe channel operations [false]");
+        writeln("    --channel-fifo-size\t\tchange channel FIFO size [", channel_fifo_size, "]");
+        writeln("    --channel-listener-max\t\tchange listener channel maximum [", channel_max_listeners, "]");
         return 2;
     }
 

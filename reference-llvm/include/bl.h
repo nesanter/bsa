@@ -81,6 +81,7 @@ void statement_channel_send(char *lhs, unsigned long rhs_ref);
 
 void statement_hidden_fail(void);
 void statement_hidden_trace(void);
+void statement_hidden_canary(void);
 
 void function_begin(char *ident, unsigned long args_ref, unsigned long attr);
 void statement_sync(int read, int write);

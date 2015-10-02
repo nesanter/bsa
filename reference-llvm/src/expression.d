@@ -20,7 +20,7 @@ Value void_value, false_value, true_value,
       false_numeric_value, true_numeric_value,
       eh_default_flags, null_eh;
 
-Value yield_fn, fork_fn, fail_fn, trace_fn;
+Value yield_fn, fork_fn, fail_fn, trace_fn, canary_fn;
 
 SystemCall[string] system_calls;
 
@@ -163,6 +163,7 @@ void init(string manifest_file) {
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
     fail_fn = current_module.add_function("___fail_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
     trace_fn = current_module.add_function("___trace_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
+    canary_fn = current_module.add_function("___canary_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
 
     if (manifest_file.length > 0)
         current_manifest = Manifest.load(File(manifest_file, "r"));
@@ -1940,6 +1941,11 @@ extern (C) {
 
     void statement_hidden_trace() {
         current_builder.call(trace_fn, [current_eh]);
+        current_value = void_value;
+    }
+
+    void statement_hidden_canary() {
+        current_builder.call(canary_fn, [current_eh]);
         current_value = void_value;
     }
 
