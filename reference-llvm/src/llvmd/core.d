@@ -128,6 +128,8 @@ extern (C) {
         LLVMTypeRef LLVMPointerType(LLVMTypeRef ElementType, uint AddressSpace);
         LLVMTypeRef LLVMVoidType();
 
+        LLVMTypeRef LLVMArrayType(LLVMTypeRef ElementType, uint ElementCount);
+
         void LLVMStructSetBody(LLVMTypeRef StructTy, LLVMTypeRef *ElementTypes, uint ElementCount, int Packed);
 
         LLVMTypeRef LLVMGetReturnType(LLVMTypeRef FunctionTy);
@@ -163,6 +165,10 @@ class Type {
 
     static Type named_struct_type(string name) {
         return new Type(LLVMStructCreateNamed(LLVMGetGlobalContext(), toStringz(name)));
+    }
+
+    static Type array_type(Type element_type, uint length) {
+        return new Type(LLVMArrayType(element_type.type, length));
     }
 
     static Type pointer_type(Type base) {

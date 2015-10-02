@@ -67,6 +67,12 @@
 "sync_r" { return SYNC_READ; }
 "sync_w" { return SYNC_WRITE; }
 "scope" { BEGIN(SCOPETYPE); return SCOPE; }
+ /* channels extension */
+"open" { return OPEN; }
+"accept" { return ACCEPT; }
+"from" { return FROM; }
+"close" { return CLOSE; }
+ /* ------------------ */
 "$fail" { return HIDDEN_FAIL; }
 "$trace" { return HIDDEN_TRACE; }
 <SCOPETYPE>"always" { BEGIN(INITIAL); return ALWAYS; }

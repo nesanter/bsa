@@ -1106,7 +1106,7 @@ extern (C) {
         IfElse nested;
         Value[] phi_vals;
         BasicBlock[] phi_blocks;
-        
+
         ifelse.otherwise_value = current_value;
 
         if (nested_ifelse_ref == ulong.max) {
@@ -1168,7 +1168,7 @@ extern (C) {
                     }
                 }
                 phi_vals ~= v;
-                
+
             }
             t = null;
             foreach (i,v; phi_vals) {
@@ -1259,7 +1259,7 @@ extern (C) {
         current_block = loop.test;
 
         foreach (sym; SymbolTable.symbols) {
-            if (sym.type != SymbolType.VARIABLE || sym.is_global)
+            if ((sym.type != SymbolType.VARIABLE && sym.type != SymbolType.CHANNEL) || sym.is_global)
                 continue;
 
             Value p;
@@ -1282,13 +1282,13 @@ extern (C) {
             sym.dummy[loop.test] = sym.values[loop.test];
         }
         */
-        
+
         return loop.reference();
     }
 
     ulong statement_while_begin_do(ulong loop_ref) {
         auto loop = While.lookup(loop_ref);
-        
+
         current_builder.cond_br(current_value, loop.during, loop.after);
         current_builder.position_at_end(loop.during);
 
@@ -1310,7 +1310,7 @@ extern (C) {
 //        auto syms2 = find_symbols_in_blocks(loop.during, loop.after);
 
         auto syms = find_symbols_in_blocks(loop.test, loop.after);
-       
+
         foreach (sym; syms) {
             if (loop.test in sym.values) {
                 sym.values[loop.test].add_incoming([sym.values[sym.last_block]], [current_block]);
@@ -1576,7 +1576,7 @@ extern (C) {
             sym.last_block = loop.after;
         }
         */
-        
+
 
         current_value = void_value;
 
@@ -1681,7 +1681,7 @@ extern (C) {
         fn.implemented = true;
         current_block = current_function.append_basic_block("entry");
         current_builder.position_at_end(current_block);
-    
+
         current_function_has_handlers = [0,0,0];
 
         if (attr & FunctionAttribute.HANDLER) {
@@ -1941,6 +1941,71 @@ extern (C) {
     void statement_hidden_trace() {
         current_builder.call(trace_fn, [current_eh]);
         current_value = void_value;
+    }
+
+    /* Channels */
+
+    ulong expr_atom_channel_receive(char *ident) {
+        auto chansym = find_symbol(text(ident));
+
+        if (chansym is null) {
+            error_undeclared_channel(text(ident));
+        }
+        if (chansym.type != SymbolType.CHANNEL) {
+            error_requires_channel("receive");
+        }
+    }
+
+    void statement_channel_open(char *ident) {
+        auto chansym = find_or_create_symbol(text(ident));
+        if (chansym.type == SymbolType.VARIABLE) {
+            error_channel_previously_variable();
+        }
+
+        chansym.type = SymbolType.CHANNEL;
+        current_value = void_value;
+    }
+
+    void statement_channel_close(char *ident) {
+        auto chansym = find_symbol(text(ident));
+
+        if (chansym is null) {
+            error_undeclared_channel(text(ident));
+        }
+
+        if (chansym.type != SymbolType.CHANNEL) {
+            error_requires_channel("close");
+        }
+
+        current_value = void_value;
+    }
+
+    void statement_channel_accept(char *comm_ident, char *list_ident) {
+        auto commsym = find_or_create_symbol(text(comm_ident));
+
+        if (commsym.type == SymbolType.VARIABLE) {
+            error_channel_previously_variable();
+        }
+
+        commsym.type = SymbolType.CHANNEL;
+
+        auto listsym = find_symbol(text(list_ident));
+        if (listsym is null) {
+            error_undeclared_channel(text(list_ident));
+        }
+
+        current_value = void_value;
+    }
+
+    void statement_channel_send(char *lhs, ulong rhs_ref) {
+        auto chansym = find_symbol(text(lhs));
+        auto rhs = Expression.lookup(rhs_ref);
+
+        if (chansym.type != SymbolType.CHANNEL) {
+            error_requires_channel("send");
+        }
+
+        current_value = rhs.value;
     }
 }
 

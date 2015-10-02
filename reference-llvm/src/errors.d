@@ -260,6 +260,27 @@ void error_symbol_of_different_type(string s) {
     error_action();
 }
 
+void error_undeclared_channel(string s) {
+    write_error_prefix();
+    stderr.write("channel ", s, " nonexistant");
+    write_error_suffix();
+    error_action();
+}
+
+void error_requires_channel(string op) {
+    write_error_prefix();
+    stderr.write(op, " operates only on channels");
+    write_error_suffix();
+    error_action();
+}
+
+void error_channel_previously_variable() {
+    write_error_prefix();
+    stderr.write("channel previously declared as variable");
+    write_error_suffix();
+    error_action();
+}
+
 void warn_boolean_parameter() {
     if (!enable_all_warnings)
         return;

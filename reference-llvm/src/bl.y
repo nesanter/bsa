@@ -163,6 +163,18 @@ sync_statement: SYNC_BOTH { statement_sync(1, 1); }
 assign_statement: IDENT EQUAL expression { statement_assign($1, $3); }
                 ;
 
+open_statement: OPEN IDENT { statement_channel_open($2); }
+              ;
+
+close_statement: CLOSE IDENT { statement_channel_close($2); }
+               ;
+
+accept_statement: ACCEPT IDENT FROM IDENT { statement_channel_accept($2, $4); }
+                ;
+
+send_statement: STAR IDENT EQUAL expression { statement_channel_send($2, $4); }
+              ;
+
 hidden_statement: HIDDEN_FAIL { statement_hidden_fail(); }
                 | HIDDEN_TRACE { statement_hidden_trace(); }
                 ;
@@ -228,6 +240,7 @@ atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
     | FALSE { $$ = expr_atom_bool(0); }
     | function_call { $$ = expr_atom_function_call(); }
     | system_call { $$ = $1; }
+    | receive { $$ = $1; }
     ;
 
 function_call: IDENT LPAREN RPAREN { create_function_call($1, params_empty()); }
@@ -252,6 +265,9 @@ params_s: expression { $$ = params_create($1); }
 
 qualified_ident: DOT IDENT { $$ = qident_create($2); }
                | qualified_ident DOT IDENT { $$ = qident_add($1, $3); }
+               ;
+
+channel_receive: STAR IDENT { $$ = expr_atom_channel_receive($2); }
                ;
 
 %%
