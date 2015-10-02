@@ -307,7 +307,6 @@ void ___fork_builtin(struct eh_t *eh, int (*fn)(void*)) {
 
 void ___fail_builtin(struct eh_t *eh) {
     throw_exception(0);
-
 }
 
 void ___trace_builtin(struct eh_t *eh) {
@@ -317,6 +316,16 @@ void ___trace_builtin(struct eh_t *eh) {
             uart_print("\r\n");
         }
         eh = eh->parent;
+    }
+}
+
+void ___canary_builtin(struct eh_t *eh) {
+    void * sp;
+    asm ("move %0, $sp" : "=r"(sp));
+    if (task_stack_owner(sp) != current_task) {
+        uart_print("[the canary is dead]\r\n");
+        asm volatile ("addi $k1, $zero, 0; \
+                       syscall;");
     }
 }
 

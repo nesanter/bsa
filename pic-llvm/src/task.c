@@ -223,7 +223,7 @@ void scheduler_loop() {
 #ifdef HARD_RUNTIME
     while (1);
 #else
-    asm volatile ("syscall");
+    asm volatile ("addi $k1, $zero, 0; syscall;");
 #endif
 }
 
@@ -319,6 +319,17 @@ unsigned int task_stack_allocation(struct task_info * task) {
             n++;
     }
     return n;
+}
+
+struct task_info * task_stack_owner(void * ptr) {
+    int offset = ptr - (void*)task_stack;
+    if (ptr < 0)
+        return 0;
+    unsigned int slot = offset / TASK_SLOT_SIZE;
+    if (slot > (TOTAL_STACK_SPACE / TASK_SLOT_SIZE))
+        return 0;
+
+    return task_stack_slots[slot];
 }
 
 void handler_console_rx() {
