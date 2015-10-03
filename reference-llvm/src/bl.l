@@ -44,6 +44,7 @@
 "|" { return VERTICAL_BAR; }
 "^" { return CARET; }
 "~" { return TILDE; }
+"#" { return POUND; }
 
  /* keywords */
 "not" { return NOT; }
@@ -68,10 +69,13 @@
 "sync_w" { return SYNC_WRITE; }
 "scope" { BEGIN(SCOPETYPE); return SCOPE; }
  /* channels extension */
-"open" { return OPEN; }
+"listen" { return LISTEN; }
+"on" { return ON; }
 "accept" { return ACCEPT; }
 "from" { return FROM; }
 "close" { return CLOSE; }
+"connect" { return CONNECT; }
+"to" { return TO; }
  /* ------------------ */
 "$fail" { return HIDDEN_FAIL; }
 "$trace" { return HIDDEN_TRACE; }

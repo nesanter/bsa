@@ -35,11 +35,12 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
-%token DOT SEMI COMMA EQUAL AT
+%token DOT SEMI COMMA EQUAL AT POUND
 %token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
 %token HIDDEN_FAIL HIDDEN_TRACE HIDDEN_CANARY
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
+%token ACCEPT FROM LISTEN ON CONNECT TO CLOSE
 
 %precedence PAREN
 %right IS BANG_IS
@@ -169,6 +170,11 @@ open_statement: OPEN IDENT { statement_channel_open($2); }
 close_statement: CLOSE IDENT { statement_channel_close($2); }
                ;
 
+listen_statement: LISTEN IDENT ON expression { statement_channel_listen($2, $4); }
+                ;
+
+connect_statement: CONNECT IDENT TO expression { statement_channel_connect($2, $4); }
+
 accept_statement: ACCEPT IDENT FROM IDENT { statement_channel_accept($2, $4); }
                 ;
 
@@ -241,7 +247,8 @@ atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
     | FALSE { $$ = expr_atom_bool(0); }
     | function_call { $$ = expr_atom_function_call(); }
     | system_call { $$ = $1; }
-    | receive { $$ = $1; }
+    | channel_receive { $$ = $1; }
+    | channel_status { $$ = $1; }
     ;
 
 function_call: IDENT LPAREN RPAREN { create_function_call($1, params_empty()); }
@@ -270,5 +277,8 @@ qualified_ident: DOT IDENT { $$ = qident_create($2); }
 
 channel_receive: STAR IDENT { $$ = expr_atom_channel_receive($2); }
                ;
+
+channel_status: POUND IDENT { $$ = expr_atom_channel_status($2); }
+              ;
 
 %%

@@ -1962,6 +1962,17 @@ extern (C) {
         }
     }
 
+    ulong expr_atom_channel_status(char *ident) {
+        auto chansym = find_symbol(text(ident));
+
+        if (chansym is null) {
+            error_undeclared_channel(text(ident));
+        }
+        if (chansym.type != SymbolType.CHANNEL) {
+            error_requires_channel("status");
+        }
+    }
+
     void statement_channel_open(char *ident) {
         auto chansym = find_or_create_symbol(text(ident));
         if (chansym.type == SymbolType.VARIABLE) {

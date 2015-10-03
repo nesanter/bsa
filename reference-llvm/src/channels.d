@@ -75,7 +75,7 @@ void channel_get_fifo_remaining(Value chan, Builder builder) {
     auto gep_read = builder.struct_gep(chan, ChannelFieldIndex.READ_INDEX);
 
     auto diff = builder.sub(gep_read, gep_write);
-   auto ltz = builder.icmp_slt(diff, Value.create_const_int(Type.int_type(32), 0));
+    auto ltz = builder.icmp_slt(diff, Value.create_const_int(Type.int_type(32), 0));
     auto negdiff = builder.add(diff, Value.create_const_int(Type.int_type(32), channel_fifo_size));
     auto val = builder.select(ltz, negdiff, diff);
 
@@ -83,6 +83,12 @@ void channel_get_fifo_remaining(Value chan, Builder builder) {
 
 }
 
-void channel_listen_at(Value chan, Value index, Builder builder) {
+void channel_accept_from(Value from_chan, Value to_chan, Builder builder) {
     
 }
+
+void channel_listen_on(Value chan, Value index, Builder builder) {
+    
+}
+
+
