@@ -349,7 +349,8 @@ int block_util_always(struct task_info * task, unsigned int info) {
 
 /* driver functions */
 
-int tx_block = 0, rx_block = 0;
+int TASK_LOCAL tx_block = 0;
+int TASK_LOCAL rx_block = 0;
 
 int drv_console_write(int val, char *str) {
     if (str)
@@ -428,7 +429,7 @@ int drv_console_rx_block_read() {
         return DRV_FALSE;
 }
 
-Pin selected_led = {PIN_GROUP_B, BITS(4)};
+Pin TASK_LOCAL selected_led = {PIN_GROUP_B, BITS(4)};
 
 int drv_led_select_write(int val, char *str) {
     switch (val) {
@@ -471,8 +472,8 @@ int drv_led_read() {
     return pin_test(selected_led);
 }
 
-Pin selected_sw = { PIN_GROUP_A, BITS(2) };
-unsigned int selected_sw_edge = 1;
+Pin TASK_LOCAL selected_sw = { PIN_GROUP_A, BITS(2) };
+unsigned int TASK_LOCAL selected_sw_edge = 1;
 
 int drv_sw_select_write(int val, char *str) {
     switch (val) {
@@ -559,7 +560,7 @@ int drv_sys_tick_read() {
     return tick;
 }
 
-u_timerb_select selected_timer;
+u_timerb_select TASK_LOCAL selected_timer;
 
 int drv_timer_select_write(int val, char *str) {
     switch (val) {
