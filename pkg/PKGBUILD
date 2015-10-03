@@ -5,6 +5,7 @@ arch=('x86_64')
 pkgdesc="BoMu compiler, sources, and runtime image"
 depends=('llvm')
 makedepends=('gdc' 'clang')
+options=(!strip staticlibs)
 
 build() {
     git clone "git@github.com:nesanter/bsa.git"
@@ -19,9 +20,10 @@ build() {
 package() {
     # compiler
     mkdir -p "${pkgdir}/usr/local/bin"
-    install "${srcdir}/bsa/reference-llvm/out/muc" "${pkgdir}/usr/local/bin"
-    # included utilities
-    install -d "${srcdir}/bsa/util" "${pkgdir}/usr/local/bin"
+    install -s "${srcdir}/bsa/reference-llvm/out/muc" "${pkgdir}/usr/local/bin"
+    # included utilities (sans archiver)
+    install "${srcdir}/bsa/util/mipsel-unknown-elf-addr2line" "${pkgdir}/usr/local/bin"
+    install "${srcdir}/bsa/util/mipsel-unknown-elf-ld" "${pkgdir}/usr/local/bin"
     # runtime image and manifest
     mkdir -p "${pkgdir}/usr/local/share/bomu-tools"
     cp "${srcdir}/bsa/pic-llvm/out/bomu-runtime.a" "${pkgdir}/usr/local/share/bomu-tools"
