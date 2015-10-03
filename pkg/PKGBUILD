@@ -1,29 +1,32 @@
-pkgname="bsa-tools"
-pkgver="1.0rc4"
+pkgname="bomu-tools"
+pkgver="1.0.3"
 pkgrel="1"
 arch=('x86_64')
-pkgdesc="BSA compiler and runtime image"
+pkgdesc="BoMu compiler, sources, and runtime image"
 depends=('llvm')
 makedepends=('gdc' 'clang')
 
 build() {
-
     git clone "git@github.com:nesanter/bsa.git"
 
     cd "${srcdir}/bsa/reference-llvm"
     ./build
 
     cd "${srcdir}/bsa/pic-llvm"
-    ./gen-sources
-    ./build-runtime
-    ./gen-manifest
+    ./build-runtime # now also generates manifest
 }
 
 package() {
+    # compiler
     mkdir -p "${pkgdir}/usr/local/bin"
-    install "${srcdir}/bsa/reference-llvm/out/bl2" "${pkgdir}/usr/local/bin"
+    install "${srcdir}/bsa/reference-llvm/out/muc" "${pkgdir}/usr/local/bin"
+    # included utilities
     install -d "${srcdir}/bsa/util" "${pkgdir}/usr/local/bin"
-    mkdir -p "${pkgdir}/usr/local/share/bsa-tools"
-    cp "${srcdir}/bsa/pic-llvm/out/bl-runtime.a" "${pkgdir}/usr/local/share/bsa-tools"
-    cp "${srcdir}/bsa/pic-llvm/out/manifest" "${pkgdir}/usr/local/share/bsa-tools"
+    # runtime image and manifest
+    mkdir -p "${pkgdir}/usr/local/share/bomu-tools"
+    cp "${srcdir}/bsa/pic-llvm/out/bomu-runtime.a" "${pkgdir}/usr/local/share/bomu-tools"
+    cp "${srcdir}/bsa/pic-llvm/out/manifest" "${pkgdir}/usr/local/share/bomu-tools"
+    # Vim syntax
+    mkdir -p "${pkgdir}/usr/share/vim/vimfiles/syntax" \\
+    cp "${srcdir}/bsa/reference-llvm/misc/mu.vim" "${pkgdir}/usr/share/vim/vimfiles/syntax"
 }
