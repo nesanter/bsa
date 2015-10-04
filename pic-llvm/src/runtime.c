@@ -513,8 +513,9 @@ int drv_sw_select_write(int val, char *str) {
         case 3: selected_sw.group = PIN_GROUP_B;
                 selected_sw.pin = BITS(14);
                 break;
-        default: return DRV_SUCCESS;
+        default: return DRV_FAILURE;
     }
+    pin_mode_set(selected_sw, 1, 0);
     return DRV_SUCCESS;
 }
 
@@ -814,8 +815,8 @@ int drv_console_rx_block() {
         uart_setup_rx_interrupts();
         rx_block_init = 1;
     }
-    IEC1SET = BITS(8);
     block_task(current_task, &block_util_always, BLOCK_REASON_CONSOLE_RX, 0);
+    IEC1SET = BITS(8);
     return DRV_SUCCESS;
 }
 
@@ -839,6 +840,7 @@ int drv_sw_block() {
     block_task(current_task, &block_util_match_sw, BLOCK_REASON_SW, data | (selected_sw_edge << 16));
     
     u_cn_enable(selected_sw);
+    IEC1SET = BITS(13) | BITS(14);
     return 1;
 }
 
