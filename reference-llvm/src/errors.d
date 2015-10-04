@@ -260,6 +260,13 @@ void error_symbol_of_different_type(string s) {
     error_action();
 }
 
+void error_previously_declared(string s) {
+    write_error_prefix();
+    stderr.write("multiple declarations for ", s);
+    write_error_suffix();
+    error_action();
+}
+
 void warn_boolean_parameter() {
     if (!enable_all_warnings)
         return;

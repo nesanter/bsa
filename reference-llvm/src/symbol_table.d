@@ -12,6 +12,7 @@ enum SymbolType {
     VARIABLE,
     OBJECT,
     FUNCTION,
+    CONSTANT
 }
 
 class InstUsage {

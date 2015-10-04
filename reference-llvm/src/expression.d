@@ -191,10 +191,16 @@ extern (C) {
 //            error_occured++;
 //            return ulong.max;
         }
+        auto res = new Expression;
+        if (sym.type == SymbolType.CONSTANT) {
+            res.value = sym.global_value;
+            res.is_bool = sym.is_bool;
+            return res.reference();
+        }
+
         if (sym.type != SymbolType.VARIABLE) {
             error_symbol_of_different_type(text(s));
         }
-        auto res = new Expression;
 
         if (sym.is_global && sym.parent != current_function) {
             res.value = current_builder.load(sym.global_value);
@@ -1674,6 +1680,9 @@ extern (C) {
             if (fn.type != SymbolType.FUNCTION) {
                 error_function_shadows_different_type(text(ident));
             }
+            if (fn.implemented) {
+                error_previously_declared(text(ident));
+            }
             if (attr & FunctionAttribute.HANDLER && !fn.is_handler) {
                 error_handler_attr_unexpected();
             }
@@ -1905,6 +1914,29 @@ extern (C) {
 
         sym.global_value = Value.create_global_variable(current_module, numeric_type, text(ident));
         sym.global_value.set_initializer(Value.create_const_int(numeric_type, value));
+    }
+
+    /* Constants */
+
+    void constant_create(char *ident, int value, int is_bool) {
+        auto sym = find_symbol(text(ident));
+
+        if (sym !is null) {
+            error_previously_declared(text(ident));
+        }
+
+        sym = create_symbol(text(ident));
+
+        sym.type = SymbolType.CONSTANT;
+        
+        if (is_bool) {
+            if (value)
+                sym.global_value = true_value;
+            else
+                sym.global_value = false_value;
+        } else {
+            sym.global_value = Value.create_const_int(numeric_type, value);
+        }
     }
 
     /* Scope */
