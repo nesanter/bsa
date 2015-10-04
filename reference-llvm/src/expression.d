@@ -2002,6 +2002,8 @@ extern (C) {
         if (chansym.type != SymbolType.CHANNEL) {
             error_requires_channel("receive");
         }
+
+        return 0;
     }
 
     ulong expr_atom_channel_status(char *ident) {
@@ -2013,8 +2015,11 @@ extern (C) {
         if (chansym.type != SymbolType.CHANNEL) {
             error_requires_channel("status");
         }
+
+        return 0;
     }
 
+    /*
     void statement_channel_open(char *ident) {
         auto chansym = find_or_create_symbol(text(ident));
         if (chansym.type == SymbolType.VARIABLE) {
@@ -2024,6 +2029,7 @@ extern (C) {
         chansym.type = SymbolType.CHANNEL;
         current_value = void_value;
     }
+    */
 
     void statement_channel_close(char *ident) {
         auto chansym = find_symbol(text(ident));
@@ -2037,6 +2043,10 @@ extern (C) {
         }
 
         current_value = void_value;
+    }
+
+    void statement_channel_listen(char *ident, ulong port_ref) {
+
     }
 
     void statement_channel_accept(char *comm_ident, char *list_ident) {
@@ -2065,6 +2075,10 @@ extern (C) {
         }
 
         current_value = rhs.value;
+    }
+
+    void statement_channel_connect(char *ident, ulong port_ref) {
+
     }
 }
 

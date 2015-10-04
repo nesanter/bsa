@@ -58,7 +58,7 @@ void channel_set_type(Value chan, ChannelType type, Builder builder) {
     builder.store(Value.create_const_int(Type.int_type(32), type), gep);
 }
 
-void channel_get_fifo_used(Value chan, Builder builder) {
+Value channel_get_fifo_used(Value chan, Builder builder) {
     auto gep_write = builder.struct_gep(chan, ChannelFieldIndex.WRITE_INDEX);
     auto gep_read = builder.struct_gep(chan, ChannelFieldIndex.READ_INDEX);
 
@@ -70,7 +70,7 @@ void channel_get_fifo_used(Value chan, Builder builder) {
     return val;
 }
 
-void channel_get_fifo_remaining(Value chan, Builder builder) {
+Value channel_get_fifo_remaining(Value chan, Builder builder) {
     auto gep_write = builder.struct_gep(chan, ChannelFieldIndex.WRITE_INDEX);
     auto gep_read = builder.struct_gep(chan, ChannelFieldIndex.READ_INDEX);
 

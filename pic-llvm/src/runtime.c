@@ -264,6 +264,16 @@ restore:
     return current_task->unblock_info;
 }
 
+int ___block_firm_builtin(struct eh_t *eh, int (*fn)(struct task_info *, unsigned int), unsigned int data) {
+    current_task->eh_ptr = eh;
+    current_task->state = TASK_STATE_FIRM_BLOCKED;
+    current_task->block_fn = fn;
+    current_task->block_data = data;
+    context_save(&current_task->context, &&restore);
+    if (schedule_task())
+        scheduler_loop();
+}
+
 int ___write_addr_builtin(struct eh_t *eh, unsigned int target, int val, int addr) {
     unsigned int low = target & 0xFFFF;
     unsigned int high = (target & 0xFFFF0000) >> 16;

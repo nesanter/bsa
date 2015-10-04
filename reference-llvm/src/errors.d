@@ -260,7 +260,6 @@ void error_symbol_of_different_type(string s) {
     error_action();
 }
 
-<<<<<<< HEAD
 void error_undeclared_channel(string s) {
     write_error_prefix();
     stderr.write("channel ", s, " nonexistant");

@@ -18,6 +18,7 @@ unsigned long expr_atom_function_call();
 unsigned long expr_atom_bool(int is_true);
 unsigned long expr_atom_syscall(char *ident, unsigned long qident_ref, unsigned long params_ref);
 unsigned long expr_atom_channel_receive(char *ident);
+unsigned long expr_atom_channel_status(char *ident);
 unsigned long expr_op_lor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_lxor(unsigned long lhs_ref, unsigned long rhs_ref);
 unsigned long expr_op_land(unsigned long lhs_ref, unsigned long rhs_ref);
@@ -79,6 +80,8 @@ void statement_channel_open(char *ident);
 void statement_channel_close(char *ident);
 void statement_channel_accept(char *comm_ident, char *list_ident);
 void statement_channel_send(char *lhs, unsigned long rhs_ref);
+void statement_channel_listen(char *ident, unsigned long port_ref);
+void statement_channel_connect(char *ident, unsigned long port_ref);
 
 void statement_hidden_fail(void);
 void statement_hidden_trace(void);

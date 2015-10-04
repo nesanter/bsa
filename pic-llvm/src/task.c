@@ -199,6 +199,14 @@ int schedule_task() {
                 task_list[i].state = TASK_STATE_READY;
                 any_tasks = 1;
                 break;
+            case TASK_STATE_FIRM_BLOCKED:
+                if (task_list[i].block_fn(&task_list[i], task_list[i].block_data)) {
+                    task_list[i].state = TASK_STATE_READY;
+                    if (!next_task || next_task->depth > task_list[i].depth) {
+                        next_task = &task_list[i];
+                    }
+                }
+                any_tasks = 1;
             case TASK_STATE_HARD_BLOCKED:
                 /*
                 if (task_list[i].block_fn(&task_list[i], task_list[i].block_data)) {

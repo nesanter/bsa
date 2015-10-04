@@ -24,6 +24,8 @@
 "," { return COMMA; }
 "=" { return EQUAL; }
 "@" { return AT; }
+"<-" { return LARROW; }
+"->" { return RARROW; }
 
  /* operators */
 "+" { return PLUS; }

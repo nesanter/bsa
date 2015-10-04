@@ -34,13 +34,13 @@
 
 %token <llu> NUMERIC
 %token <text> IDENT STRING
-%token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
+%token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK LARROW RARROW
 %token DOT SEMI COMMA EQUAL AT POUND
 %token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE CONSTANT
 %token HIDDEN_FAIL HIDDEN_TRACE HIDDEN_CANARY
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
-%token ACCEPT FROM LISTEN ON CONNECT TO CLOSE
+%token ACCEPT FROM LISTEN ON REQUEST CONNECT TO CLOSE
 
 %precedence PAREN
 %right IS BANG_IS
@@ -59,7 +59,7 @@
 %precedence UNARY
 
 %type <llu> attributes
-%type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
+%type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call channel_receive channel_status
 %type <tagged_d> constant_atom constant_expression
 %type <d> scope_type
 
@@ -74,10 +74,21 @@ file: %empty
 function_def: function_signature LBRACE body RBRACE { function_end(); }
             ;
 
-function_signature: FUNCTION IDENT LPAREN args RPAREN { function_begin($2, $4, 0); }
-                  | FUNCTION attributes IDENT LPAREN args RPAREN { function_begin($3, $5, $2); }
+function_signature: FUNCTION channel_args IDENT LPAREN RPAREN channel_args { function_begin($3, args_empty(), 0); }
+                  | FUNCTION channel_args IDENT LPAREN args RPAREN channel_args { function_begin($3, $5, 0); }
+                  | FUNCTION attributes channel_args IDENT LPAREN RPAREN channel_args { function_begin($4, args_empty(), $2); }
+                  | FUNCTION attributes channel_args IDENT LPAREN args RPAREN channel_args { function_begin($4, $6, $2); }
 /*                  | FUNCTION POUND IDENT LPAREN args RPAREN { function_begin($3, $5, 1); } */
                   ;
+
+channel_args: %empty
+            | LARROW RARROW
+            | LARROW channel_list RARROW
+            ;
+
+channel_list: IDENT
+            | channel_list COMMA IDENT
+            ;
 
 attributes: AT IDENT { $$ = attribute_value(0, $2); }
           | attributes AT IDENT { $$ = attribute_value($1, $3); }
@@ -89,12 +100,12 @@ global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3.value, $
 constant_def: CONSTANT IDENT EQUAL constant_expression SEMI { constant_create($2, $4.value, $4.is_bool); }
             ;
 
-args: %empty { $$ = args_empty(); }
-    | IDENT { $$ = args_create($1, 0); }
+args: IDENT { $$ = args_create($1, 0); }
 /*    | POUND IDENT { $$ = args_create($2, 1); } */
     | args COMMA IDENT { $$ = args_add($1, $3, 0); }
 /*    | args COMMA POUND IDENT { $$ = args_add($1, $4, 1); } */
     ;
+
 
 body: statement
     | body statement
@@ -111,6 +122,11 @@ statement: SEMI { statement_empty(); } /* "empty" statement */
 /*         | return_statement SEMI */
          | fork_statement SEMI
          | sync_statement SEMI
+         | listen_statement SEMI
+         | connect_statement SEMI
+         | accept_statement SEMI
+         | close_statement SEMI
+         | send_statement SEMI
          | hidden_statement SEMI
          ;
 
@@ -168,8 +184,10 @@ sync_statement: SYNC_BOTH { statement_sync(1, 1); }
 assign_statement: IDENT EQUAL expression { statement_assign($1, $3); }
                 ;
 
+/*
 open_statement: OPEN IDENT { statement_channel_open($2); }
               ;
+*/
 
 close_statement: CLOSE IDENT { statement_channel_close($2); }
                ;
@@ -178,6 +196,7 @@ listen_statement: LISTEN IDENT ON expression { statement_channel_listen($2, $4);
                 ;
 
 connect_statement: CONNECT IDENT TO expression { statement_channel_connect($2, $4); }
+                 ;
 
 accept_statement: ACCEPT IDENT FROM IDENT { statement_channel_accept($2, $4); }
                 ;
@@ -255,8 +274,8 @@ atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
     | channel_status { $$ = $1; }
     ;
 
-function_call: IDENT LPAREN RPAREN { create_function_call($1, params_empty()); }
-             | IDENT LPAREN params RPAREN { create_function_call($1, $3); }
+function_call: IDENT channel_args LPAREN RPAREN channel_args { create_function_call($1, params_empty()); }
+             | IDENT channel_args LPAREN params RPAREN channel_args { create_function_call($1, $4); }
              ;
 
 params: expression { $$ = params_create($1); }

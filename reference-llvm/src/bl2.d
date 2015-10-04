@@ -88,7 +88,7 @@ int main(string[] args) {
                "delayed-implementation", &delay_implement,
                "trace-support", &include_trace_names,
                "warn", &enable_all_warnings,
-               "channel-unsafe", &channels_unsafe,
+               "channel-unsafe", &channel_unsafe,
                "channel-fifo-size", &channel_fifo_size,
                "channel-listener-max", &channel_max_listeners,
                "help", &help
