@@ -97,7 +97,7 @@ class IfElse {
 
 class While {
     mixin ReferenceHandler;
-    BasicBlock before, test, during, after;
+    BasicBlock before, test, test_actual, during, after;
 }
 
 class SystemCall {
@@ -1251,6 +1251,7 @@ extern (C) {
         current_value = void_value;
         loop.before = current_block;
         loop.test = current_function.append_basic_block(null);
+        loop.test_actual = current_function.append_basic_block(null);
         loop.during = current_function.append_basic_block(null);
         loop.after = current_function.append_basic_block(null);
 
@@ -1273,6 +1274,10 @@ extern (C) {
             sym.values[loop.test] = p;
             sym.last_block = loop.test;
         }
+
+        current_builder.br(loop.test_actual);
+        current_builder.position_at_end(loop.test_actual);
+        current_block = loop.test_actual;
 
         /*
         foreach (sym; SymbolTable.symbols) {
