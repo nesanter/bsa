@@ -233,7 +233,7 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
             if (schedule_task())
                 scheduler_loop();
         } else {
-            return 0;
+            return current_task->unblock_info;
         }
     } else {
         return 0;
@@ -738,9 +738,13 @@ int drv_task_this_allocation_read() {
 int rx_block_init = 0;
 
 int drv_console_rx_block() {
+    if (u_uartx_get_rx_available(UART1)) {
+        current_task->unblock_info = U1RXREG;
+        return DRV_FAILURE;
+    }
     if (!rx_block_init) {
         runtime_set_vector_table_entry(_UART_1_VECTOR, &handler_console_rx);
-        uart_setup_rx_interrupts(); 
+        uart_setup_rx_interrupts();
         rx_block_init = 1;
     }
     IEC1SET = BITS(8);
