@@ -190,7 +190,7 @@ int schedule_task() {
             case TASK_STATE_RUNNING: /* this one shouldn't happen */
 //                uart_print(tohex(i, 1));
 //                uart_print("\r\n");
-                if (!next_task || next_task->depth > task_list[i].depth) {
+                if (!next_task || next_task->depth < task_list[i].depth) {
                     next_task = &task_list[i];
                 }
                 any_tasks = 1;
