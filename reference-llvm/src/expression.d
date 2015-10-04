@@ -1906,6 +1906,7 @@ extern (C) {
     /* Global */
 
     void global_create(char *ident, int value, int is_bool) {
+        warn_globals_deprecated();
         auto sym = create_symbol(text(ident));
 
         sym.is_global = true;

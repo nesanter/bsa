@@ -296,4 +296,9 @@ void warn_unexpected_error() {
     write_error_suffix();
 }
 
+void warn_globals_deprecated() {
+    write_warn_prefix();
+    stderr.write("globals have been deprecated");
+    write_error_suffix();
+}
 
