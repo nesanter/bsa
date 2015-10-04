@@ -9,6 +9,7 @@
 #include "ulib/util.h"
 #include "ulib/pins.h"
 #include "ulib/ldr.h"
+#include "ulib/piezo.h"
 #include "exception.h"
 #include "task.h"
 #include "proc/processor.h"
@@ -73,6 +74,9 @@ extern struct task_info * current_task;
 // [manifest] .task.this.depth       6   6   rw,v
 // [manifest] .task.this.stack       6   7   r
 // [manifest] .task.this.allocation  6   8   r
+// [manifest] .piezo.enable          7   0   rwB,vB
+// [manifest] .piezo.width           7   1   rw,v
+// [manifest] .piezo.active          7   2   rwB,vB
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -105,7 +109,8 @@ const driver_write_fn timer_write_fns[] = {
     &drv_timer_write, // 4.0
     &drv_timer_enable_write, // 4.1
     &drv_timer_select_write, // 4.2
-    &drv_timer_period_write // 4.3
+    &drv_timer_period_write, // 4.3
+    &drv_timer_prescaler_write // 4.4
 };
 
 const driver_write_fn ldr_write_fns[] = {
@@ -123,6 +128,12 @@ const driver_write_fn task_write_fns[] = {
     &drv_task_this_depth_write, // 6.6
     0, // 6.7
     0 // 6.8
+};
+
+const driver_write_fn piezo_write_fns[] = {
+    &drv_piezo_enable_write, // 7.0
+    &drv_piezo_width_write, // 7.1
+    &drv_piezo_active_write // 7.2
 };
 
 const driver_read_fn console_read_fns[] = {
@@ -156,6 +167,7 @@ const driver_read_fn timer_read_fns[] = {
     &drv_timer_enable_read, // 4.1
     &drv_timer_select_read, // 4.2
     &drv_timer_period_read, // 4.3
+    &drv_timer_prescaler_read // 4.4
 };
 
 const driver_read_fn ldr_read_fns[] = {
@@ -172,6 +184,12 @@ const driver_read_fn task_read_fns[] = {
     &drv_task_this_depth_read, // 6.6
     &drv_task_this_stack_read, // 6.7
     &drv_task_this_allocation_read // 6.8
+};
+
+const driver_read_fn piezo_read_fns[] = {
+    &drv_piezo_enable_read, // 7.0
+    &drv_piezo_width_read, // 7.1
+    &drv_piezo_active_read // 7.2
 };
 
 const driver_block_fn all_block_fns[] = {
@@ -733,6 +751,42 @@ int drv_task_this_stack_read() {
 
 int drv_task_this_allocation_read() {
     return task_stack_allocation(current_task);
+}
+
+int drv_piezo_enable_write(int val, char *str) {
+    init_piezo();
+    return DRV_SUCCESS;
+}
+
+int drv_piezo_width_write(int val, char *str) {
+    u_oc_set_secondary_compare(OC3, val);
+    return DRV_SUCCESS;
+}
+
+int drv_piezo_active_write(int val, char *str) {
+    if (val) {
+        OC3CONSET = BITS(15);
+    } else {
+        OC3CONCLR = BITS(15);
+    }
+
+    return DRV_SUCCESS;
+}
+
+int drv_piezo_enable_read() {
+    return 1;
+}
+
+int drv_piezo_width_read() {
+    return u_oc_get_secondary_compare(OC3);
+}
+
+int drv_piezo_active_read() {
+    if (OC3CON & BITS(15)) {
+        return DRV_TRUE;
+    } else {
+        return DRV_FALSE;
+    }
 }
 
 int rx_block_init = 0;

@@ -1552,6 +1552,8 @@ void u_i2c_save_config(u_i2c_select select, u_i2c_config config) {
   new_config |= (config.strict_reserved_address_rule_enable & 1) << 11;
   new_config |= (config.slave_address & 1) << 10;
   new_config |= (config.slew_rate_control_disable & 1) << 9;
+u_config_oc u_oc_load_config(OC oc_select);
+void u_oc_save_config(OC oc_select, u_config_oc config);
   new_config |= (config.smbus_input_levels_disable & 1) << 8;
   new_config |= (config.general_call_enable & 1) << 7;
   new_config |= (config.scl_clock_stretch_enable & 1) << 6;
@@ -1586,6 +1588,8 @@ int u_i2c_get_transmit_status(u_i2c_select select) {
   if (select == I2C1) {
      return I2C1STAT & BITS(14);
   } else if (select == I2C2) {
+u_config_oc u_oc_load_config(OC oc_select);
+void u_oc_save_config(OC oc_select, u_config_oc config);
      return I2C2STAT & BITS(14);
   }
   return 0;
@@ -1644,6 +1648,8 @@ int u_i2c_get_data_address(u_i2c_select select) {
   }
   return 0;
 }
+u_config_oc u_oc_load_config(OC oc_select);
+void u_oc_save_config(OC oc_select, u_config_oc config);
 
 int u_i2c_get_stop(u_i2c_select select) {
   if (select == I2C1) {
@@ -1834,7 +1840,7 @@ u_ana_config u_ana_load_config() {
     config.clock_source = (con3 & BITS(15)) >> 15;
     config.auto_sample_time = (con3 & (BITS(8) | BITS(9) | BITS(10) | BITS(11) | BITS(12))) >> 8;
     config.clock_select = (con3 & 0xFF);
-
+ 
     return config;
 }
 
@@ -1923,5 +1929,155 @@ void u_ana_set_scan_select(int pin_bit, int select) {
 
 unsigned int volatile *u_ana_buffer_ptr(int n) {
     return &ADC1BUF0 + n;
+}
+
+/*-------------------OC-----------------------------*/
+u_oc_config u_oc_load_config(OC oc_select) {
+    int cur_config;
+    u_oc_config config;
+ 
+    switch (oc_select) {
+        case OC1:
+            cur_config = OC1CON;
+        break;   
+        case OC2:
+           cur_config = OC2CON;
+        break;
+        case OC3:
+            cur_config = OC3CON;
+        break;
+        case OC4:
+            cur_config = OC4CON;
+        break;
+        case OC5:
+            cur_config = OC5CON;
+        break;
+    }
+
+    config.on = (cur_config & BITS(15)) >> 15;
+    config.stop_in_idle = (cur_config & BITS(13)) >> 13;
+    config.mode_32 = (cur_config & BITS(5)) >> 5;
+    config.timer_select = (cur_config & BITS(3)) >> 3;
+    config.mode_select = (cur_config & (BITS(2) | BITS(1) | BITS(0)));
+
+    return config;
+}
+
+void u_oc_save_config(OC oc_select, u_oc_config config) {
+    int new_config = 0;
+
+    new_config |= (config.on & 1) << 15;
+    new_config |= (config.stop_in_idle & 1) << 13;
+    new_config |= (config.mode_32 & 1) << 5;
+    new_config |= (config.timer_select & 1) << 3;
+    new_config |= (config.mode_select & 7);
+
+    switch(oc_select) {
+        case OC1:
+            OC1CON = new_config;
+            break;
+        case OC2:
+            OC2CON = new_config;
+            break;
+        case OC3:
+            OC3CON = new_config;
+            break;
+        case OC4:
+            OC4CON = new_config;
+            break;
+        case OC5:
+            OC5CON = new_config;
+            break;
+    }
+}
+
+unsigned int u_oc_get_compare(OC oc_select) {
+    switch (oc_select) {
+        case OC1:
+            return OC1R;
+        case OC2:
+            return OC2R;
+        case OC3:
+            return OC3R;
+        case OC4:
+            return OC4R;
+        case OC5:
+            return OC5R;
+    }
+}
+
+void u_oc_set_compare(OC oc_select, unsigned int value) {
+     switch (oc_select) {
+        case OC1:
+            OC1R = value;
+            break;
+        case OC2:
+            OC2R = value;
+            break;
+        case OC3:
+            OC3R = value;
+            break;
+        case OC4:
+            OC4R = value;
+            break;
+        case OC5:
+            OC5R = value;
+            break;
+    }
+   
+}
+
+unsigned int u_oc_get_secondary_compare(OC oc_select) {
+    switch (oc_select) {
+        case OC1:
+            return OC1RS;
+        case OC2:
+            return OC2RS;
+        case OC3:
+            return OC3RS;
+        case OC4:
+            return OC4RS;
+        case OC5:
+            return OC5RS;
+    }
+}
+
+void u_oc_set_secondary_compare(OC oc_select, unsigned int value) {
+    switch (oc_select) {
+        case OC1:
+            OC1RS = value;
+            break;
+        case OC2:
+            OC2RS = value;
+            break;
+        case OC3:
+            OC3RS = value;
+            break;
+        case OC4:
+            OC4RS = value;
+            break;
+        case OC5:
+            OC5RS = value;
+            break;   
+    }
+}
+
+int u_oc_get_fault_condition(OC oc_select) {
+    switch (oc_select) {
+        case OC1:
+            return OC1CON & BITS(4);
+ 
+        case OC2:
+            return OC2CON & BITS(4);
+
+        case OC3:
+            return OC3CON & BITS(4);
+
+        case OC4:
+            return OC4CON & BITS(4);
+
+        case OC5:
+            return OC5CON & BITS(4);
+    }
 }
 
