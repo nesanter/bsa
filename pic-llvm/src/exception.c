@@ -68,7 +68,6 @@ void throw_global_exception(int info) {
             }
             eh = eh->parent;
         }
-        kill_task(task);
     }
 }
 
