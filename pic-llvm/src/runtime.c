@@ -264,6 +264,7 @@ restore:
     return current_task->unblock_info;
 }
 
+/*
 int ___write_addr_builtin(struct eh_t *eh, unsigned int target, int val, int addr) {
     unsigned int low = target & 0xFFFF;
     unsigned int high = (target & 0xFFFF0000) >> 16;
@@ -295,6 +296,7 @@ int ___read_addr_builtin(struct eh_t *eh, unsigned int target, int addr) {
         return 0;
     }
 }
+*/
 
 void ___yield_builtin(struct eh_t *eh) {
     /*
