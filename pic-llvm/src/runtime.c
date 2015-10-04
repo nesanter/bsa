@@ -432,6 +432,7 @@ int drv_console_rx_block_read() {
 Pin TASK_LOCAL selected_led = {PIN_GROUP_B, BITS(4)};
 
 int drv_led_select_write(int val, char *str) {
+    selected_led.group = PIN_GROUP_B;
     switch (val) {
         case 0: selected_led.pin = BITS(4); break;
         case 1: selected_led.pin = BITS(5); break;

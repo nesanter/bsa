@@ -132,11 +132,11 @@ extern unsigned int _task_local_start, _task_local_size, _task_local_end;
 
 void task_local_switch(int save_index, int restore_index) {
     unsigned int * const start_ptr = &_task_local_start;
-    unsigned int const words = (&_task_local_size - &_task_local_start) >> 2;
+    unsigned int const words = (&_task_local_size - &_task_local_start);
 //    unsigned int * const end_ptr = &_task_local_end;
 
     unsigned int * const save_ptr = &start_ptr[words * (save_index + 1)];
-    unsigned int * const restore_ptr = &restore_ptr[words * (restore_index + 1)];
+    unsigned int * const restore_ptr = &start_ptr[words * (restore_index + 1)];
     for (int i = 0 ; i < words ; i++) {
         save_ptr[i] = start_ptr[i];
         start_ptr[i] = restore_ptr[i];
@@ -145,13 +145,13 @@ void task_local_switch(int save_index, int restore_index) {
 
 void task_local_clear(int save_index) {
     unsigned int * const start_ptr = &_task_local_start;
-    unsigned int const words = (&_task_local_size - &_task_local_start) >> 2;
+    unsigned int const words = (&_task_local_size - &_task_local_start);
 
     unsigned int * const save_ptr = &start_ptr[words * (save_index + 1)];
     for (int i = 0; i < words; i++) {
         save_ptr[i] = start_ptr[i];
         start_ptr[i] = 0;
-    }   
+    }
 }
 
 int schedule_task() {
@@ -212,35 +212,31 @@ int schedule_task() {
 
 //    current_task = next_task;
 
+    struct task_info * previous_task = current_task;
+
     if (next_task) {
-        next_task->state = TASK_STATE_RUNNING;
+        current_task = next_task;
         if (next_task->state == TASK_STATE_NEW) {
 #ifdef RUNTIME_INFO
             uart_print("[scheduled new task]\r\n");
 #endif
-            if (current_task) {
-                int current_task_index = current_task - task_list;
-                uart_print("saving TLs for ");
-                uart_print(tohex(current_task_index, 1));
-                uart_print("\r\n");
+            next_task->state = TASK_STATE_RUNNING;
+
+            if (previous_task) {
+                int current_task_index = (previous_task - task_list);
                 task_local_clear(current_task_index);
             }
-            current_task = next_task;
             context_switch(&current_task->context, &task_exit);
         } else {
 #ifdef RUNTIME_INFO
             uart_print("[scheduled old task]\r\n");
 #endif
-            int current_task_index = current_task - task_list;
-            int next_task_index = next_task - task_list;
-            uart_print("saving/restoring TLs for ");
-            uart_print(tohex(current_task_index, 2));
-            uart_print("/");
-            uart_print(tohex(next_task_index, 2));
-            uart_print("\r\n");
+            next_task->state = TASK_STATE_RUNNING;
 
+            int current_task_index = (previous_task - task_list);
+            int next_task_index = (next_task - task_list);
             task_local_switch(current_task_index, next_task_index);
-            current_task = next_task;
+
             context_switch(&current_task->context, 0);
         }
         return -1; // unreachable
