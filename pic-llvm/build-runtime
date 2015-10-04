@@ -1,10 +1,8 @@
 #!/bin/bash
 
-[ ! -d out ] && mkdir out
-cd out
-rm -f *
-clang -O2 -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -Wa,--noexecstack -D__LANGUAGE_C__ -fno-stack-protector -Os -I ../include $(find -H ../src -xtype f -regex '.*\.[csS]$') && \
-../../util/mipsel-unknown-elf-ar r bl-runtime.a *.o || { echo "Failed" ; exit 1 ; }
-
-cd ..
+[ ! -d out ] && mkdir out || rm -f out/*
 ./gen-manifest
+cd out
+clang -O2 -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -Wa,--noexecstack -D__LANGUAGE_C__ -fno-stack-protector -Os -I ../include $(find -H ../src -xtype f -regex '.*\.[csS]$') && \
+../../util/mipsel-unknown-elf-ar r bomu-runtime.a *.o || { echo "Failed" ; exit 1 ; }
+
