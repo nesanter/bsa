@@ -251,7 +251,7 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
             if (schedule_task())
                 scheduler_loop();
         } else {
-            return 0;
+            return current_task->unblock_info;
         }
     } else {
         return 0;
@@ -367,7 +367,8 @@ int block_util_always(struct task_info * task, unsigned int info) {
 
 /* driver functions */
 
-int tx_block = 0, rx_block = 0;
+int TASK_LOCAL tx_block = 0;
+int TASK_LOCAL rx_block = 0;
 
 int drv_console_write(int val, char *str) {
     if (str)
@@ -446,9 +447,10 @@ int drv_console_rx_block_read() {
         return DRV_FALSE;
 }
 
-Pin selected_led = {PIN_GROUP_B, BITS(4)};
+Pin TASK_LOCAL selected_led = {PIN_GROUP_B, BITS(4)};
 
 int drv_led_select_write(int val, char *str) {
+    selected_led.group = PIN_GROUP_B;
     switch (val) {
         case 0: selected_led.pin = BITS(4); break;
         case 1: selected_led.pin = BITS(5); break;
@@ -489,8 +491,8 @@ int drv_led_read() {
     return pin_test(selected_led);
 }
 
-Pin selected_sw = { PIN_GROUP_A, BITS(2) };
-unsigned int selected_sw_edge = 1;
+Pin TASK_LOCAL selected_sw = { PIN_GROUP_A, BITS(2) };
+unsigned int TASK_LOCAL selected_sw_edge = 1;
 
 int drv_sw_select_write(int val, char *str) {
     switch (val) {
@@ -577,7 +579,7 @@ int drv_sys_tick_read() {
     return tick;
 }
 
-u_timerb_select selected_timer;
+u_timerb_select TASK_LOCAL selected_timer;
 
 int drv_timer_select_write(int val, char *str) {
     switch (val) {
@@ -792,9 +794,13 @@ int drv_piezo_active_read() {
 int rx_block_init = 0;
 
 int drv_console_rx_block() {
+    if (u_uartx_get_rx_available(UART1)) {
+        current_task->unblock_info = U1RXREG;
+        return DRV_FAILURE;
+    }
     if (!rx_block_init) {
         runtime_set_vector_table_entry(_UART_1_VECTOR, &handler_console_rx);
-        uart_setup_rx_interrupts(); 
+        uart_setup_rx_interrupts();
         rx_block_init = 1;
     }
     IEC1SET = BITS(8);
