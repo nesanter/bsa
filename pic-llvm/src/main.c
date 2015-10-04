@@ -61,8 +61,8 @@ void runtime_entry(void) {
 
     INTCONSET = BITS(12);
 
-//    CNCONASET = BITS(15);
-//    CNCONBSET = BITS(15);
+    CNCONASET = BITS(15);
+    CNCONBSET = BITS(15);
 
     IPC8SET = BITS(19);
     IPC8CLR = BITS(20) | BITS(18);

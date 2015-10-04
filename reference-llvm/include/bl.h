@@ -48,6 +48,7 @@ unsigned long expr_op_pos(unsigned long lhs_ref);
 
 void create_function_call(char *ident, unsigned long params_ref);
 
+void statement_empty();
 void statement_expression(unsigned long expr_ref);
 void statement_assign(char *lhs, unsigned long rhs_ref);
 void statement_return_void();
@@ -106,5 +107,6 @@ unsigned long qident_add(unsigned long qident_ref, char *ident);
 char *escape_string(char *s);
 
 void global_create(char *ident, int value, int is_bool);
+void constant_create(char *ident, int value, int is_bool);
 
 //#endif /* BL_H */

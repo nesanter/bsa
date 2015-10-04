@@ -260,6 +260,7 @@ void error_symbol_of_different_type(string s) {
     error_action();
 }
 
+<<<<<<< HEAD
 void error_undeclared_channel(string s) {
     write_error_prefix();
     stderr.write("channel ", s, " nonexistant");
@@ -277,6 +278,13 @@ void error_requires_channel(string op) {
 void error_channel_previously_variable() {
     write_error_prefix();
     stderr.write("channel previously declared as variable");
+    write_error_suffix();
+    error_action();
+}
+
+void error_previously_declared(string s) {
+    write_error_prefix();
+    stderr.write("multiple declarations for ", s);
     write_error_suffix();
     error_action();
 }
@@ -310,4 +318,9 @@ void warn_unexpected_error() {
     write_error_suffix();
 }
 
+void warn_globals_deprecated() {
+    write_warn_prefix();
+    stderr.write("globals have been deprecated");
+    write_error_suffix();
+}
 

@@ -57,6 +57,7 @@ extern struct task_info * current_task;
 // [manifest] .system.delay          3   0   w,v
 // [manifest] .system.led            3   1   rw,v
 // [manifest] .system.tick           3   2   rw,v
+// [manifest] .system.exit           3   3   w,v
 // [manifest] .timer                 4   0   rw,v
 // [manifest] .timer.enable          4   1   rwB,vB
 // [manifest] .timer.select          4   2   rw,v
@@ -102,7 +103,8 @@ const driver_write_fn sw_write_fns[] = {
 const driver_write_fn sys_write_fns[] = {
     &drv_sys_delay_write, // 3.0
     &drv_sys_led_write, // 3.1
-    &drv_sys_tick_write // 3.2
+    &drv_sys_tick_write, // 3.2
+    &drv_sys_exit_write // 3.3
 };
 
 const driver_write_fn timer_write_fns[] = {
@@ -159,7 +161,8 @@ const driver_read_fn sw_read_fns[] = {
 const driver_read_fn sys_read_fns[] = {
     0, // 3.0
     &drv_sys_led_read, // 3.1
-    &drv_sys_tick_read // 3.2
+    &drv_sys_tick_read, // 3.2
+    0 // 3.3
 };
 
 const driver_read_fn timer_read_fns[] = {
@@ -247,6 +250,7 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
     driver_block_fn fn = drivers[low].block_fns[high];
     if (fn) {
         if (fn()) {
+            current_task->eh_ptr = eh;
             context_save(&current_task->context, &&restore);
             if (schedule_task())
                 scheduler_loop();
@@ -292,7 +296,7 @@ int ___read_addr_builtin(struct eh_t *eh, unsigned int target, int addr) {
     }
 }
 
-void ___yield_builtin() {
+void ___yield_builtin(struct eh_t *eh) {
     /*
     void *ra;
     asm volatile ("add %0, $ra, $zero" : "=r"(ra));
@@ -300,6 +304,7 @@ void ___yield_builtin() {
 #ifdef RUNTIME_INFO
     uart_print("[saving old task]\r\n");
 #endif
+    current_task->eh_ptr = eh;
     context_save(&current_task->context, &&restore);
     current_task->state = TASK_STATE_SOFT_BLOCKED;
 #ifdef RUNTIME_INFO
@@ -508,8 +513,9 @@ int drv_sw_select_write(int val, char *str) {
         case 3: selected_sw.group = PIN_GROUP_B;
                 selected_sw.pin = BITS(14);
                 break;
-        default: return DRV_SUCCESS;
+        default: return DRV_FAILURE;
     }
+    pin_mode_set(selected_sw, 1, 0);
     return DRV_SUCCESS;
 }
 
@@ -577,6 +583,12 @@ int drv_sys_tick_read() {
     unsigned int tick;
     asm volatile ("mfc0 %0, $9" : "=r"(tick));
     return tick;
+}
+
+int drv_sys_exit_write(int val, char *str) {
+    throw_global_exception(val);
+    runtime_exit();
+    return DRV_SUCCESS;
 }
 
 u_timerb_select TASK_LOCAL selected_timer;
@@ -803,8 +815,8 @@ int drv_console_rx_block() {
         uart_setup_rx_interrupts();
         rx_block_init = 1;
     }
-    IEC1SET = BITS(8);
     block_task(current_task, &block_util_always, BLOCK_REASON_CONSOLE_RX, 0);
+    IEC1SET = BITS(8);
     return DRV_SUCCESS;
 }
 
@@ -828,6 +840,7 @@ int drv_sw_block() {
     block_task(current_task, &block_util_match_sw, BLOCK_REASON_SW, data | (selected_sw_edge << 16));
     
     u_cn_enable(selected_sw);
+    IEC1SET = BITS(13) | BITS(14);
     return 1;
 }
 
@@ -873,4 +886,8 @@ int drv_timer_block() {
     return 1;
 }
 
+void runtime_exit() {
+    asm volatile ("addi $k0, $zero, 0; syscall;");
+    while (1); // unreachable
+}
 

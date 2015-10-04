@@ -36,7 +36,7 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL AT POUND
-%token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE
+%token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE CONSTANT
 %token HIDDEN_FAIL HIDDEN_TRACE HIDDEN_CANARY
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
@@ -68,6 +68,7 @@
 file: %empty
     | function_def file
     | global_def file
+    | constant_def file
     ;
 
 function_def: function_signature LBRACE body RBRACE { function_end(); }
@@ -85,6 +86,9 @@ attributes: AT IDENT { $$ = attribute_value(0, $2); }
 global_def: IDENT EQUAL constant_expression SEMI { global_create($1, $3.value, $3.is_bool); }
           ;
 
+constant_def: CONSTANT IDENT EQUAL constant_expression SEMI { constant_create($2, $4.value, $4.is_bool); }
+            ;
+
 args: %empty { $$ = args_empty(); }
     | IDENT { $$ = args_create($1, 0); }
 /*    | POUND IDENT { $$ = args_create($2, 1); } */
@@ -96,7 +100,7 @@ body: statement
     | body statement
     ;
 
-statement: SEMI /* "empty" statement */
+statement: SEMI { statement_empty(); } /* "empty" statement */
          | expression SEMI { statement_expression($1); }
          | assign_statement SEMI
          | if_statement

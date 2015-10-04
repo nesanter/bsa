@@ -13,6 +13,7 @@ enum SymbolType {
     OBJECT,
     FUNCTION,
     CHANNEL,
+    CONSTANT
 }
 
 class InstUsage {

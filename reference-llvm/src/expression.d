@@ -159,7 +159,7 @@ void init(string manifest_file) {
     system_calls["store"] = new SystemCall("___write_addr_builtin", 3, false);
     system_calls["load"] = new SystemCall("___read_addr_builtin", 2, false);
 
-    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), []));
+    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
     fail_fn = current_module.add_function("___fail_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
     trace_fn = current_module.add_function("___trace_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
@@ -191,10 +191,16 @@ extern (C) {
 //            error_occured++;
 //            return ulong.max;
         }
+        auto res = new Expression;
+        if (sym.type == SymbolType.CONSTANT) {
+            res.value = sym.global_value;
+            res.is_bool = sym.is_bool;
+            return res.reference();
+        }
+
         if (sym.type != SymbolType.VARIABLE) {
             error_symbol_of_different_type(text(s));
         }
-        auto res = new Expression;
 
         if (sym.is_global && sym.parent != current_function) {
             res.value = current_builder.load(sym.global_value);
@@ -1005,6 +1011,10 @@ extern (C) {
 
     /* Statements */
 
+    void statement_empty() {
+        current_value = void_value;
+    }
+
     void statement_assign(char *lhs, ulong rhs_ref) {
         auto sym = find_or_create_symbol(text(lhs));
         if (sym.type != SymbolType.VARIABLE && sym.type != SymbolType.NONE) {
@@ -1591,7 +1601,7 @@ extern (C) {
 
     void statement_yield() {
         current_value = void_value;
-        current_builder.call(yield_fn, []);
+        current_builder.call(yield_fn, [current_eh]);
     }
 
     void statement_fork(char *ident) {
@@ -1669,6 +1679,9 @@ extern (C) {
         } else {
             if (fn.type != SymbolType.FUNCTION) {
                 error_function_shadows_different_type(text(ident));
+            }
+            if (fn.implemented) {
+                error_previously_declared(text(ident));
             }
             if (attr & FunctionAttribute.HANDLER && !fn.is_handler) {
                 error_handler_attr_unexpected();
@@ -1893,6 +1906,7 @@ extern (C) {
     /* Global */
 
     void global_create(char *ident, int value, int is_bool) {
+        warn_globals_deprecated();
         auto sym = create_symbol(text(ident));
 
         sym.is_global = true;
@@ -1901,6 +1915,29 @@ extern (C) {
 
         sym.global_value = Value.create_global_variable(current_module, numeric_type, text(ident));
         sym.global_value.set_initializer(Value.create_const_int(numeric_type, value));
+    }
+
+    /* Constants */
+
+    void constant_create(char *ident, int value, int is_bool) {
+        auto sym = find_symbol(text(ident));
+
+        if (sym !is null) {
+            error_previously_declared(text(ident));
+        }
+
+        sym = create_symbol(text(ident));
+
+        sym.type = SymbolType.CONSTANT;
+        
+        if (is_bool) {
+            if (value)
+                sym.global_value = true_value;
+            else
+                sym.global_value = false_value;
+        } else {
+            sym.global_value = Value.create_const_int(numeric_type, value);
+        }
     }
 
     /* Scope */

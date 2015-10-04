@@ -56,6 +56,7 @@
 "true" { return TRUE; }
 "false" { return FALSE; }
 "function" { return FUNCTION; }
+"constant" { return CONSTANT; }
 "while" { return WHILE; }
 "do" { return DO; }
 "if" { return IF; }
