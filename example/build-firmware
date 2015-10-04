@@ -9,4 +9,4 @@ fi
 llc -O2 -mattr=+noabicalls -march=mipsel -mcpu=mips32r2 -relocation-model=static -filetype=asm -float-abi=soft output.bc && \
 clang -O2 -c -target mipsel -mcpu=mips32r2 -static -mno-abicalls -msoft-float -fintegrated-as -Wa,--noexecstack output.s || { echo "Failed" ; exit 1 ; }
 
-../util/mipsel-unknown-elf-ld -O3 -obl-firmware -T../pic-llvm/linker/runtime.ld output.o ../pic-llvm/out/bl-runtime.a
+../util/mipsel-unknown-elf-ld -O3 -obl-firmware -T../pic-llvm/linker/runtime.ld output.o ../pic-llvm/out/bomu-runtime.a

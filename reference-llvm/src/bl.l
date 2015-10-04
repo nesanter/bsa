@@ -102,7 +102,8 @@
 0x[0-9a-fA-F]+ { yylval.llu = strtoull(yytext+2, NULL, 16); return NUMERIC; }
 0b[01]+ { yylval.llu = strtoull(yytext+2, NULL, 2); return NUMERIC; }
 0o[0-7]+ { yylval.llu = strtoull(yytext+2, NULL, 8); return NUMERIC; }
-(0d)?[0-9]+ { yylval.llu = strtoull(yytext, NULL, 10); return NUMERIC; }
+0d[0-9]+ { yylval.llu = strtoull(yytext+2, NULL, 10); return NUMERIC; }
+[0-9]+ { yylval.llu = strtoull(yytext, NULL, 10); return NUMERIC; }
 
  /* textual identifiers */
 [a-zA-Z][a-zA-Z0-9_]* { yylval.text = strdup(yytext); return IDENT; }

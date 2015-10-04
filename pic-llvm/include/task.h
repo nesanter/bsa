@@ -1,6 +1,8 @@
 #ifndef TASK_H
 #define TASK_H
 
+#define TASK_LOCAL __attribute__((section(".task_local")))
+
 struct context {
     int s0, s1, s2, s3, s4, s5, s6, s7, gp;
     void *sp, *fp;

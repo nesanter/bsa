@@ -60,6 +60,8 @@ ENTRY(runtime_entry)
 EXTERN (_min_stack_size _min_heap_size)
 PROVIDE(_min_stack_size = 0x200) ;
 
+EXTERN (_task_local_start _task_local_end _task_local_size)
+
 /*************************************************************************
  * Processor-specific object file.  Contains SFR definitions.
  *************************************************************************/
@@ -364,6 +366,23 @@ SECTIONS
   . = ALIGN(4) ;
   _end = . ;
   _bss_end = . ;
+
+  .task_max_ignore (DSECT) :
+  {
+    *(.task_max)
+  }
+
+  .task_local_reserved :
+  {
+    *(.task_local)
+    . = ALIGN(4) ;
+    PROVIDE(_task_local_size = . ) ;
+    . += SIZEOF(.task_local_reserved) * (SIZEOF(.task_max_ignore)) ;
+  } >kseg1_data_mem
+  PROVIDE(_task_local_start = . - SIZEOF(.task_local_reserved)) ;
+  PROVIDE(_task_local_end = .) ;
+
+
   /*
    *  The heap and stack are best-fit allocated by the linker after other
    *  data and bss sections have been allocated.

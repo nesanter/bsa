@@ -397,6 +397,30 @@ int u_ana_get_scan_select(int pin_bit);
 void u_ana_set_scan_select(int pin_bit, int select);
 
 unsigned int volatile *u_ana_buffer_ptr(int n);
+
+/*------------------------OC----------------------------*/
+typedef struct {
+    char on,
+         stop_in_idle,
+         mode_32,
+         timer_select,
+         mode_select;
+} u_oc_config;
+
+typedef enum {
+    OC1, OC2, OC3, OC4, OC5
+} OC;
+
+u_oc_config u_oc_load_config(OC oc_select);
+void u_oc_save_config(OC oc_select, u_oc_config config);
+
+unsigned int u_oc_get_compare(OC oc_select);
+void u_oc_set_compare(OC oc_select, unsigned int value);
+unsigned int u_oc_get_secondary_compare(OC oc_select);
+void u_oc_set_secondary_compare(OC oc_select, unsigned int value);
+
+int u_oc_get_fault_condition(OC oc_select);
+
 #endif	/* ULIB_H */
 
 

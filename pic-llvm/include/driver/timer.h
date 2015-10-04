@@ -5,11 +5,13 @@ int drv_timer_write(int val, char *str);
 int drv_timer_enable_write(int val, char *str);
 int drv_timer_select_write(int val, char *str);
 int drv_timer_period_write(int val, char *str);
+int drv_timer_prescaler_write(int val, char *str);
 
 int drv_timer_read();
 int drv_timer_enable_read();
 int drv_timer_select_read();
 int drv_timer_period_read();
+int drv_timer_prescaler_read(int val, char *str);
 
 int drv_timer_block();
 
