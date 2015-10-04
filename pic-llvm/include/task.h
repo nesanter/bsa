@@ -35,6 +35,7 @@ struct task_info {
     unsigned int block_data;
     unsigned int unblock_info;
     int (*block_fn)(struct task_info *, unsigned int);
+    struct eh_t * eh_ptr;
 };
 
 enum task_size {
@@ -68,6 +69,8 @@ void kill_task(struct task_info *task);
 
 void block_task(struct task_info *task, int (*block_fn)(struct task_info *, unsigned int), enum block_reason reason, unsigned int data);
 void unblock_tasks(enum block_reason reason, unsigned int info);
+
+int task_active_next(int id, struct task_info ** task);
 
 int task_count();
 unsigned int task_stack_free();

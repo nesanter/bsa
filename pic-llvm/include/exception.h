@@ -21,5 +21,6 @@ struct eh_t {
 
 void set_current_eh_t(struct eh_t *ptr);
 int throw_exception(int info);
+void throw_global_exception(int info);
 
 #endif /* EXCEPTION_H */

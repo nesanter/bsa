@@ -2,6 +2,7 @@
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
+#include "runtime.h"
 #include "proc/processor.h"
 
 //extern const unsigned int __MAX_TASKS = MAX_TASKS;
@@ -154,6 +155,21 @@ void task_local_clear(int save_index) {
     }
 }
 
+int task_active_next(int id, struct task_info ** task) {
+    for (int i = id; i < MAX_TASKS; i++) {
+        if (task_list[i].state == TASK_STATE_READY ||
+            task_list[i].state == TASK_STATE_RUNNING ||
+            task_list[i].state == TASK_STATE_SOFT_BLOCKED ||
+            task_list[i].state == TASK_STATE_HARD_BLOCKED) {
+
+            *task = &task_list[i];
+            return i + 1;
+        }
+    }
+    *task = 0;
+    return 0;
+}
+
 int schedule_task() {
 //    unsigned int sp;
 //    asm volatile ("move %0, $sp;" : "=r"(sp));
@@ -265,7 +281,7 @@ void scheduler_loop() {
 #ifdef HARD_RUNTIME
     while (1);
 #else
-    asm volatile ("addi $k1, $zero, 0; syscall;");
+    runtime_exit();
 #endif
 }
 

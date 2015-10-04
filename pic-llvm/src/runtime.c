@@ -57,6 +57,7 @@ extern struct task_info * current_task;
 // [manifest] .system.delay          3   0   w,v
 // [manifest] .system.led            3   1   rw,v
 // [manifest] .system.tick           3   2   rw,v
+// [manifest] .system.exit           3   3   w,v
 // [manifest] .timer                 4   0   rw,v
 // [manifest] .timer.enable          4   1   rwB,vB
 // [manifest] .timer.select          4   2   rw,v
@@ -102,7 +103,8 @@ const driver_write_fn sw_write_fns[] = {
 const driver_write_fn sys_write_fns[] = {
     &drv_sys_delay_write, // 3.0
     &drv_sys_led_write, // 3.1
-    &drv_sys_tick_write // 3.2
+    &drv_sys_tick_write, // 3.2
+    &drv_sys_exit_write // 3.3
 };
 
 const driver_write_fn timer_write_fns[] = {
@@ -159,7 +161,8 @@ const driver_read_fn sw_read_fns[] = {
 const driver_read_fn sys_read_fns[] = {
     0, // 3.0
     &drv_sys_led_read, // 3.1
-    &drv_sys_tick_read // 3.2
+    &drv_sys_tick_read, // 3.2
+    0 // 3.3
 };
 
 const driver_read_fn timer_read_fns[] = {
@@ -247,6 +250,7 @@ int ___block_builtin(struct eh_t *eh, unsigned int target) {
     driver_block_fn fn = drivers[low].block_fns[high];
     if (fn) {
         if (fn()) {
+            current_task->eh_ptr = eh;
             context_save(&current_task->context, &&restore);
             if (schedule_task())
                 scheduler_loop();
@@ -579,6 +583,12 @@ int drv_sys_tick_read() {
     return tick;
 }
 
+int drv_sys_exit_write(int val, char *str) {
+    throw_global_exception(val);
+    runtime_exit();
+    return DRV_SUCCESS;
+}
+
 u_timerb_select TASK_LOCAL selected_timer;
 
 int drv_timer_select_write(int val, char *str) {
@@ -873,4 +883,8 @@ int drv_timer_block() {
     return 1;
 }
 
+void runtime_exit() {
+    asm volatile ("addi $k0, $zero, 0; syscall;");
+    while (1); // unreachable
+}
 

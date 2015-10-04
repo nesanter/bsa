@@ -4,7 +4,7 @@
 #define EH_FLAG_ALWAYS (1)
 #define EH_FLAG_FAILURE (4)
 
-extern struct task_info *current_task;
+extern struct task_info * current_task;
 
 struct eh_t * current_eh_t;
 
@@ -50,5 +50,25 @@ int throw_exception(int info) {
     }
     kill_task(current_task);
     return 0;
+}
+
+void throw_global_exception(int info) {
+    struct task_info * task;
+    struct eh_t * eh;
+
+    int n = 0;
+    while ((n = task_active_next(n, &task))) {
+        eh = task->eh_ptr;
+        while (eh) {
+            if (eh->flags & EH_FLAG_ALWAYS) {
+                eh->always_handler();
+            }
+            if (eh->flags & EH_FLAG_FAILURE) {
+                eh->failure_handler(info);
+            }
+            eh = eh->parent;
+        }
+        kill_task(task);
+    }
 }
 

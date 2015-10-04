@@ -10,4 +10,6 @@ typedef int (*driver_read_addr_fn)(int addr);
 typedef void (*handler_t)(void);
 void runtime_set_vector_table_entry(unsigned int entry, handler_t handler);
 
+void runtime_exit();
+
 #endif /* RUNTIME_H */
