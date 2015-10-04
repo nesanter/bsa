@@ -95,7 +95,7 @@ body: statement
     | body statement
     ;
 
-statement: SEMI /* "empty" statement */
+statement: SEMI { statement_empty(); } /* "empty" statement */
          | expression SEMI { statement_expression($1); }
          | assign_statement SEMI
          | if_statement

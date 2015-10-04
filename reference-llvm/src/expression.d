@@ -1005,6 +1005,10 @@ extern (C) {
 
     /* Statements */
 
+    void statement_empty() {
+        current_value = void_value;
+    }
+
     void statement_assign(char *lhs, ulong rhs_ref) {
         auto sym = find_or_create_symbol(text(lhs));
         if (sym.type != SymbolType.VARIABLE && sym.type != SymbolType.NONE) {
