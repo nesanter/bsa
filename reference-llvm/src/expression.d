@@ -159,7 +159,7 @@ void init(string manifest_file) {
     system_calls["store"] = new SystemCall("___write_addr_builtin", 3, false);
     system_calls["load"] = new SystemCall("___read_addr_builtin", 2, false);
 
-    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), []));
+    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
     fail_fn = current_module.add_function("___fail_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
     trace_fn = current_module.add_function("___trace_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
@@ -1595,7 +1595,7 @@ extern (C) {
 
     void statement_yield() {
         current_value = void_value;
-        current_builder.call(yield_fn, []);
+        current_builder.call(yield_fn, [current_eh]);
     }
 
     void statement_fork(char *ident) {

@@ -296,7 +296,7 @@ int ___read_addr_builtin(struct eh_t *eh, unsigned int target, int addr) {
     }
 }
 
-void ___yield_builtin() {
+void ___yield_builtin(struct eh_t *eh) {
     /*
     void *ra;
     asm volatile ("add %0, $ra, $zero" : "=r"(ra));
@@ -304,6 +304,7 @@ void ___yield_builtin() {
 #ifdef RUNTIME_INFO
     uart_print("[saving old task]\r\n");
 #endif
+    current_task->eh_ptr = eh;
     context_save(&current_task->context, &&restore);
     current_task->state = TASK_STATE_SOFT_BLOCKED;
 #ifdef RUNTIME_INFO
