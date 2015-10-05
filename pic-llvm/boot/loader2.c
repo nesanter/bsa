@@ -468,6 +468,10 @@ void run(void) {
         }
     }
 
+    // turn off boot led
+    boot_signal_set(SIGNAL_BOOT, 0);
+
+
     // enter runtime
     void * stack_ptr = (void*)(SEG_K1_RAM_END - STACK_PADDING);
     void * gp = 0; // does not actually need initialization
