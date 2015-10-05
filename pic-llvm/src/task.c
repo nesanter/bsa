@@ -6,6 +6,8 @@
 #include "version.h"
 #include "proc/processor.h"
 
+extern unsigned int current_system_tick;
+
 //extern const unsigned int __MAX_TASKS = MAX_TASKS;
 static __attribute__((used,section(".task_max"))) const char __MAX_TASKS [MAX_TASKS];
 
@@ -403,7 +405,7 @@ void handler_core_timer() {
         }
     }
     IFS0CLR = BITS(0);
-    unsigned int tick = SYSTEM_TICK;
+    unsigned int tick = current_system_tick;
     asm volatile ("mtc0 $zero, $9; \
                    mtc0 %0, $11;" : "+r"(tick));
 }

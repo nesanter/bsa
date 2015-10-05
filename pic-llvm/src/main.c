@@ -20,6 +20,8 @@
 //#include <sys/attribs.h>
 //#include "proc/p32mx250f128b.h"
 
+unsigned int current_system_tick = SYSTEM_TICK;
+
 int ___entry(void *);
 
 extern int uart_enabled;
@@ -71,7 +73,7 @@ void runtime_entry(void) {
 
     // setup core timer
     runtime_set_vector_table_entry(_CORE_TIMER_VECTOR, &handler_core_timer);
-    unsigned int tick = SYSTEM_TICK;
+    unsigned int tick = current_system_tick;
     asm volatile ("mtc0 $zero, $9; \
                    mtc0 %0, $11;" : "+r"(tick)); // COUNT and COMPARE
     IEC0SET = BITS(0);
