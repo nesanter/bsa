@@ -1,0 +1,222 @@
+\documentclass{article}
+
+\usepackage{listings}
+\usepackage[margin=1in]{geometry}
+\usepackage{textcomp}
+
+\title{$\mu$ Syntax Reference}
+\author{N. Santer}
+
+\setlength{\parindent}{0cm}
+
+\lstset{%
+basicstyle=\ttfamily
+}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\clearpage
+
+\section{Functions}
+
+\begin{lstlisting}
+function: `function' attributes IDENTIFIER `(' `)' `{' body `}'
+        | `function' attributes IDENTIFIER `(' arguments `)' `{' body `}'
+        ;
+
+attributes: (empty)
+          | `@' ATTRIBUTE
+          | attributes `@' ATTRIBUTE
+          ;
+
+arguments: ARGUMENT
+         | arguments COMMA ARGUMENT
+         ;
+
+body: statement
+    | body statement
+    ;
+\end{lstlisting}
+
+\section{Statements}
+
+\subsection{Empty Statement}
+
+\begin{lstlisting}
+empty_statement: `;' ;
+\end{lstlisting}
+
+\subsection{Expression Statement}
+
+\begin{lstlisting}
+expression_statement: expression `;' ;
+\end{lstlisting}
+
+\subsection{Assignment Statement}
+
+\begin{lstlisting}
+assignment_statement: IDENTIFIER `=' expression `;' ;
+\end{lstlisting}
+
+\subsection{Conditional (``if'') Statement}
+
+\begin{lstlisting}
+if_statement: `if' `(' expression `)' `{' body `}' else_clause ;
+
+else_clause: (empty)
+           | `else' `{' body `}'
+           | `else' if_statement
+           ;
+\end{lstlisting}
+
+\subsection{Loop (``while'') Statement}
+
+\begin{lstlisting}
+while_statement: `while' `{' body `}' `do' `{' body `}' ;
+\end{lstlisting}
+
+\subsection{Fork Statement}
+
+\begin{lstlisting}
+fork_statement: `fork' IDENTIFIER `;' ;
+\end{lstlisting}
+
+\subsection{Yield Statement}
+
+\begin{lstlisting}
+yield_statement: `yield' `;' ;
+\end{lstlisting}
+
+\subsection{Scope Statement}
+
+\begin{lstlisting}
+scope_statement: `scope' `(' scope_type `)' IDENTIFIER `;' ;
+
+scope_type: `always'
+          | `success'
+          | `failure'
+          ;
+\end{lstlisting}
+
+\section{Expressions}
+
+\begin{lstlisting}
+expression: atom
+          | `(' expression `)'
+          | unary_operator expression
+          | expression binary_operator expression
+          ;
+
+atom: literal
+    | function_call
+    | intrinsic
+    ;
+\end{lstlisting}
+
+\subsection{Literal}
+
+\begin{lstlisting}[escapechar=@,upquote=true]
+literal: numeric_literal
+       | @`@'@'@ CHARACTER @`@'@'@
+       | `true'
+       | `false'
+       ;
+\end{lstlisting}
+
+\subsection{Function Call}
+
+\begin{lstlisting}
+function_call: IDENTIFIER `(' parameters `)' ;
+
+parameters: (empty)
+          | expression
+          | parameters expression
+          ;
+\end{lstlisting}
+
+\subsection{Intrinsic}
+
+\begin{lstlisting}
+intrinsic: `[' INTRINSIC TARGET `]'
+         | `[' INTRINSIC expression `,' TARGET `]'
+         | `[' INTRINSIC STRING `,' TARGET `]'
+         ;
+\end{lstlisting}
+
+\subsection{Unary Operator}
+
+\begin{lstlisting}
+unary_operator: arithmetic_unary_operaotor
+              | bitwise_unary_operator
+              | boolean_unary_operator
+              ;
+\end{lstlisting}
+
+\subsubsection{Arithmetic Unary Operators}
+
+\begin{lstlisting}
+arithmetic_unary_operators: `+'
+                          | '-'
+                          ;
+\end{lstlisting}
+
+\subsection{Bitwise Unary Operators}
+
+\begin{lstlisting}
+bitwise_unary_operator: `~' ;
+\end{lstlisting}
+
+\subsubsection{Boolean Unary Operators}
+
+\begin{lstlisting}
+boolean_unary_operator: `not' ;
+\end{lstlisting}
+
+\subsection{Binary Operator}
+
+\subsubsection{Arithmetic Binary Operators}
+
+\begin{lstlisting}
+arithmetic_binary_operator: `+'
+                          | `-'
+                          | `*'
+                          | `/'
+                          ;
+\end{lstlisting}
+
+\subsection{Bitwise Binary Operators}
+
+\begin{lstlisting}
+bitwise_binary_operators: `&'
+                        | `|'
+                        | '^'
+                        ;
+\end{lstlisting}
+
+\subsubsection{Relational Binary Operators}
+
+\begin{lstlisting}
+relational_binary_operators: `=='
+                           | `!='
+                           | `<'
+                           | `<='
+                           | `>'
+                           | `>='
+                           | 'is'
+                           | '!is'
+                           ;
+\end{lstlisting}
+
+\subsubsection{Boolean Binary Operators}
+
+\begin{lstlisting}
+boolean_binary_operators: `and'
+                        | 'or'
+                        | 'xor'
+                        ;
+\end{lstlisting}
+
+\end{document}
