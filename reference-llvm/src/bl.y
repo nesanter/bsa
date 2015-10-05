@@ -36,7 +36,7 @@
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
 %token DOT SEMI COMMA EQUAL AT
-%token FUNCTION WHILE DO IF ELSE YIELD FORK SYNC_BOTH SYNC_READ SYNC_WRITE CONSTANT
+%token FUNCTION WHILE DO IF ELSE YIELD FOR UNTIL FORK SYNC_BOTH SYNC_READ SYNC_WRITE CONSTANT
 %token HIDDEN_FAIL HIDDEN_TRACE HIDDEN_CANARY
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
@@ -148,6 +148,8 @@ block_statement: BLOCK IDENT
 */
 
 yield_statement: YIELD { statement_yield(); }
+               | YIELD FOR expression { statement_yield_for($3); }
+               | YIELD UNTIL LBRACE body RBRACE
                ;
 
 /*

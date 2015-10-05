@@ -3,6 +3,7 @@
 
 #define BOOTLOADER_VERSION 2
 #define SYSTEM_FREQ (40000000)
+#define SYSTEM_TICK (12500)
 #define DEFAULT_BAUD (9600)
 
 #endif /* VERSION_H */

@@ -159,7 +159,7 @@ void init(string manifest_file) {
 //    system_calls["store"] = new SystemCall("___write_addr_builtin", 3, false);
 //    system_calls["load"] = new SystemCall("___read_addr_builtin", 2, false);
 
-    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
+    yield_fn = current_module.add_function("___yield_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, numeric_type]));
     fork_fn = current_module.add_function("___fork_builtin", Type.function_type(Type.void_type(), [eh_ptr_type, Type.pointer_type(Type.function_type(numeric_type, [eh_ptr_type]))]));
     fail_fn = current_module.add_function("___fail_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
     trace_fn = current_module.add_function("___trace_builtin", Type.function_type(Type.void_type(), [eh_ptr_type]));
@@ -1601,7 +1601,18 @@ extern (C) {
 
     void statement_yield() {
         current_value = void_value;
-        current_builder.call(yield_fn, [current_eh]);
+        current_builder.call(yield_fn, [current_eh, Value.create_const_int(numeric_type, 0)]);
+    }
+
+    void statement_yield_for(ulong expr_ref) {
+        auto expr = Expression.lookup(expr_ref);
+        
+        if (expr.is_bool) {
+            error_arithmetic_op_requires_numerics("yield for");
+        }
+
+        current_value = void_value;
+        current_builder.call(yield_fn, [current_eh, expr.value]);
     }
 
     void statement_fork(char *ident) {

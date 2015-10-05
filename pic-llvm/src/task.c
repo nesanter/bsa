@@ -391,6 +391,17 @@ struct task_info * task_stack_owner(void * ptr) {
 }
 
 
+void handler_core_timer() {
+    for (unsigned int i = 0 ; i <MAX_TASKS; i++) {
+        if (task_list[i].reason == BLOCK_REASON_CORE_TIMER) {
+            task_list[i].block_data--;
+            if (task_list[i].block_data == 0) {
+                task_list[i].state = TASK_STATE_READY;
+                task_list[i].reason = BLOCK_REASON_UNBLOCKED;
+            } 
+        }
+    }
+}
 
 void handler_console_rx() {
     unblock_tasks(BLOCK_REASON_CONSOLE_RX, U1RXREG);

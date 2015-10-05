@@ -62,6 +62,8 @@
 "else" { return ELSE; }
  /* "block" { return BLOCK; } */
 "yield" { return YIELD; }
+"for" { return FOR; }
+"until" { return UNTIL; }
  /* "return" { return RETURN; }*/
 "fork" { return FORK; }
 "sync" { return SYNC_BOTH; }

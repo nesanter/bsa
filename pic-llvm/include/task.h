@@ -21,9 +21,10 @@ enum task_state {
 
 enum block_reason {
     BLOCK_REASON_UNBLOCKED,
+    BLOCK_REASON_CORE_TIMER,
     BLOCK_REASON_CONSOLE_RX,
     BLOCK_REASON_SW,
-    BLOCK_REASON_TIMER
+    BLOCK_REASON_TIMER,
 };
 
 struct task_info {

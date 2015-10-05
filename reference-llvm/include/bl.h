@@ -63,6 +63,7 @@ unsigned long statement_while_begin_do(unsigned long loop_ref);
 void statement_while_end(unsigned long loop_ref);
 
 void statement_yield();
+void statement_yield_for(unsigned long expr_ref);
 
 enum {
     HANDLER_ALWAYS = 0,

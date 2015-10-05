@@ -4,6 +4,7 @@
 //#include "ulib/ulib_int.h"
 #include "ulib/util.h"
 #include "exception.h"
+#include "version.h"
 #include "task.h"
 
 #include "proc/processor.h"
@@ -25,13 +26,17 @@ extern int uart_enabled;
 //int a [3] = { 12, 47, 1020 };
 
 void runtime_entry(void) {
+    PORTA = 0;
+    PORTB = 0;
+
     TRISA = 0;
-    TRISB = BITS(15) | BITS(2);
+    TRISB = BITS(15); // only input is run switch
 
-    PORTACLR = 0x1;
-    PORTASET = 0x2;
+//    PORTACLR = 0x1;
+    PORTASET = BITS(1); // enable USER status led
+                        // BOOT led should have been cleared already
 
-    ANSELA = 0;
+    ANSELA = 0; // all digital
     ANSELB = 0;
 //    int i;
 
@@ -50,10 +55,7 @@ void runtime_entry(void) {
     uart_print("[runtime]\r\n");
 #endif
 
-//    for (int i = 0 ; i < 3 ; i++) {
-//        uart_print(tohex(a[i], 8));
-//        uart_print("\r\n");
-//    }
+    // enable multi-vector interrupts
     unsigned int tmp;
     asm volatile ("mfc0 %0, $13" : "=r"(tmp));
     tmp |= 0x00800000;
@@ -61,30 +63,20 @@ void runtime_entry(void) {
 
     INTCONSET = BITS(12);
 
-    CNCONASET = BITS(15);
-    CNCONBSET = BITS(15);
-
-    IPC8SET = BITS(19);
-    IPC8CLR = BITS(20) | BITS(18);
-    IFS1CLR = BITS(13);
-//    IEC1SET = BITS(13) | BITS(14);
-
-    IPC2SET = BITS(2) | BITS(3);
-    IPC2CLR = BITS(4);
-
-    IPC3SET = BITS(2) | BITS(3);
-    IPC3CLR = BITS(4);
-
-    IPC4SET = BITS(2) | BITS(3);
-    IPC4CLR = BITS(4);
-
-    IPC5SET = BITS(2) | BITS(3);
-    IPC5CLR = BITS(4);
-
     asm volatile ("ei");
 
+    // clear tasks to zero (probably redundant)
     init_tasks();
 
+    // setup core timer
+    unsigned int tick = SYSTEM_TICK;
+    asm volatile ("mtc0 $zero, $9; \
+                   mtc0 %0, $11;" : "+r"(tick)); // COUNT and COMPARE
+    IEC0SET = BITS(0);
+    IPC0SET = BITS(4) | BITS(3) | BITS(2); // Priority 7.0
+    IPC0CLR = BITS(1) | BITS(0);
+
+    // create first task
     struct task_attributes attr = { TASK_SIZE_LARGE };
     if (create_task(&___entry, attr)) {
         uart_print("[failed to create initial task]\r\n");

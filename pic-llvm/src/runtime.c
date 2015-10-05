@@ -298,7 +298,7 @@ int ___read_addr_builtin(struct eh_t *eh, unsigned int target, int addr) {
 }
 */
 
-void ___yield_builtin(struct eh_t *eh) {
+void ___yield_builtin(struct eh_t *eh, unsigned int wait) {
     /*
     void *ra;
     asm volatile ("add %0, $ra, $zero" : "=r"(ra));
@@ -308,7 +308,14 @@ void ___yield_builtin(struct eh_t *eh) {
 #endif
     current_task->eh_ptr = eh;
     context_save(&current_task->context, &&restore);
-    current_task->state = TASK_STATE_SOFT_BLOCKED;
+
+    if (wait == 0) {
+        current_task->state = TASK_STATE_SOFT_BLOCKED;
+    } else {
+        current_task->block_data = wait;
+        current_task->reason = BLOCK_REASON_CORE_TIMER;
+        current_task->state = TASK_STATE_HARD_BLOCKED;
+    }
 #ifdef RUNTIME_INFO
     uart_print("[yielding]\r\n");
 #endif
@@ -831,13 +838,23 @@ int drv_sw_block() {
             case BITS(2): data = 0; break;
             case BITS(3): data = 1; break;
             case BITS(4): data = 2; break;
-            default: return 0;
+            default: throw_exception(0); return 0;
         }
     } else {
         data = 3;
     }
 
-    runtime_set_vector_table_entry(_CHANGE_NOTICE_VECTOR, &handler_sw_edge);
+    if (!sw_block_init) {
+        sw_block_init = 1;
+
+        CNCONASET = BITS(15);
+        CNCONBSET = BITS(15);
+
+        IPC8SET = BITS(19);
+        IPC8CLR = BITS(20) | BITS(18);
+
+        runtime_set_vector_table_entry(_CHANGE_NOTICE_VECTOR, &handler_sw_edge);
+    }
 
     block_task(current_task, &block_util_match_sw, BLOCK_REASON_SW, data | (selected_sw_edge << 16));
     
@@ -852,30 +869,52 @@ int drv_timer_block() {
     int n;
     switch (selected_timer) {
         case 0:
-            runtime_set_vector_table_entry(_TIMER_2_VECTOR, &handler_timer_b2);
+            if (!timer_block_init)
+                runtime_set_vector_table_entry(_TIMER_2_VECTOR, &handler_timer_b2);
             n = 2;
             IEC0SET = BITS(9);
             break;
         case 1:
         case 4:
             n = 3;
-            runtime_set_vector_table_entry(_TIMER_3_VECTOR, &handler_timer_b3);
+            if (!timer_block_init)
+                runtime_set_vector_table_entry(_TIMER_3_VECTOR, &handler_timer_b3);
             IEC0SET = BITS(14);
             break;
         case 2:
             n = 4;
-            runtime_set_vector_table_entry(_TIMER_4_VECTOR, &handler_timer_b4);
+            if (!timer_block_init)
+                runtime_set_vector_table_entry(_TIMER_4_VECTOR, &handler_timer_b4);
             IEC0SET = BITS(19);
             break;
         case 3:
         case 5:
             n = 5;
-            runtime_set_vector_table_entry(_TIMER_5_VECTOR, &handler_timer_b5);
+            if (!timer_block_init)
+                runtime_set_vector_table_entry(_TIMER_5_VECTOR, &handler_timer_b5);
             IEC0SET = BITS(24);
             break;
     }
+    
+    if (!timer_block_init) {
+        timer_block_init = 1;
+        // Timer B2-B5 interrupt priority = 4.0
+        IPC2SET = BITS(2) | BITS(3);
+        IPC2CLR = BITS(4);
+
+        IPC3SET = BITS(2) | BITS(3);
+        IPC3CLR = BITS(4);
+
+        IPC4SET = BITS(2) | BITS(3);
+        IPC4CLR = BITS(4);
+
+        IPC5SET = BITS(2) | BITS(3);
+        IPC5CLR = BITS(4);
+    }
+
     block_task(current_task, &block_util_match_data, BLOCK_REASON_TIMER, n);
 
+    /*
     if (n == 2)
         IEC0SET = BITS(9);
     else if (n == 3)
@@ -884,6 +923,7 @@ int drv_timer_block() {
         IEC0SET = BITS(19);
     else if (n == 5)
         IEC0SET = BITS(24);
+    */
 
     return 1;
 }
