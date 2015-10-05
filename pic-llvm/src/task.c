@@ -3,6 +3,7 @@
 #include "ulib/uart.h"
 #include "ulib/util.h"
 #include "runtime.h"
+#include "version.h"
 #include "proc/processor.h"
 
 //extern const unsigned int __MAX_TASKS = MAX_TASKS;
@@ -272,7 +273,7 @@ void scheduler_loop() {
         // there are still tasks, but none are schedulable
         // enter "idle" mode (OSCCON<4> has already been cleared by bootloader)
 //        uart_print("[idleing]\r\n");
-//        asm volatile ("wait");
+        asm volatile ("wait");
     }
     // there are no tasks left, return to bootloader
 #ifdef RUNTIME_INFO
@@ -401,6 +402,10 @@ void handler_core_timer() {
             } 
         }
     }
+    IFS0CLR = BITS(0);
+    unsigned int tick = SYSTEM_TICK;
+    asm volatile ("mtc0 $zero, $9; \
+                   mtc0 %0, $11;" : "+r"(tick));
 }
 
 void handler_console_rx() {

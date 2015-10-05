@@ -3,6 +3,7 @@
 #include "ulib/ulib.h"
 //#include "ulib/ulib_int.h"
 #include "ulib/util.h"
+#include "runtime.h"
 #include "exception.h"
 #include "version.h"
 #include "task.h"
@@ -69,6 +70,7 @@ void runtime_entry(void) {
     init_tasks();
 
     // setup core timer
+    runtime_set_vector_table_entry(_CORE_TIMER_VECTOR, &handler_core_timer);
     unsigned int tick = SYSTEM_TICK;
     asm volatile ("mtc0 $zero, $9; \
                    mtc0 %0, $11;" : "+r"(tick)); // COUNT and COMPARE

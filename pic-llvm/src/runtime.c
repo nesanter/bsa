@@ -12,6 +12,7 @@
 #include "ulib/piezo.h"
 #include "exception.h"
 #include "task.h"
+#include "version.h"
 #include "proc/processor.h"
 
 #define DRV_SUCCESS (1)
@@ -56,7 +57,7 @@ extern struct task_info * current_task;
 // [manifest] .sw.wait               2   0   b
 // [manifest] .system.delay          3   0   w,v
 // [manifest] .system.led            3   1   rw,v
-// [manifest] .system.tick           3   2   rw,v
+// [manifest] .system.tick           3   2   r
 // [manifest] .system.exit           3   3   w,v
 // [manifest] .timer                 4   0   rw,v
 // [manifest] .timer.enable          4   1   rwB,vB
@@ -103,7 +104,8 @@ const driver_write_fn sw_write_fns[] = {
 const driver_write_fn sys_write_fns[] = {
     &drv_sys_delay_write, // 3.0
     &drv_sys_led_write, // 3.1
-    &drv_sys_tick_write, // 3.2
+//    &drv_sys_tick_write, // 3.2
+    0, // 3.2
     &drv_sys_exit_write // 3.3
 };
 
@@ -579,19 +581,22 @@ int drv_sys_led_write(int val, char *str) {
     return DRV_SUCCESS;
 }
 
+/*
 int drv_sys_tick_write(int val, char *str) {
     asm volatile ("mtc0 %0, $9" : "+r"(val));
     return DRV_SUCCESS;
 }
+*/
 
 int drv_sys_led_read() {
     return pin_test(STATUS_LED_PIN);
 }
 
 int drv_sys_tick_read() {
-    unsigned int tick;
-    asm volatile ("mfc0 %0, $9" : "=r"(tick));
-    return tick;
+//    unsigned int tick;
+//    asm volatile ("mfc0 %0, $9" : "=r"(tick));
+//    return tick;
+    return SYSTEM_TICK;
 }
 
 int drv_sys_exit_write(int val, char *str) {

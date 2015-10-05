@@ -49,6 +49,21 @@ int check_reset_reason(unsigned int epc) {
     return 0;
 }
 
+unsigned int signal_counter = 0;
+
+void handler_core_timer() {
+    unsigned int tick = SYSTEM_TICK;
+    asm volatile ("mtc0 $zero, $9; \
+                   mtc0 %0, $11;" : "+r"(tick));
+    if (signal_counter == 1000) {
+        PORTAINV = SIGNAL_BOOT;
+        signal_counter = 0;
+    } else {
+        signal_counter++;
+    }
+    IFS0CLR = 0x1;
+}
+
 int main(void) {
 //    flash_write_word_unsafe(boot_flags & 0x40, physical_address(&boot_flags));
 
@@ -101,6 +116,11 @@ int main(void) {
     char buffer [16];
     unsigned int n = 0;
 
+    boot_set_vector_table_entry(_CORE_TIMER_VECTOR, &handler_core_timer);
+    unsigned int tick = SYSTEM_TICK;
+    asm volatile ("mtc0 $zero, $9; \
+                   mtc0 %0, $11;" : "+r"(tick));
+
     while (1) {
         if ((n += boot_read_nonblocking(&buffer[n], 16 - n)) > 0) {
             if (n == 1 && buffer[0] == '?') {
@@ -149,6 +169,7 @@ int main(void) {
             }
             if (n == 16)
                 n = 0;
+            continue;
         }
         /*
         if (boot_flag & BOOT_FLAG_LOADED) {
@@ -159,6 +180,11 @@ int main(void) {
         */
         if (boot_run_read() && has_program) {
             run();
+        } else {
+            PORTAINV = SIGNAL_BOOT;
+            asm volatile ("wait");
         }
     }
 }
+
+

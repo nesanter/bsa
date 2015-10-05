@@ -79,6 +79,7 @@ void * task_stack_start(struct task_info * task);
 unsigned int task_stack_allocation(struct task_info * task);
 struct task_info * task_stack_owner(void * sp);
 
+void handler_core_timer();
 void handler_console_rx();
 void handler_sw_edge();
 void handler_timer_b2();
