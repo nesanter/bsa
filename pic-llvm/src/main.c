@@ -29,18 +29,23 @@ extern int uart_enabled;
 //int a [3] = { 12, 47, 1020 };
 
 void runtime_entry(void) {
+    // this is done by bootloader
+    /*
     PORTA = 0;
     PORTB = 0;
 
     TRISA = 0;
     TRISB = BITS(15); // only input is run switch
+    */
 
 //    PORTACLR = 0x1;
     PORTASET = BITS(1); // enable USER status led
                         // BOOT led should have been cleared already
 
+    /*
     ANSELA = 0; // all digital
     ANSELB = 0;
+    */
 //    int i;
 
 //    unsigned int errorepc;
@@ -57,16 +62,6 @@ void runtime_entry(void) {
 #ifdef RUNTIME_INFO
     uart_print("[runtime]\r\n");
 #endif
-
-    // enable multi-vector interrupts
-    unsigned int tmp;
-    asm volatile ("mfc0 %0, $13" : "=r"(tmp));
-    tmp |= 0x00800000;
-    asm volatile ("mtc0 %0, $13" : "+r"(tmp));
-
-    INTCONSET = BITS(12);
-
-    asm volatile ("ei");
 
     // clear tasks to zero (probably redundant)
     init_tasks();

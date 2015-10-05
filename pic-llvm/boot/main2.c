@@ -55,7 +55,7 @@ void handler_core_timer() {
     unsigned int tick = SYSTEM_TICK;
     asm volatile ("mtc0 $zero, $9; \
                    mtc0 %0, $11;" : "+r"(tick));
-    if (signal_counter == 1000) {
+    if (signal_counter == 2000) {
         PORTAINV = SIGNAL_BOOT;
         signal_counter = 0;
     } else {
@@ -100,6 +100,16 @@ int main(void) {
     boot_signal_set(SIGNAL_BOOT, 1);
     boot_signal_set(SIGNAL_USER, 0);
 
+    // enable multi-vector interrupts
+    unsigned int tmp;
+    asm volatile ("mfc0 %0, $13" : "=r"(tmp));
+    tmp |= 0x00800000;
+    asm volatile ("mtc0 %0, $13" : "+r"(tmp));
+
+    INTCONSET = 0x1000;
+
+    asm volatile ("ei");
+
     boot_print("program loaded:");
     int has_program;
 
@@ -120,6 +130,9 @@ int main(void) {
     unsigned int tick = SYSTEM_TICK;
     asm volatile ("mtc0 $zero, $9; \
                    mtc0 %0, $11;" : "+r"(tick));
+
+    IPC0SET = 0x1C;
+    IEC0SET = 0x1;
 
     while (1) {
         if ((n += boot_read_nonblocking(&buffer[n], 16 - n)) > 0) {
@@ -151,6 +164,7 @@ int main(void) {
                     n = 0;
                 }
             }
+            /*
             if (n == 4) {
                 buffer[n] = '\0';
                 if (strcmpn(buffer, "LOAD", 4)) {
@@ -159,17 +173,24 @@ int main(void) {
                     n = 0;
                 }
             }
+            */
             if (n >= 12) {
                 buffer[n] = '\0';
                 if (strcmpn(buffer, "BSA PREAMBLE", 12)) {
+                    IEC0CLR = 0x1;
                     boot_print("OK");
                     preamble();
                     n = 0;
+                    if (boot_expect("LOAD")) {
+                        IEC0SET = 0x1;
+                        break;
+                    }
+                    boot_print("OK");
+                    load();
                 }
             }
             if (n == 16)
                 n = 0;
-            continue;
         }
         /*
         if (boot_flag & BOOT_FLAG_LOADED) {
@@ -180,10 +201,8 @@ int main(void) {
         */
         if (boot_run_read() && has_program) {
             run();
-        } else {
-            PORTAINV = SIGNAL_BOOT;
-            asm volatile ("wait");
         }
+        asm volatile ("wait");
     }
 }
 
