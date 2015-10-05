@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-MIN_VERSION = 2
+MIN_VERSION = 3
 
 import serial, sys, argparse, time, math
 
