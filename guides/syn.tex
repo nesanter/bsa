@@ -87,7 +87,9 @@ fork_statement: `fork' IDENTIFIER `;' ;
 \subsection{Yield Statement}
 
 \begin{lstlisting}
-yield_statement: `yield' `;' ;
+yield_statement: `yield' `;'
+               | `yield' `for' expression `;'
+               ;
 \end{lstlisting}
 
 \subsection{Scope Statement}
