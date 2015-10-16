@@ -137,7 +137,8 @@ const driver_write_fn task_write_fns[] = {
 
 const driver_write_fn piezo_write_fns[] = {
     &drv_piezo_enable_write, // 7.0
-    &drv_piezo_width_write, // 7.1
+//    &drv_piezo_width_write, // 7.1
+    0,
     &drv_piezo_active_write // 7.2
 };
 
@@ -194,7 +195,8 @@ const driver_read_fn task_read_fns[] = {
 
 const driver_read_fn piezo_read_fns[] = {
     &drv_piezo_enable_read, // 7.0
-    &drv_piezo_width_read, // 7.1
+//    &drv_piezo_width_read, // 7.1
+    0,
     &drv_piezo_active_read // 7.2
 };
 
@@ -216,6 +218,8 @@ const struct driver drivers[] = {
     { sys_write_fns, sys_read_fns, 0, 0, 0, 1 }, /* .system */
     { timer_write_fns, timer_read_fns, &all_block_fns[2], 0, 0, 1}, /* .timer */
     { ldr_write_fns, ldr_read_fns, 0, 0, 0, 1 }, /* .ldr */
+    { task_write_fns, task_read_fns, 0, 0, 0, 0 }, /* .task */
+    { piezo_write_fns, piezo_read_fns, 0, 0, 0, 0 }, /* .piezo */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -785,10 +789,12 @@ int drv_piezo_enable_write(int val, char *str) {
     return DRV_SUCCESS;
 }
 
+/*
 int drv_piezo_width_write(int val, char *str) {
     u_oc_set_secondary_compare(OC3, val);
     return DRV_SUCCESS;
 }
+*/
 
 int drv_piezo_active_write(int val, char *str) {
     if (val) {
@@ -804,9 +810,11 @@ int drv_piezo_enable_read() {
     return 1;
 }
 
+/*
 int drv_piezo_width_read() {
     return u_oc_get_secondary_compare(OC3);
 }
+*/
 
 int drv_piezo_active_read() {
     if (OC3CON & BITS(15)) {
