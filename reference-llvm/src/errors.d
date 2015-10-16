@@ -190,6 +190,20 @@ void error_unknown_escape_sequence(char c) {
     error_action();
 }
 
+void error_incomplete_escape() {
+    write_error_prefix();
+    stderr.write("incomplete escaped hex literal");
+    write_error_suffix();
+    error_action();
+}
+
+void error_not_hex(char c) {
+    write_error_prefix();
+    stderr.write(c, " not in [0-9a-fA-F]");
+    write_error_suffix();
+    error_action();
+}
+
 void error_no_such_attribute(string attr) {
     write_error_prefix();
     stderr.write("unknown function attribute @",attr);

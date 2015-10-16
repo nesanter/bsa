@@ -32,6 +32,17 @@ mixin template ReferenceHandler() {
     }
 }
 
+long dehexify(char c) {
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    error_not_hex(c);
+    return 0;
+}
+
 extern (C) {
 immutable(char) *escape_string(char *s) {
     string escaped;
@@ -55,6 +66,16 @@ immutable(char) *escape_string(char *s) {
                 case 'e':
                     escaped ~= '\x1B';
                     break;
+                case 'b':
+                    escaped ~= '\x08';
+                    break;
+                case 'x':
+                    if (s[1] && s[2]) {
+                        escaped ~= cast(char)((dehexify(s[1]) << 4) | dehexify(s[2])); 
+                        s += 2;
+                    } else {
+                        error_incomplete_escape();
+                    }
                 case '\\':
                     escaped ~= '\\';
                     break;

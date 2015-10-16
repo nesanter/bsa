@@ -28,7 +28,8 @@ syn region syscall_region matchgroup=syscall start='\[[a-zA-Z_]\+' end='\]' cont
 syn region body start="{" end="}" contains=basicKeywords,opKeywords,scopeKeyword,@numeric,char,constKeyword,body,syscall,syscall_region,comment transparent
 syn region string start="\"" end="\"" contains=escapedChar
 
-syn match escapedChar '\\\@<!\\[rnte0]' contained
+" syn match escapedChar '\(\\\@<!\\[rnte0]\)\|\(\\\@<!\\x[0-9a-fA-F][0-9a-fA-F]\)' contained
+syn match escapedChar '\(\\\\\)\|\(\\[rnte0]\)\|\(\\x[0-9a-fA-F]\{2\}\)' contained
 
 syn match comment '//.*$'
 
@@ -38,11 +39,11 @@ hi def link constantKeyword Type
 hi def link functionKeyword Type
 hi def link basicKeywords Keyword
 hi def link scopeKeyword Keyword
-hi Operator gui=italic
+hi Operator gui=italic cterm=italic
 hi def link opKeywords Operator
 hi def link constKeyword Constant
 hi def link string String
-hi escapedChar gui=bold guifg=magenta
+hi escapedChar gui=bold guifg=magenta cterm=bold ctermfg=magenta
 hi def link numeric10 Constant
 hi def link numeric2 Constant
 hi def link numeric8 Constant
