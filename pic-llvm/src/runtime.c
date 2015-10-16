@@ -566,6 +566,9 @@ int drv_sw_read() {
 }
 
 int drv_sys_delay_write(int val, char *str) {
+    unsigned int old_iec0 = IECO0 & 0x1;
+    IEC0CLR = 0x1;
+
     unsigned int start, cur;
     asm volatile ("mfc0 %0, $9" : "=r"(start));
     start += val;
@@ -574,6 +577,8 @@ int drv_sys_delay_write(int val, char *str) {
         asm volatile ("mfc0 %0, $9" : "=r"(cur));
     } while (cur < start);
 
+    IEC0SET = old_iec0;
+    asm volatile ("mtc0 %0, $9" : "+r"(start));
     return DRV_SUCCESS;
 }
 
