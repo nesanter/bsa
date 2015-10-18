@@ -7,8 +7,12 @@ import serial, sys, argparse, time, math
 class Image:
     
     def __init__(self, image_file_name):
-        self.image_file = open(image_file_name, "rb")
-        self.read_elf_header()
+        try:
+            self.image_file = open(image_file_name, "rb")
+            self.read_elf_header()
+        except FileNotFoundError:
+            print("Image not found", file=sys.stderr)
+            raise
 
     def dump(self):
         print("EHDR {")
@@ -356,24 +360,34 @@ class Loader:
         if verbose:
             print("Load done")
 
+def parse_cmdline(desc):
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument("image")
+    parser.add_argument("port", nargs="?", default="/dev/ttyUSB0")
+    parser.add_argument("-b", "--baud", "--load-baud", type=int, dest="postbaud", default=9600)
+    parser.add_argument("-B", "--preamble-baud", type=int, dest="prebaud", default=9600)
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose")
+    parser.add_argument("-d", "--dump", action="store_true", dest="dump")
+    parser.add_argument("-M", "--min-version", type=int, dest="min_version", default=MIN_VERSION)
+    parser.add_argument("-r", "--term-baud", type=int, dest="termbaud", default=9600) # used in term.py
+    parser.add_argument("-x", "--no-term", action="store_true", dest="noterm", default=False) # used in term.py
+
+    args = parser.parse_args()
+
+    return args
 
 
-parser = argparse.ArgumentParser(description="BoMu Image Loader")
-parser.add_argument("image")
-parser.add_argument("port", nargs="?", default="/dev/ttyUSB0")
-parser.add_argument("-b", "--baud", "--load-baud", type=int, dest="postbaud", default=9600)
-parser.add_argument("-B", "--preamble-baud", type=int, dest="prebaud", default=9600)
-parser.add_argument("-v", "--verbose", action="store_true", dest="verbose")
-parser.add_argument("-d", "--dump", action="store_true", dest="dump")
-parser.add_argument("-M", "--min-version", type=int, dest="min_version", default=MIN_VERSION)
+def run_loader(args):
+    if args.dump:
+        image = Image(args.image)
+        image.dump()
+        exit(0)
 
-args = parser.parse_args()
+    ldr = Loader(Image(args.image), args.port, args.prebaud, verbose=args.verbose)
+    ldr.preamble(args.postbaud, args.min_version, verbose=args.verbose)
+    ldr.load(verbose=args.verbose)
 
-if args.dump:
-    image = Image(args.image)
-    image.dump()
-    exit(0)
+if __name__ == '__main__':
+    run_loader(parse_cmdline("BoMu Image Loader"))
 
-ldr = Loader(Image(args.image), args.port, args.prebaud, verbose=args.verbose)
-ldr.preamble(args.postbaud, args.min_version, verbose=args.verbose)
-ldr.load(verbose=args.verbose)
+

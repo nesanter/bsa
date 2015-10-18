@@ -1,0 +1,118 @@
+#!/usr/bin/python
+
+import os, sys, threading
+import serial
+import atexit, termios
+
+import argparse
+import loader
+
+RAW = True
+
+class BomuTerm:
+    def __init__(self, port, baud):
+        self.fd = sys.stdin.fileno()
+        atexit.register(self.cleanup)
+        self.port = serial.Serial(port, baud, timeout=1)
+        self.request_load = False
+        self.pause = False
+        self.reader_paused = False
+        self.is_setup = False
+
+    def setup(self):
+        if self.is_setup == False:
+            self.old = termios.tcgetattr(self.fd)
+        new = termios.tcgetattr(self.fd)
+        new[3] = new[3] & ~termios.ICANON & ~termios.ECHO & ~termios.ISIG & ~termios.IGNCR & ~termios.ICRNL
+        new[6][termios.VMIN] = 1
+        new[6][termios.VTIME] = 0
+        termios.tcsetattr(self.fd, termios.TCSANOW, new)
+        self.is_setup = True
+
+    def getkey(self):
+        return sys.stdin.read(1)
+
+    def cleanup(self):
+        if self.is_setup:
+            termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old)
+
+    def start_reader(self):
+        self.reader_alive = True
+        self.receiver_thread = threading.Thread(target=self.reader, name='rx')
+        self.receiver_thread.daemon = True
+        self.receiver_thread.start()
+
+    def stop_reader(self):
+        self.reader_alive = False
+        self.receiver_thread.join()
+
+    def start(self):
+        self.alive = True
+        self.start_reader()
+        self.transmitter_thread = threading.Thread(target=self.writer, name='tx')
+        self.transmitter_thread.daemon = True
+        self.transmitter_thread.start()
+#        self.setup()
+
+    def stop(self):
+        self.alive = False
+        self.port.close()
+
+    def reader(self):
+        try:
+            while self.alive and self.reader_alive:
+                while self.pause and self.alive:
+                    self.reader_paused = True
+                if not self.alive:
+                    continue
+                self.reader_paused = False
+                data = self.port.read(self.port.inWaiting() or 1)
+                if data:
+                    if RAW:
+                        sys.stdout.buffer.write(data)
+                        sys.stdout.buffer.flush()
+                    else:
+                        sys.stdout.write(str(data, "ASCII"))
+        except serial.SerialException:
+            self.alive = False
+            raise
+
+    def writer(self):
+        try:
+            while self.alive:
+                c = self.getkey()
+                if c == '':
+                    self.alive = False
+                elif c == '':
+                    self.pause = True
+                    while not self.reader_paused:
+                        pass
+                    self.port.close()
+                    self.cleanup()
+                    try:
+                        loader.run_loader(args)
+                    except:
+                        pass
+                    if self.is_setup:
+                        self.setup()
+                    self.port.open()
+                    self.pause = False
+                    continue
+
+                self.port.write(bytes(c, "ASCII"))
+        except:
+            self.alive = False
+            raise
+
+if __name__ == '__main__':
+    args = loader.parse_cmdline("BoMu Terminal / Loader")
+
+    bt = BomuTerm(args.port, args.termbaud)
+    if not args.noterm:
+        bt.setup()
+    bt.start()
+    try:
+        bt.transmitter_thread.join()
+    except KeyboardInterrupt:
+        pass
+
