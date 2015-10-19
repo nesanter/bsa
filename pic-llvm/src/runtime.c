@@ -4,12 +4,14 @@
 #include "driver/timer.h"
 #include "driver/system.h"
 #include "driver/task.h"
+#include "driver/gfx.h"
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
 #include "ulib/pins.h"
 #include "ulib/ldr.h"
 #include "ulib/piezo.h"
+#include "ulib/gfx.h"
 #include "exception.h"
 #include "task.h"
 #include "version.h"
@@ -81,6 +83,13 @@ extern struct task_info * current_task;
 // [manifest] .piezo.enable          7   0   rwB,vB
 // [manifest] .piezo.width           7   1   rw,v
 // [manifest] .piezo.active          7   2   rwB,vB
+// [manifest] .gfx.enable            8   0   rwB,vB
+// [manifest] .gfx.bb                8   1   w,v
+// [manifest] .gfx.enqueue           8   2   rw,v
+// [manifest] .gfx.flush             8   3   w,v
+// [manifest] .expm.select           9   0   rw,v
+// [manifest] .expm.wait             9   0   b
+// [manifest] .expm.emit             9   1   w,v
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -200,6 +209,31 @@ const driver_read_fn piezo_read_fns[] = {
     &drv_piezo_active_read // 7.2
 };
 
+const driver_write_fn gfx_write_fns[] = {
+    &drv_gfx_enable_write, // 8.0
+    &drv_gfx_bb_write, // 8.1
+    &drv_gfx_enqueue_write, // 8.2
+    &drv_gfx_flush_write // 8.3
+};
+
+const driver_read_fn gfx_read_fns[] = {
+    0,
+    0,
+    &drv_gfx_enqueue_read, // 8.2
+    0
+};
+
+const driver_write_fn expm_write_fns[] = {
+    &drv_expm_select_write, // 9.0
+    &drv_expm_emit_write // 9.1
+};
+
+const driver_read_fn expm_read_fns[] = {
+    &drv_expm_select_read, // 9.0
+    0
+};
+
+
 const driver_block_fn all_block_fns[] = {
     /* .console */
     &drv_console_rx_block, // 0.0
@@ -209,6 +243,8 @@ const driver_block_fn all_block_fns[] = {
 
     /* .timer */
     &drv_timer_block, // 4.0
+
+    &drv_expm_block, // 9.0
 };
 
 const struct driver drivers[] = {
@@ -220,6 +256,8 @@ const struct driver drivers[] = {
     { ldr_write_fns, ldr_read_fns, 0, 0, 0, 1 }, /* .ldr */
     { task_write_fns, task_read_fns, 0, 0, 0, 0 }, /* .task */
     { piezo_write_fns, piezo_read_fns, 0, 0, 0, 0 }, /* .piezo */
+    { gfx_write_fns, gfx_read_fns, 0, 0, 0, 0 }, /* .gfx */
+    { expm_write_fns, expm_read_fns, &all_block_fns[3], 0, 0, 0 }, /* .expm */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -566,19 +604,8 @@ int drv_sw_read() {
 }
 
 int drv_sys_delay_write(int val, char *str) {
-    unsigned int old_iec0 = IECO0 & 0x1;
-    IEC0CLR = 0x1;
+    runtime_delay(val);
 
-    unsigned int start, cur;
-    asm volatile ("mfc0 %0, $9" : "=r"(start));
-    start += val;
-
-    do {
-        asm volatile ("mfc0 %0, $9" : "=r"(cur));
-    } while (cur < start);
-
-    IEC0SET = old_iec0;
-    asm volatile ("mtc0 %0, $9" : "+r"(start));
     return DRV_SUCCESS;
 }
 
@@ -829,6 +856,73 @@ int drv_piezo_active_read() {
     }
 }
 
+unsigned char gfx_buffer [8];
+unsigned int gfx_buffer_head;
+
+int drv_gfx_enable_write(int val, char *str) {
+    gfx_setup();
+    gfx_init_sequence();
+
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_bb_write(int val, char *str) {
+    unsigned char c0 = val & 0xFF;
+    unsigned char c1 = (val & 0xFF00) >> 8;
+    unsigned char p0 = (val & 0xFF0000) >> 16;
+    unsigned char p1 = (val & 0xFF000000) >> 24;
+
+    gfx_bb_set(c0, c1, p0, p1);
+
+    gfx_buffer_head = 0;
+
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_enqueue_write(int val, char *str) {
+/*
+    if (gfx_buffer_head < 8) {
+        gfx_buffer[gfx_buffer_head++] = (unsigned char)(val & 0xFF);
+    }
+    return 8 - gfx_buffer_head;
+*/
+    while (u_spi_get_tx_full(SPI1));
+    u_spi_buffer_write(SPI1, val & 0xFF);
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_flush_write(int val, char *str) {
+    if (val) {
+        gfx_write(gfx_buffer, gfx_buffer_head);
+        int old = gfx_buffer_head;
+        gfx_buffer_head = 0;
+        return old;
+    } else {
+        return 0;
+    }
+}
+
+int drv_gfx_enqueue_read() {
+    return 8 - gfx_buffer_head;
+}
+
+int TASK_LOCAL expm_selected;
+
+int drv_expm_select_write(int val, char *str) {
+    expm_selected = val;
+
+    return DRV_SUCCESS;
+}
+
+int drv_expm_select_read() {
+    return expm_selected;
+}
+
+int drv_expm_emit_write(int val, char *str) {
+    unblock_tasks(BLOCK_REASON_MANUAL, val);
+    return DRV_SUCCESS;
+}
+
 int rx_block_init = 0;
 
 int drv_console_rx_block() {
@@ -943,6 +1037,11 @@ int drv_timer_block() {
     */
 
     return 1;
+}
+
+int drv_expm_block() {
+    block_task(current_task, *block_util_match_data, BLOCK_REASON_MANUAL, expm_selected);
+    return DRV_SUCCESS;
 }
 
 void runtime_exit() {

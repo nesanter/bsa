@@ -25,6 +25,7 @@ enum block_reason {
     BLOCK_REASON_CONSOLE_RX,
     BLOCK_REASON_SW,
     BLOCK_REASON_TIMER,
+    BLOCK_REASON_MANUAL
 };
 
 struct task_info {

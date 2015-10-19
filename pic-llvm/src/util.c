@@ -1,4 +1,5 @@
 #include "ulib/util.h"
+#include "proc/processor.h"
 
 char convbuffer[64];
 
@@ -62,4 +63,20 @@ void *memset(void *s, int c, unsigned int n) {
         *(unsigned char*)s++ = (unsigned char)c;
     }
     return sorig;
+}
+
+void runtime_delay(int n) {
+    unsigned int old_iec0 = IEC0 & 0x1;
+    IEC0CLR = 0x1;
+
+    unsigned int start, cur;
+    asm volatile ("mfc0 %0, $9" : "=r"(start));
+    start += n;
+
+    do {
+        asm volatile ("mfc0 %0, $9" : "=r"(cur));
+    } while (cur < start);
+
+    IEC0SET = old_iec0;
+    asm volatile ("mtc0 %0, $9" : "+r"(start));
 }
