@@ -87,6 +87,7 @@ extern struct task_info * current_task;
 // [manifest] .gfx.bb                8   1   w,v
 // [manifest] .gfx.enqueue           8   2   rw,v
 // [manifest] .gfx.flush             8   3   w,v
+// [manifest] .gfx.char              8   4   w,v,s
 // [manifest] .expm.select           9   0   rw,v
 // [manifest] .expm.wait             9   0   b
 // [manifest] .expm.emit             9   1   w,v
@@ -213,7 +214,8 @@ const driver_write_fn gfx_write_fns[] = {
     &drv_gfx_enable_write, // 8.0
     &drv_gfx_bb_write, // 8.1
     &drv_gfx_enqueue_write, // 8.2
-    &drv_gfx_flush_write // 8.3
+    &drv_gfx_flush_write, // 8.3
+    &drv_gfx_char_write // 8.4
 };
 
 const driver_read_fn gfx_read_fns[] = {
@@ -900,6 +902,21 @@ int drv_gfx_flush_write(int val, char *str) {
     } else {
         return 0;
     }
+}
+
+int drv_gfx_char_write(int val, char *str) {
+    unsigned char blank = 0;
+    if (str) {
+        while (*str) {
+            gfx_write((unsigned char *)font_lookup(*str), 6);
+            gfx_write(&blank, 1);
+            str++;
+        }
+    } else {
+        gfx_write((unsigned char *)font_lookup(val), 6);
+        gfx_write(&blank, 1);
+    }
+    return DRV_SUCCESS;
 }
 
 int drv_gfx_enqueue_read() {

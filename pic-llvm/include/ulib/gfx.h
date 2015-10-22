@@ -32,4 +32,6 @@ void gfx_init_sequence(void);
 void gfx_bb_set(unsigned char scol, unsigned char ecol, unsigned char spage, unsigned char epage);
 void gfx_write(unsigned char * data, unsigned int len);
 
+const unsigned char * font_lookup(char c);
+
 #endif /* GFX_H */

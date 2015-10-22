@@ -69,7 +69,7 @@ void gfx_init_sequence(void) {
         GFX_CMD_SET_START_LINE,
         GFX_CMD_SET_CHARGEPUMP, 0x14, // ON
         GFX_CMD_MEMORY_MODE, 0x00, // Horizontal (continuous)
-        GFX_CMD_SEGMENT_REMAP | 0x0, // CA0 <-> SEG0
+        GFX_CMD_SEGMENT_REMAP | 0x1, // CA0 <-> SEG0
         GFX_CMD_COM_DIRECTION | 0x8, // DECREASING
         GFX_CMD_COM_PINS, 0x12,
         GFX_CMD_SET_CONTRAST, 0xCF,
@@ -78,7 +78,7 @@ void gfx_init_sequence(void) {
         GFX_CMD_SET_DISPLAY_ALLOW_RESUME,
         GFX_CMD_NORMAL_DISPLAY,
         GFX_CMD_DISPLAY_ON,
-        GFX_CMD_SET_COLUMN_ADDRESS, 0x00, 0xFF,
+        GFX_CMD_SET_COLUMN_ADDRESS, 0x00, 0xFD,
         GFX_CMD_SET_PAGE_ADDRESS, 0x00, 0x07
     };
 
@@ -124,7 +124,6 @@ void gfx_write(unsigned char * data, unsigned int len) {
 //    pin_clear(cs);
     for (int i = 0; i < len; i++) {
         while (u_spi_get_tx_full(SPI1));
-        uart_print("gfx_write...\r\n");
         u_spi_buffer_write(SPI1, data[i]);
     }
     while (u_spi_get_busy(SPI1));
