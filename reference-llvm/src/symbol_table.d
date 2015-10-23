@@ -45,7 +45,7 @@ class Symbol {
     //Value value;
 
 //    BasicBlock[] blocks;
-    BasicBlock last_block;
+    BasicBlock[] history;
     Value[BasicBlock] values;
 
     Value[BasicBlock] dummy;
@@ -56,6 +56,28 @@ class Symbol {
     Type return_type;
 
     bool implemented;
+
+
+    @property BasicBlock last_block() {
+        if (history.length > 0)
+            return history[$-1];
+        else
+            return null;
+    }
+
+    @property void last_block(BasicBlock bb) {
+        history ~= bb;
+    }
+
+    void pop_to(BasicBlock bb) {
+        while (history.length > 0) {
+            if (last_block.index > bb.index) {
+                history = history[0..$-1];
+            } else {
+                return;
+            }
+        }
+    }
 }
 
 Symbol find_symbol(string s) {

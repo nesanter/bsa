@@ -210,6 +210,7 @@ extern (C) {
             res.is_bool = sym.is_bool;
 //            sym.parent = current_function;
         } else {
+            writeln(sym.last_block);
             res.value = sym.values[sym.last_block];
             res.is_bool = sym.is_bool;
             if (res.value.is_const())
@@ -1112,7 +1113,8 @@ extern (C) {
 
         auto syms = find_symbols_in_block(ifelse.during);
         foreach (sym; syms) {
-            sym.last_block = ifelse.before;
+            sym.pop_to(ifelse.before);
+//            sym.last_block = ifelse.before;
         }
 
         active_ifelse = ifelse;
@@ -1757,6 +1759,7 @@ extern (C) {
         }
 
         foreach (sym; SymbolTable.symbols) {
+            /*
             if (sym.is_global && sym.parent == current_function) {
                 Value tmp;
                 if (sym.is_bool) {
@@ -1767,6 +1770,7 @@ extern (C) {
                 current_builder.store(tmp, sym.global_value);
                 sym.parent = null;
             }
+            */
         }
 
         if (current_function_has_handlers[HandlerNumber.ALWAYS]) {
