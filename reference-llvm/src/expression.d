@@ -1108,12 +1108,13 @@ extern (C) {
         auto ifelse = IfElse.lookup(ifelse_ref);
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.otherwise);
-        ifelse.during = current_block;
-        current_block = ifelse.otherwise;
         ifelse.during_value = current_value;
         current_value = void_value;
 
-        auto syms = find_symbols_in_block(ifelse.during);
+        auto syms = find_symbols_in_blocks(ifelse.during, current_block);
+        
+        ifelse.during = current_block;
+        current_block = ifelse.otherwise;
         foreach (sym; syms) {
             sym.pop_to(ifelse.before);
 //            sym.last_block = ifelse.before;
