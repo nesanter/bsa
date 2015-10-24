@@ -1027,9 +1027,11 @@ extern (C) {
         if (sym.type != SymbolType.VARIABLE && sym.type != SymbolType.NONE) {
             error_symbol_of_different_type(text(lhs));
         }
+        /*
         if (sym.parent is null) {
             sym.parent = current_function;
         }
+        */
         auto rhs = Expression.lookup(rhs_ref);
 
         sym.type = SymbolType.VARIABLE;
