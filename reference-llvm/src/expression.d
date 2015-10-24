@@ -1045,7 +1045,7 @@ extern (C) {
         } else {
             sym.type = SymbolType.VARIABLE;
 
-            //        sym.parent = current_function;
+            sym.parent = current_function;
             sym.values[current_block] = rhs.value;
             sym.is_bool = rhs.is_bool;
             sym.last_block = current_block;
