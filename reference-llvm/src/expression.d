@@ -1034,12 +1034,22 @@ extern (C) {
         */
         auto rhs = Expression.lookup(rhs_ref);
 
-        sym.type = SymbolType.VARIABLE;
+        if (sym.is_global) {
+            Value tmp;
+            if (rhs.is_bool) {
+                tmp = current_builder.select(rhs.value, true_numeric_value, false_numeric_value);
+            } else {
+                tmp = rhs.value;
+            }
+            current_builder.store(tmp, sym.global_value);
+        } else {
+            sym.type = SymbolType.VARIABLE;
 
-        sym.parent = current_function;
-        sym.values[current_block] = rhs.value;
-        sym.is_bool = rhs.is_bool;
-        sym.last_block = current_block;
+            //        sym.parent = current_function;
+            sym.values[current_block] = rhs.value;
+            sym.is_bool = rhs.is_bool;
+            sym.last_block = current_block;
+        }
 
 //        sym.value = rhs.value;
 
