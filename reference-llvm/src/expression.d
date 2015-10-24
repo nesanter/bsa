@@ -210,7 +210,7 @@ extern (C) {
             res.is_bool = sym.is_bool;
 //            sym.parent = current_function;
         } else {
-            writeln(sym.last_block);
+            //writeln(sym.last_block);
             res.value = sym.values[sym.last_block];
             res.is_bool = sym.is_bool;
             if (res.value.is_const())
