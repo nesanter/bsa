@@ -112,6 +112,7 @@ function ldr_tester() {
 }
 
 function piezo_tester() {
+    [write true, .piezo.enable];
     while {
         [write "piezo> ", .console];
         c = [block .console.rx.wait];
@@ -119,7 +120,40 @@ function piezo_tester() {
         [write "\r\n", .console];
         c != 'q';
     } do {
-        [write "(expected [q]uit)\r\n", .console];
-        ;
+        if (c == 'f') {
+            n = get_number();
+            if (n < 2000 or n > 65535) {
+                [write "(outside valid range of [2000,65535])\r\n", .console];
+            } else {
+                [write 0, .timer.select];
+                [write n, .timer.period];
+                [write "set frequency to ", .console];
+                [write n, .console];
+                [write "\r\n", .console];
+            }
+        } else if (c == 'p') {
+            [write true, .piezo.active];
+            yield for 1500;
+            [write false, .piezo.active];
+        } else if (c >= '0' and c <= '7') {
+            [write 0, .timer.select];
+            [write c - '0', .timer.prescaler];
+            false;
+        } else {
+            [write "(expected [0-9] or [q]uit)\r\n", .console];
+            ;
+        }
     }
+}
+
+function get_number() {
+    n = 0;
+    while {
+        c = [block .console.rx.wait];
+        [write c, .console.tx];
+        c >= '0' and c <= '9';
+    } do {
+        n = 10 * n + (c - '0');
+    }
+    n;
 }

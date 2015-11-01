@@ -50,13 +50,15 @@ int check_reset_reason(unsigned int epc) {
 }
 
 unsigned int signal_counter = 0;
+unsigned int blink = 1;
 
 void handler_core_timer() {
     unsigned int tick = SYSTEM_TICK;
     asm volatile ("mtc0 $zero, $9; \
                    mtc0 %0, $11;" : "+r"(tick));
     if (signal_counter == 2000) {
-        PORTAINV = SIGNAL_BOOT;
+        if (blink)
+            PORTAINV = SIGNAL_BOOT;
         signal_counter = 0;
     } else {
         signal_counter++;
@@ -134,6 +136,8 @@ int main(void) {
     IPC0SET = 0x1C;
     IEC0SET = 0x1;
 
+    int timeout = 0;
+
     while (1) {
         if ((n += boot_read_nonblocking(&buffer[n], 16 - n)) > 0) {
             if (n == 1 && buffer[0] == '?') {
@@ -202,6 +206,16 @@ int main(void) {
         if (boot_run_read() && has_program) {
             run();
         }
+
+        timeout++;
+        if (timeout == 1000) {
+            timeout = 0;
+            n = 0;
+        }
+        if (n > 0)
+            blink = 0;
+        else
+            blink = 1;
         asm volatile ("wait");
     }
 }

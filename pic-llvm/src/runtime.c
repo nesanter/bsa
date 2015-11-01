@@ -5,6 +5,7 @@
 #include "driver/system.h"
 #include "driver/task.h"
 #include "driver/gfx.h"
+#include "driver/pulse.h"
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
@@ -80,17 +81,25 @@ extern struct task_info * current_task;
 // [manifest] .task.this.depth       6   6   rw,v
 // [manifest] .task.this.stack       6   7   r
 // [manifest] .task.this.allocation  6   8   r
-// [manifest] .piezo.enable          7   0   rwB,vB
-// [manifest] .piezo.width           7   1   rw,v
-// [manifest] .piezo.active          7   2   rwB,vB
+// [xxx] .piezo.enable          7   0   rwB,vB
+// [xxx] .piezo.width           7   1   rw,v
+// [xxx] .piezo.active          7   2   rwB,vB
 // [manifest] .gfx.enable            8   0   rwB,vB
 // [manifest] .gfx.bb                8   1   w,v
-// [manifest] .gfx.enqueue           8   2   rw,v
-// [manifest] .gfx.flush             8   3   w,v
-// [manifest] .gfx.char              8   4   w,v,s
+// [manifest] .gfx                   8   2   w,v
+// [manifest] .gfx.char              8   3   w,v,s
+// [manifest] .gfx.buffer            8   4   rw,v
+// [manifest] .gfx.buffer.flush      8   5   rw,v
+// [manifest] .gfx.buffer.mode       8   6   rw,v
 // [manifest] .expm.select           9   0   rw,v
 // [manifest] .expm.wait             9   0   b
 // [manifest] .expm.emit             9   1   w,v
+// [manifest] .pulse.enable.square   10  0   wB,vB
+// [manifest] .pulse.enable.pwm      10  1   wB,vB
+// [manifest] .pulse.select          10  2   rw,v
+// [manifest] .pulse.map             10  3   w,v
+// [manifest] .pulse.compare         10  4   rw,v
+// [manifest] .pulse.active          10  5   rw,v
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -145,12 +154,14 @@ const driver_write_fn task_write_fns[] = {
     0 // 6.8
 };
 
+/*
 const driver_write_fn piezo_write_fns[] = {
     &drv_piezo_enable_write, // 7.0
 //    &drv_piezo_width_write, // 7.1
     0,
     &drv_piezo_active_write // 7.2
 };
+*/
 
 const driver_read_fn console_read_fns[] = {
     0, // 0.0
@@ -203,26 +214,31 @@ const driver_read_fn task_read_fns[] = {
     &drv_task_this_allocation_read // 6.8
 };
 
+/*
 const driver_read_fn piezo_read_fns[] = {
     &drv_piezo_enable_read, // 7.0
 //    &drv_piezo_width_read, // 7.1
     0,
     &drv_piezo_active_read // 7.2
 };
+*/
 
 const driver_write_fn gfx_write_fns[] = {
     &drv_gfx_enable_write, // 8.0
     &drv_gfx_bb_write, // 8.1
-    &drv_gfx_enqueue_write, // 8.2
-    &drv_gfx_flush_write, // 8.3
-    &drv_gfx_char_write // 8.4
+    &drv_gfx_write, // 8.2
+    &drv_gfx_char_write, // 8.3
+    &drv_gfx_buf_write, // 8.4
+    &drv_gfx_buf_flush_write, // 8.5
+    &drv_gfx_buf_ptr_write, // 8.6
+    &drv_gfx_buf_mode_write // 8.7
 };
 
 const driver_read_fn gfx_read_fns[] = {
-    0,
-    0,
-    &drv_gfx_enqueue_read, // 8.2
-    0
+    0, // 8.0
+    0, // 8.1
+    0, // 8.2
+    0, // 8.3
 };
 
 const driver_write_fn expm_write_fns[] = {
@@ -235,6 +251,23 @@ const driver_read_fn expm_read_fns[] = {
     0
 };
 
+const driver_write_fn pulse_write_fns[] = {
+    &drv_pulse_square_enable_write, // 10.0
+    &drv_pulse_pwm_enable_write, // 10.1
+    &drv_pulse_select_write, // 10.2
+    &drv_pulse_map_write, // 10.3
+    &drv_pulse_compare_write, // 10.4
+    &drv_pulse_active_write // 10.5
+};
+
+const driver_read_fn pulse_read_fns[] = {
+    0, // 10.0
+    0, // 10.1
+    &drv_pulse_select_read, // 10.2
+    0, // 10.3
+    &drv_pulse_compare_read, // 10.4
+    &drv_pulse_active_read // 10.5
+};
 
 const driver_block_fn all_block_fns[] = {
     /* .console */
@@ -257,9 +290,11 @@ const struct driver drivers[] = {
     { timer_write_fns, timer_read_fns, &all_block_fns[2], 0, 0, 1}, /* .timer */
     { ldr_write_fns, ldr_read_fns, 0, 0, 0, 1 }, /* .ldr */
     { task_write_fns, task_read_fns, 0, 0, 0, 0 }, /* .task */
-    { piezo_write_fns, piezo_read_fns, 0, 0, 0, 0 }, /* .piezo */
+    { 0, 0, 0, 0, 0 },
+//    { piezo_write_fns, piezo_read_fns, 0, 0, 0, 0 }, /* .piezo */
     { gfx_write_fns, gfx_read_fns, 0, 0, 0, 0 }, /* .gfx */
     { expm_write_fns, expm_read_fns, &all_block_fns[3], 0, 0, 0 }, /* .expm */
+    { pulse_write_fns, pulse_read_fns, 0, 0, 0, 0 }, /* .pulse */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -818,10 +853,12 @@ int drv_task_this_allocation_read() {
     return task_stack_allocation(current_task);
 }
 
+/*
 int drv_piezo_enable_write(int val, char *str) {
     init_piezo();
     return DRV_SUCCESS;
 }
+*/
 
 /*
 int drv_piezo_width_write(int val, char *str) {
@@ -830,6 +867,7 @@ int drv_piezo_width_write(int val, char *str) {
 }
 */
 
+/*
 int drv_piezo_active_write(int val, char *str) {
     if (val) {
         OC3CONSET = BITS(15);
@@ -839,6 +877,7 @@ int drv_piezo_active_write(int val, char *str) {
 
     return DRV_SUCCESS;
 }
+*/
 
 int drv_piezo_enable_read() {
     return 1;
@@ -858,9 +897,6 @@ int drv_piezo_active_read() {
     }
 }
 
-unsigned char gfx_buffer [8];
-unsigned int gfx_buffer_head;
-
 int drv_gfx_enable_write(int val, char *str) {
     gfx_setup();
     gfx_init_sequence();
@@ -876,12 +912,10 @@ int drv_gfx_bb_write(int val, char *str) {
 
     gfx_bb_set(c0, c1, p0, p1);
 
-    gfx_buffer_head = 0;
-
     return DRV_SUCCESS;
 }
 
-int drv_gfx_enqueue_write(int val, char *str) {
+int drv_gfx_write(int val, char *str) {
 /*
     if (gfx_buffer_head < 8) {
         gfx_buffer[gfx_buffer_head++] = (unsigned char)(val & 0xFF);
@@ -893,6 +927,7 @@ int drv_gfx_enqueue_write(int val, char *str) {
     return DRV_SUCCESS;
 }
 
+/*
 int drv_gfx_flush_write(int val, char *str) {
     if (val) {
         gfx_write(gfx_buffer, gfx_buffer_head);
@@ -903,6 +938,7 @@ int drv_gfx_flush_write(int val, char *str) {
         return 0;
     }
 }
+*/
 
 int drv_gfx_char_write(int val, char *str) {
     unsigned char blank = 0;
@@ -919,8 +955,71 @@ int drv_gfx_char_write(int val, char *str) {
     return DRV_SUCCESS;
 }
 
-int drv_gfx_enqueue_read() {
-    return 8 - gfx_buffer_head;
+unsigned char GFX_BUFFER [ 128 * 8 ];
+int TASK_LOCAL gfx_buf_mode = 0;
+int TASK_LOCAL gfx_buf_ptr = 0;
+
+int drv_gfx_buf_write(int val, char *str) {
+    switch (gfx_buf_mode) {
+        case 0: // write over
+            GFX_BUFFER[gfx_buf_ptr++] = val;
+            break;
+        case 1: // OR
+            GFX_BUFFER[gfx_buf_ptr++] |= val;
+            break;
+        case 2: // AND
+            GFX_BUFFER[gfx_buf_ptr++] &= val;
+            break;
+        case 3: // XOR
+            GFX_BUFFER[gfx_buf_ptr++] ^= val;
+            break;
+        case 4: // inverted write over
+            GFX_BUFFER[gfx_buf_ptr++] = ~val;
+            break;
+        case 5: // inverted OR
+            GFX_BUFFER[gfx_buf_ptr++] |= ~val;
+            break;
+        case 6: // inverted AND
+            GFX_BUFFER[gfx_buf_ptr++] &= ~val;
+            break;
+        case 7: // inverted xor
+            GFX_BUFFER[gfx_buf_ptr++] ^= ~val;
+            break;
+        default: break;
+    }
+
+    if (gfx_buf_ptr == (128 * 8))
+        gfx_buf_ptr = 0;
+
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_buf_ptr_write(int val, char *str) {
+    gfx_buf_ptr = val;
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_buf_mode_write(int val, char *str) {
+    gfx_buf_mode = val;
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_buf_flush_write(int val, char *str) {
+    gfx_write(GFX_BUFFER, 128 * 8);
+
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_buf_read() {
+    return GFX_BUFFER[gfx_buf_ptr];
+}
+
+int drv_gfx_buf_ptr_read() {
+    return gfx_buf_ptr;
+}
+
+int drv_gfx_buf_mode_read() {
+    return gfx_buf_mode;
 }
 
 int TASK_LOCAL expm_selected;
@@ -938,6 +1037,164 @@ int drv_expm_select_read() {
 int drv_expm_emit_write(int val, char *str) {
     unblock_tasks(BLOCK_REASON_MANUAL, val);
     return DRV_SUCCESS;
+}
+
+OC TASK_LOCAL pulse_oc_select;
+
+int drv_pulse_square_enable_write(int val, char *str) {
+    u_oc_config cfg = u_oc_load_config(pulse_oc_select);
+
+    if (val) {
+        cfg.on = 1;
+        cfg.timer_select = 0;
+        cfg.mode_32 = 1;
+        cfg.mode_select = 3;
+    } else {
+        cfg.on = 0;
+    }
+
+    u_oc_save_config(pulse_oc_select, cfg);
+    return DRV_SUCCESS;
+}
+
+int drv_pulse_pwm_enable_write(int val, char *str) {
+    u_oc_config cfg = u_oc_load_config(pulse_oc_select);
+
+    if (val) {
+        cfg.on = 1;
+        cfg.timer_select =0;
+        cfg.mode_32 = 1;
+        cfg.mode_select = 6;
+    } else {
+        cfg.on = 0;
+    }
+
+    u_oc_save_config(pulse_oc_select, cfg);
+
+    return DRV_SUCCESS;
+}
+
+int drv_pulse_select_write(int val, char *str) {
+    switch (val) {
+        case 0:
+            pulse_oc_select = OC1;
+            break;
+        case 1:
+            pulse_oc_select = OC2;
+            break;
+        case 2:
+            pulse_oc_select = OC3;
+            break;
+        case 3:
+            pulse_oc_select = OC4;
+            break;
+        case 4:
+            pulse_oc_select = OC5;
+            break;
+        default: return DRV_FAILURE;
+    }
+
+    return DRV_SUCCESS;
+}
+
+int drv_pulse_select_read() {
+    return pulse_oc_select;
+}
+
+int drv_pulse_map_write(int val, char *str) {
+    switch (pulse_oc_select) {
+        case OC1:
+            if (val < 0 || val > 4)
+                return DRV_FAILURE;
+
+            u_pps_out_oc1(val);
+            break;
+        case OC2:
+            if (val < 0 || val > 6)
+                return DRV_FAILURE;
+
+            u_pps_out_oc2(val);
+            break;
+        case OC3:
+            if (val < 0 || val > 4)
+                return DRV_FAILURE;
+
+            u_pps_out_oc3(val);
+            break;
+        case OC4:
+            if (val < 0 || val > 3)
+                return DRV_FAILURE;
+            
+            u_pps_out_oc4(val);
+            break;
+        case OC5:
+            if (val < 0 || val > 3)
+                return DRV_FAILURE;
+            u_pps_out_oc5(val);
+        default: return DRV_FAILURE;
+    }
+
+    return DRV_FAILURE;
+}
+
+int drv_pulse_compare_write(int val, char *str) {
+    u_oc_set_secondary_compare(pulse_oc_select, val);
+
+    return DRV_SUCCESS;
+}
+
+int drv_pulse_compare_read() {
+    return u_oc_get_secondary_compare(pulse_oc_select);
+}
+
+
+int drv_pulse_active_write(int val, char *str) {
+    switch (pulse_oc_select) {
+        case OC1:
+            if (val)
+                OC1CONSET = BITS(15);
+            else
+                OC1CONCLR = BITS(15);
+            break;
+        case OC2:
+            if (val)
+                OC2CONSET = BITS(15);
+            else
+                OC2CONCLR = BITS(15);
+            break;
+        case OC3:
+            if (val)
+                OC3CONSET = BITS(15);
+            else
+                OC3CONCLR = BITS(15);
+            break;
+        case OC4:
+            if (val)
+                OC4CONSET = BITS(15);
+            else
+                OC4CONCLR = BITS(15);
+            break;
+        case OC5:
+            if (val)
+                OC5CONSET = BITS(15);
+            else
+                OC5CONCLR = BITS(15);
+            break;
+        default: return DRV_FAILURE;
+    }
+
+    return DRV_SUCCESS;
+}
+
+int drv_pulse_active_read() {
+    switch (pulse_oc_select) {
+        case OC1: return OC1CON & BITS(15) ? 1 : 0;
+        case OC2: return OC2CON & BITS(15) ? 1 : 0;
+        case OC3: return OC3CON & BITS(15) ? 1 : 0;
+        case OC4: return OC4CON & BITS(15) ? 1 : 0;
+        case OC5: return OC5CON & BITS(15) ? 1 : 0;
+        return 0;
+    }
 }
 
 int rx_block_init = 0;

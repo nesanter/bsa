@@ -329,8 +329,7 @@ class Loader:
                 if len(data) < self.block_size:
                     if verbose:
                         print("padding block")
-                    for j in range(self.block_size - len(data)):
-                        port.write(b"\x00")
+                    port.write(b"\x00" * (self.block_size - len(data)))
                 response = port.read(2)
                 if response != b"OK":
                     print(response)

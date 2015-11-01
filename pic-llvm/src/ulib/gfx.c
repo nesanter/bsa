@@ -7,11 +7,11 @@
 #include "ulib/uart.h"
 #include "ulib/util.h"
 
-/*  CS  = pin 26 [B15] (auto)
+/*  CS  = pin ?? [B04] (auto)
  *  SCK = pin 25 [B14] (auto)
  *  SDO = pin 24 [B13] (auto)
  *  D/C = pin 23 [B12]
- *  SDI = pin 22 [B11] (auto)
+ *  RST = pin ?? [B00]
  */
 
 const Pin dc = {PIN_GROUP_B, BITS(12)};

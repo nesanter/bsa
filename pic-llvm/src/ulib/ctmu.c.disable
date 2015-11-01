@@ -1,0 +1,120 @@
+//#include "ulib/ctmu.h"
+#include "ulib/ulib.h"
+#include "ulib/pins.h"
+
+void ctmu_init() {
+    // CTMU
+    // set current source range & trim
+    // set polarity to high->low for edge 1
+    // disable edge sequencing
+    // set mode to measurement
+    // enable trigger control (auto A-to-D)
+    // clear edge 1 and 2 status
+    // enable edge 1, disable edge 2
+
+    CTMUCON = 3 | BITS(15);
+
+    // ADC
+    // set data format
+    // conversion trigger = internal (0)
+    // disable sample autostart
+    // sample disable
+    // reference is AVDD/AVSS (0)
+    // don't scan
+    // MUX A only
+    // clock derived from PBCLK
+    // no auto sample time
+    // clock conversion select = 4xTPB (1)
+    // input scan select = all disabled (0)
+
+    u_ana_config adc_cfg = u_ana_load_config();
+    adc_cfg.format = 5;
+    adc_cfg.conversion_trigger_source = 0;
+    adc_cfg.sample_auto_start = 0;
+    adc_cfg.voltage_reference = 0;
+    adc_cfg.scan_inputs = 0;
+    adc_cfg.alternate_mux = 0;
+    adc_cfg.clock_source = 0;
+    adc_cfg.clock_select = 1;
+    adc_cfg.on = 1;
+
+    AD1CSSL = 0;
+
+    u_ana_set_enabled(0);
+}
+
+void ctmu_enable() {
+    // discharge circuit
+    // turn on CTMU
+    // turn on ADC
+}
+
+void ctmu_disable() {
+    // turn off CTMU
+    // turn off ADC
+}
+
+// mappings:
+// A0 -- channel 1 [not available]
+// A1 -- channel 2 [not available]
+// B1 -- channel 12
+// B2 -- channel 13 [not available]
+// A4 -- channel 9
+// B7 -- channel 3
+// B8 -- channel 10
+// B9 -- channel 4
+// B10 -- channel 11
+// B14 -- channel 5
+// B15 -- channel 6
+int ctmu_set_channel(Pin p) {
+    int chan = -1;
+    if (p.group == PIN_GROUP_A) {
+        switch (p.pin) {
+            case BITS(0): chan = 1; break;
+            case BITS(1): chan = 2; break;
+            case BITS(4): chan = 9; break;
+            default: break;
+        }
+    } else if (p.group == PIN_GROUP_B) {
+        switch (p.pin) {
+            case BITS(1): chan = 12; break;
+            case BITS(2): chan = 13; break;
+            case BITS(7): chan = 3; break;
+            case BITS(8): chan = 10; break;
+            case BITS(9): chan = 4; break;
+            case BITS(10): chan = 11; break;
+            case BITS(14): chan = 5; break;
+            case BITS(15): chan = 6; break;
+            default: break;
+        }
+    }
+
+    if (chan < 0) {
+        return 1;
+    }
+
+    pin_mode_set(p, 1, 1); // analog input
+//    u_ctmu_set_edge1_source(chan);
+    CTMUCONCLR = (BITS(26) | BITS(27) | BITS(28) | BITS(29));
+    CTMUCONSET = chan << 26;
+    u_ana_set_mux(0, chan, 0, 0);
+
+    return 0;
+}
+
+int ctmu_sample() {
+    u_ana_set_enabled(1);
+    CTMUCONSET = BITS(9);
+    runtime_delay(10000)
+    CTMUCONCLR = BITS(9);
+
+    CTMUCONSET = BITS(24);
+    runtime_delay(15);
+    u_ana_set_enabled(0);
+    CTMUCONCLR = BITS(24);
+
+    while (!u_ana_get_done());
+    u_ana_set_done(0);
+    return *u_ana_buffer_ptr(0);
+}
+
