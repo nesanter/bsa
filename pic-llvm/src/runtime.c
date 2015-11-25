@@ -6,11 +6,13 @@
 #include "driver/task.h"
 #include "driver/gfx.h"
 #include "driver/pulse.h"
+#include "driver/js.h"
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
 #include "ulib/pins.h"
 #include "ulib/ldr.h"
+#include "ulib/js.h"
 #include "ulib/piezo.h"
 #include "ulib/gfx.h"
 #include "exception.h"
@@ -100,6 +102,10 @@ extern struct task_info * current_task;
 // [manifest] .pulse.map             10  3   w,v
 // [manifest] .pulse.compare         10  4   rw,v
 // [manifest] .pulse.active          10  5   rw,v
+// [manifest] .js.enable             11  0   rwB,vB
+// [manifest] .js.x                  11  1   r
+// [manifest] .js.y                  11  2   r
+// [manifest] .js.sw                 11  3   r
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -140,6 +146,13 @@ const driver_write_fn timer_write_fns[] = {
 const driver_write_fn ldr_write_fns[] = {
     0, // 5.0
     &drv_ldr_enable_write // 5.1
+};
+
+const driver_write_fn js_write_fns[] = {
+    &drv_js_enable_write, // 10.0
+    0, // 10.1
+    0, // 10.2
+    0 // 10.3
 };
 
 const driver_write_fn task_write_fns[] = {
@@ -200,6 +213,13 @@ const driver_read_fn timer_read_fns[] = {
 
 const driver_read_fn ldr_read_fns[] = {
     &drv_ldr_read // 5.0
+};
+
+const driver_read_fn js_read_fns[] = {
+    &drv_js_enable_read, // 10.0
+    &drv_js_x_read, // 10.1
+    &drv_js_y_read, // 10.2
+    &drv_js_sw_read // 10.3
 };
 
 const driver_read_fn task_read_fns[] = {
@@ -781,6 +801,32 @@ int drv_ldr_enable_write(int val, char *str) {
     if (val)
         init_ldr();
     return DRV_SUCCESS;
+}
+
+int drv_js_enable_write(int val, char *str) {
+    if (val)
+        init_js();
+    else
+        deinit_js();
+    return DRV_SUCCESS;
+}
+
+int drv_js_enable_read() {
+    return get_js_init();
+}
+
+int drv_js_x_read() {
+    return *u_ana_buffer_ptr(0);
+}
+
+int drv_js_y_read() {
+    return *u_ana_buffer_ptr(1);
+}
+
+Pin js_sw_pin = { PIN_GROUP_B, BITS(2) };
+
+int drv_js_sw_read() {
+    return pin_test(js_sw_pin);
 }
 
 int drv_task_size_write(int val ,char *str) {
