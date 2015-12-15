@@ -823,7 +823,7 @@ int drv_js_y_read() {
     return *u_ana_buffer_ptr(1);
 }
 
-Pin js_sw_pin = { PIN_GROUP_B, BITS(2) };
+Pin js_sw_pin = { PIN_GROUP_B, BITS(4) };
 
 int drv_js_sw_read() {
     return pin_test(js_sw_pin);
