@@ -15,7 +15,7 @@
 \clearpage
 
 \section{Console API}
-\textbf{Availabe:} always
+\textbf{Available:} always
 
 ~\\
 The text console is a character-based bidirectional interface exposed on the controller board. Transmit and receive (TX and RX) queues are present on the chip and operate autonomously.
@@ -342,7 +342,7 @@ Briefly, I\textsuperscript{2}C is a two-wire interface supporting multiple-maste
 \textit{implementation pending}
 
 \section{NeoPixel API}
-\textbf{Available:} when attached to one or more NeoPixels
+\textbf{Available:} when attached to one or more NeoPixels \textit{(future API)}
 
 ~\\
 Adafruit NeoPixels are small 24-bit color LEDs that can be chained together and programmed individually.
@@ -527,5 +527,14 @@ Whether this is an overestimate depends on how you look at it.
 \textit{read}
 
 Returns the amount of stack space allocated to the currently running task in multiples of 0x100 (256) bytes.
+
+\section{Piezo API}
+\textbf{Available:} as part of the Basic I/O board
+
+~\\
+Simple piezo buzzer control functions are provided as an alternative to the full pulse API.
+
+\subsection{.piezo.enable}
+\subsection{.piezo.width}
 
 \end{document}
