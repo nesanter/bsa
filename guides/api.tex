@@ -341,6 +341,59 @@ Briefly, I\textsuperscript{2}C is a two-wire interface supporting multiple-maste
 ~\\
 \textit{implementation pending}
 
+\section{NeoPixel API}
+\textbf{Available:} when attached to one or more NeoPixels
+
+~\\
+Adafruit NeoPixels are small 24-bit color LEDs that can be chained together and programmed individually.
+
+The NeoPixels are controlled over a 1-wire self-clocking protocol which can be derived from multiple sources in the control. The API exposes both a fast, SPI-backed interface as well as a slower, software interface.
+Up to two hardware mode chains can be driven (assuming no other API is using the SPI modules) as well as any number of software chains, limited only by the number of outputs available. In the reference below,
+the abbreviation ``hwX'' is used to represent one of two hardware chains: ``hw0'' or ``hw1.''
+
+~\\
+\textit{Implementation note:} memory for two chains that share a pool of 200 NeoPixels are available for the hardware interface. The software interface does not have a dedicated chain, and
+may not need one to operate, depending on desired behavior, but can also soft-multiplex the 200 NeoPixels into any desired combination.
+
+~\\
+\textit{Hardware note:} NeoPixels should never be powered directly from the output pins, and care should be taken when powering them off of the controller's supply.
+Additionally, if they are powered at above approx.~3.5v, level shifting will be required on the controller outputs.
+
+\subsection{\texttt{.neopixel.hwX.enable}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{Read}
+Returns whether the current hardware channel is enabled.
+
+~\\
+\textit{Write}
+Sets whether the current hardware channel is enabled.
+
+\subsection{\texttt{.neopixel.hwX.length}}
+\textbf{Valid for:} read, write
+
+\subsection{\texttt{.neopixel.hwX.latch}}
+\textbf{Valid for:} write, block
+
+\subsection{\texttt{.neopixel.select}}
+\textbf{Valid for:} read, write
+
+\subsection{\texttt{.neopixel.color}}
+\textbf{Valid for:} read, write
+
+\subsection{\texttt{.neopixel.sw.select}}
+\textbf{Valid for:} read, write
+
+\subsection{\texttt{.neopixel.sw.enable}}
+\textbf{Valid for:} read, write
+
+\subsection{\texttt{.neopixel.sw.reset}}
+\textbf{Valid for:} write
+
+\subsection{\texttt{.neopixel.sw}}
+\textbf{Valid for:} write
+
 \section{System API}
 \textbf{Available:} always
 

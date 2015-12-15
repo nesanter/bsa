@@ -38,8 +38,6 @@ struct driver {
     const driver_write_fn *write_fns;
     const driver_read_fn *read_fns;
     const driver_block_fn *block_fns;
-    const driver_write_addr_fn *write_addr_fns;
-    const driver_read_addr_fn *read_addr_fns;
     unsigned int fn_count;
 };
 
@@ -83,9 +81,9 @@ extern struct task_info * current_task;
 // [manifest] .task.this.depth       6   6   rw,v
 // [manifest] .task.this.stack       6   7   r
 // [manifest] .task.this.allocation  6   8   r
-// [xxx] .piezo.enable          7   0   rwB,vB
-// [xxx] .piezo.width           7   1   rw,v
-// [xxx] .piezo.active          7   2   rwB,vB
+// [manifest] .piezo.enable          7   0   rwB,vB
+// [manifest] .piezo.width           7   1   rw,v
+// [manifest] .piezo.active          7   2   rwB,vB
 // [manifest] .gfx.enable            8   0   rwB,vB
 // [manifest] .gfx.bb                8   1   w,v
 // [manifest] .gfx                   8   2   w,v
@@ -167,14 +165,14 @@ const driver_write_fn task_write_fns[] = {
     0 // 6.8
 };
 
-/*
+
 const driver_write_fn piezo_write_fns[] = {
     &drv_piezo_enable_write, // 7.0
-//    &drv_piezo_width_write, // 7.1
+    &drv_piezo_width_write, // 7.1
     0,
     &drv_piezo_active_write // 7.2
 };
-*/
+
 
 const driver_read_fn console_read_fns[] = {
     0, // 0.0
@@ -234,14 +232,12 @@ const driver_read_fn task_read_fns[] = {
     &drv_task_this_allocation_read // 6.8
 };
 
-/*
 const driver_read_fn piezo_read_fns[] = {
     &drv_piezo_enable_read, // 7.0
-//    &drv_piezo_width_read, // 7.1
+    &drv_piezo_width_read, // 7.1
     0,
     &drv_piezo_active_read // 7.2
 };
-*/
 
 const driver_write_fn gfx_write_fns[] = {
     &drv_gfx_enable_write, // 8.0
@@ -303,18 +299,17 @@ const driver_block_fn all_block_fns[] = {
 };
 
 const struct driver drivers[] = {
-    { console_write_fns, console_read_fns, &all_block_fns[0], 0, 0, 7 }, /* .console */
-    { led_write_fns, led_read_fns, 0, 0, 0, 2 }, /* .led */
-    { sw_write_fns, sw_read_fns, &all_block_fns[1], 0, 0, 2 }, /* .sw */
-    { sys_write_fns, sys_read_fns, 0, 0, 0, 1 }, /* .system */
-    { timer_write_fns, timer_read_fns, &all_block_fns[2], 0, 0, 1}, /* .timer */
-    { ldr_write_fns, ldr_read_fns, 0, 0, 0, 1 }, /* .ldr */
-    { task_write_fns, task_read_fns, 0, 0, 0, 0 }, /* .task */
-    { 0, 0, 0, 0, 0 },
-//    { piezo_write_fns, piezo_read_fns, 0, 0, 0, 0 }, /* .piezo */
-    { gfx_write_fns, gfx_read_fns, 0, 0, 0, 0 }, /* .gfx */
-    { expm_write_fns, expm_read_fns, &all_block_fns[3], 0, 0, 0 }, /* .expm */
-    { pulse_write_fns, pulse_read_fns, 0, 0, 0, 0 }, /* .pulse */
+    { console_write_fns, console_read_fns, &all_block_fns[0], 7 }, /* .console */
+    { led_write_fns, led_read_fns, 0, 2 }, /* .led */
+    { sw_write_fns, sw_read_fns, &all_block_fns[1], 2 }, /* .sw */
+    { sys_write_fns, sys_read_fns, 0, 1 }, /* .system */
+    { timer_write_fns, timer_read_fns, &all_block_fns[2], 1}, /* .timer */
+    { ldr_write_fns, ldr_read_fns, 0, 1 }, /* .ldr */
+    { task_write_fns, task_read_fns, 0, 0 }, /* .task */
+    { piezo_write_fns, piezo_read_fns, 0, 0 }, /* .piezo */
+    { gfx_write_fns, gfx_read_fns, 0, 0 }, /* .gfx */
+    { expm_write_fns, expm_read_fns, &all_block_fns[3], 0 }, /* .expm */
+    { pulse_write_fns, pulse_read_fns, 0, 0 }, /* .pulse */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
