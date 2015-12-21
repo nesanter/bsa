@@ -1,0 +1,8 @@
+mkdir -p out && \
+cd out && \
+rm -f *.o && \
+flex ../src/bl.l && \
+bison -d ../src/bl.y && \
+gcc -I../include -c lex.yy.c bl.tab.c && \
+dmd -ofmuc $(find ../src -name '*.d') *.o /usr/lib/libLLVM.so -L-lfl
+
