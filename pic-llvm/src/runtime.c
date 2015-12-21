@@ -894,21 +894,16 @@ int drv_task_this_allocation_read() {
     return task_stack_allocation(current_task);
 }
 
-/*
 int drv_piezo_enable_write(int val, char *str) {
     init_piezo();
     return DRV_SUCCESS;
 }
-*/
 
-/*
 int drv_piezo_width_write(int val, char *str) {
     u_oc_set_secondary_compare(OC3, val);
     return DRV_SUCCESS;
 }
-*/
 
-/*
 int drv_piezo_active_write(int val, char *str) {
     if (val) {
         OC3CONSET = BITS(15);
@@ -918,17 +913,14 @@ int drv_piezo_active_write(int val, char *str) {
 
     return DRV_SUCCESS;
 }
-*/
 
 int drv_piezo_enable_read() {
     return 1;
 }
 
-/*
 int drv_piezo_width_read() {
     return u_oc_get_secondary_compare(OC3);
 }
-*/
 
 int drv_piezo_active_read() {
     if (OC3CON & BITS(15)) {
