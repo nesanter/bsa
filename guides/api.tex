@@ -534,7 +534,81 @@ Returns the amount of stack space allocated to the currently running task in mul
 ~\\
 Simple piezo buzzer control functions are provided as an alternative to the full pulse API.
 
-\subsection{.piezo.enable}
-\subsection{.piezo.width}
+\subsection{\texttt{.piezo.enable}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{read}
+
+Returns ``true'' if the piezo system has been enabled, ``false'' otherwise. \textit{Implementation note:} currently always returns ``true''.
+
+~\\
+\textit{write}
+
+Enables or disables the piezo subsystem. \textit{Implementation note:} currently always enables, regardless of argument.
+
+\subsection{\texttt{.piezo.width}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{read}
+
+Returns the current width of the pulse train in half cycles. (See \textit{write} for details.) 
+
+~\\
+\textit{write}
+Sets the period of the pulse train in half cycles. The actual frequency (in Hz) is \{f = width * (1/20000000)\}. In practice, this affects the pitch of the piezo.
+
+\subsection{\texttt{.piezo.active}}
+\textbf{Valid for:} read, write
+
+~\\
+\textit{read}
+
+Returns whether the piezo buzzer is currently being driven. This is always false until the piezo is enabled.
+
+~\\
+\textit{write}
+
+Turns on or off the actual output to the piezo, without affecting the enabled status of the subsystem.
+
+\section{Graphics API}
+\textbf{Available:} when attached to 128x64 OLED breakout
+
+~\\
+Both a character-based and pixel-addressable API are provided for an SPI-controlled OLED module.
+
+\subsection{\texttt{.gfx.enable}}
+\subsection{\texttt{.gfx.bb}}
+\subsection{\texttt{.gfx}}
+\subsection{\texttt{.gfx.char}}
+\subsection{\texttt{.gfx.buffer}}
+\subsection{\texttt{.gfx.buffer.flush}}
+\subsection{\texttt{.gfx.buffer.mode}}
+
+\section{Experimental API}
+\textbf{Available:} always
+
+\subsection{\texttt{.expm.select}}
+\subsection{\texttt{.expm.wait}}
+\subsection{\texttt{.expm.emit}}
+
+\section{Pulse API}
+\textbf{Available:} when connected to an appropriate peripheral
+
+\subsection{\texttt{.pulse.enable.square}}
+\subsection{\texttt{.pulse.enable.pwm}}
+\subsection{\texttt{.pulse.select}}
+\subsection{\texttt{.pulse.map}}
+\subsection{\texttt{.pulse.compare}}
+\subsection{\texttt{.pulse.active}}
+
+\section{Joystick API}
+\textbf{Available:} when connected to a two-axis analog joystick
+
+\subsection{\texttt{.js.enable}}
+\subsection{\texttt{.js.x}}
+\subsection{\texttt{.js.y}}
+\subsection{\texttt{.js.sw}}
 
 \end{document}
