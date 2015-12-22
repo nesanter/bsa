@@ -1,6 +1,6 @@
 pkgname="bomu-tools"
 pkgver="1.0.3"
-pkgrel="2"
+pkgrel="3"
 arch=('x86_64')
 pkgdesc="BoMu compiler, sources, and runtime image"
 depends=('llvm')
