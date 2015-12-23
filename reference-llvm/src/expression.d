@@ -1094,10 +1094,15 @@ extern (C) {
         if (active_ifelse is null) {
             ifelse.before = current_block;
         } else {
+            auto syms = find_symbols_in_blocks(active_ifelse.during, current_block);
+            foreach (sym; syms) {
+                sym.pop_to(active_ifelse.before);
+            }
+
             ifelse.before = active_ifelse.before;
             ifelse.parent = active_ifelse;
-            active_ifelse = null;
         }
+        active_ifelse = ifelse;
 
         ifelse.during = current_function.append_basic_block(null);
         ifelse.otherwise = current_function.append_basic_block(null);
@@ -1173,19 +1178,21 @@ extern (C) {
 
         ifelse.after_value = current_builder.make_phi(t, phi_vals, phi_blocks);
 
-        foreach (bb; BasicBlocks.all()) {
+        /*
+        foreach (bb; BasicBlock.all()) {
             if (bb.index >= ifelse.during && bb.index <= prev_block) {
                 phi_blocks ~= bb;
             }
         }
+        */
 //        auto syms1 = find_symbols_in_blocks(ifelse.during);
-        /*
+        
         if (nested_ifelse_ref == ulong.max) {
             phi_blocks = [ifelse.during, prev_block];
         } else {
             phi_blocks = [ifelse.during, nested.after];
         }
-        */
+        
         auto syms1 = find_symbols_in_blocks(phi_blocks[0], phi_blocks[1]);
 
         foreach (sym; syms1) {
@@ -1225,6 +1232,7 @@ extern (C) {
             sym.last_block = current_block;
         }
 
+        /*
 //        auto syms2 = find_symbols_in_block(ifelse.otherwise);
         phi_blocks[1] = prev_block;
         auto syms2 = find_symbols_in_blocks(ifelse.otherwise, prev_block);
@@ -1269,11 +1277,17 @@ extern (C) {
             sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
             sym.last_block = current_block;
         }
+        */
 
         current_value = ifelse.after_value;
 
         if (active_ifelse == ifelse) {
             active_ifelse = ifelse.parent;
+        }
+
+        foreach (sym; syms1) {
+            sym.pop_to(ifelse.before);
+//            sym.last_block = ifelse.before;
         }
 
         return ifelse_ref;
