@@ -24,6 +24,7 @@
 "," { return COMMA; }
 "=" { return EQUAL; }
 "@" { return AT; }
+"#" { return POUND; }
 
  /* operators */
 "+" { return PLUS; }
@@ -44,6 +45,7 @@
 "|" { return VERTICAL_BAR; }
 "^" { return CARET; }
 "~" { return TILDE; }
+"?" { return QMARK; }
 
  /* keywords */
 "not" { return NOT; }
@@ -70,6 +72,8 @@
 "sync_r" { return SYNC_READ; }
 "sync_w" { return SYNC_WRITE; }
 "scope" { BEGIN(SCOPETYPE); return SCOPE; }
+"release" { return RELEASE; }
+"acquire" { return ACQUIRE; }
 "$fail" { return HIDDEN_FAIL; }
 "$trace" { return HIDDEN_TRACE; }
 "$canary" { return HIDDEN_CANARY; }

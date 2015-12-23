@@ -35,8 +35,8 @@
 %token <llu> NUMERIC
 %token <text> IDENT STRING
 %token LBRACE RBRACE LPAREN RPAREN LBRACK RBRACK
-%token DOT SEMI COMMA EQUAL AT
-%token FUNCTION WHILE DO IF ELSE YIELD FOR UNTIL FORK SYNC_BOTH SYNC_READ SYNC_WRITE CONSTANT
+%token DOT SEMI COMMA EQUAL AT POUND
+%token FUNCTION WHILE DO IF ELSE YIELD FOR UNTIL FORK SYNC_BOTH SYNC_READ SYNC_WRITE CONSTANT RELEASE ACQUIRE
 %token HIDDEN_FAIL HIDDEN_TRACE HIDDEN_CANARY
 %token SCOPE ALWAYS SUCCESS FAILURE
 %token TRUE FALSE
@@ -54,11 +54,12 @@
 %left LANGLE_LANGLE RANGLE_RANGLE RANGLE_RANGLE_RANGLE
 %left PLUS MINUS
 %left STAR FSLASH PERCENT
-%right NOT TILDE
+%right NOT TILDE QMARK
 %precedence UNARY
 
-%type <llu> attributes
+%type <llu> attributes tree_child_specifier
 %type <refid> atom expression args else_statement if_statement params params_s qualified_ident system_call
+%type <refid> tree_expression tree_child_select tree_initializer
 %type <tagged_d> constant_atom constant_expression
 %type <d> scope_type
 
@@ -111,6 +112,8 @@ statement: SEMI { statement_empty(); } /* "empty" statement */
          | fork_statement SEMI
          | sync_statement SEMI
          | hidden_statement SEMI
+         | tree_assign_statement SEMI
+         | release_statement SEMI
          ;
 
 if_statement: IF LPAREN expression RPAREN { $<refid>$ = statement_if_begin($3); } LBRACE body RBRACE { statement_if_break($<refid>5); } else_statement { $$ = statement_if_end($<refid>5, $10); }
@@ -235,6 +238,8 @@ atom: IDENT { $$ = expr_atom_ident($1); if (error_occured) YYABORT; }
     | FALSE { $$ = expr_atom_bool(0); }
     | function_call { $$ = expr_atom_function_call(); }
     | system_call { $$ = $1; }
+    | QMARK tree_expression { $$ = expr_atom_tree_is_null($2); }
+    | POUND tree_expression { $$ = expr_atom_tree_value($2); }
     ;
 
 function_call: IDENT LPAREN RPAREN { create_function_call($1, params_empty()); }
@@ -261,4 +266,42 @@ qualified_ident: DOT IDENT { $$ = qident_create($2); }
                | qualified_ident DOT IDENT { $$ = qident_add($1, $3); }
                ;
 
+tree_assign_statement: tree_child_assign_statement
+                     | tree_value_assign_statement
+                     | tree_create_assign_statement
+                     ;
+
+tree_child_assign_statement: IDENT tree_child_select EQUAL expression { statement_tree_sub_assign($1, $2, $4); }
+                           ;
+
+tree_value_assign_statement: POUND tree_expression EQUAL expression { statement_tree_value_assign($2, $4); }
+                           ;
+
+tree_create_assign_statement: ACQUIRE tree_expression EQUAL tree_initializer { statement_tree_create($2, $4); }
+                            ;
+
+
+tree_child_select: DOT tree_child_specifier { $$ = tree_sub_create($2); }
+                 | tree_child_select DOT tree_child_specifier { $$ = tree_sub_add($1, $3); }
+                 ;
+
+tree_child_specifier: IDENT { $$ = tree_selector($1); }
+                    ;
+
+tree_initializer: LBRACE RBRACE { $$ = tree_initializer_null(); }
+                | LBRACE expression RBRACE { $$ = tree_initializer($2, 0, 0, 0, 0); }
+                | LBRACE expression COMMA tree_expression RBRACE { $$ = tree_initializer($2, 0, $4, 0, 0); }
+                | LBRACE expression COMMA tree_expression COMMA tree_expression RBRACE { $$ = tree_initializer($2, 0, $4, 0, $6); }
+                | LBRACE expression COMMA tree_initializer RBRACE { $$ = tree_initializer($2, 1, $4, 0, 0); }
+                | LBRACE expression COMMA tree_initializer COMMA tree_expression RBRACE { $$ = tree_initializer($2, 1, $4, 0, $6); }
+                | LBRACE expression COMMA tree_initializer COMMA tree_initializer RBRACE { $$ = tree_initializer($2, 1, $4, 1, $6); }
+                | LBRACE expression COMMA tree_expression COMMA tree_initializer RBRACE { $$ = tree_initializer($2, 0, $4, 1, $6); }
+                ;
+
+tree_expression: IDENT { $$ = expr_atom_tree($1); }
+               | IDENT tree_child_select { $$ = expr_atom_tree_sub($1, $2); }
+               ;
+
+release_statement: RELEASE tree_expression { statement_tree_release($2); }
+                  ;
 %%

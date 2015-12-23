@@ -12,7 +12,8 @@ enum SymbolType {
     VARIABLE,
     OBJECT,
     FUNCTION,
-    CONSTANT
+    CONSTANT,
+    TREE_VARIABLE
 }
 
 class InstUsage {

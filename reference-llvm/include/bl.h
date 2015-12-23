@@ -81,29 +81,48 @@ void statement_hidden_fail(void);
 void statement_hidden_trace(void);
 void statement_hidden_canary(void);
 
-void function_begin(char *ident, unsigned long args_ref, unsigned long attr);
 void statement_sync(int read, int write);
+
+void function_begin(char *ident, ref args_ref, ref attr);
 
 void function_end();
 
-unsigned long attribute_value(unsigned long cur, char *ident);
+ref attribute_value(ref cur, char *ident);
 
-unsigned long args_empty();
-unsigned long args_create(char *ident, int is_object);
-unsigned long args_add(unsigned long args_ref, char *ident, int is_object);
+ref args_empty();
+ref args_create(char *ident, int is_object);
+ref args_add(ref args_ref, char *ident, int is_object);
 
-unsigned long params_empty();
-unsigned long params_create(unsigned long expr_ref);
-unsigned long params_create_string(char *s);
-unsigned long params_add(unsigned long params_ref, unsigned long expr_ref);
-unsigned long params_add_string(unsigned long params_ref, char *s);
+ref params_empty();
+ref params_create(ref expr_ref);
+ref params_create_string(char *s);
+ref params_add(ref params_ref, ref expr_ref);
+ref params_add_string(ref params_ref, char *s);
 
-unsigned long qident_create(char *ident);
-unsigned long qident_add(unsigned long qident_ref, char *ident);
+ref qident_create(char *ident);
+ref qident_add(ref qident_ref, char *ident);
 
 char *escape_string(char *s);
 
 void global_create(char *ident, int value, int is_bool);
 void constant_create(char *ident, int value, int is_bool);
+
+ref expr_atom_tree_is_null(ref tree_ref);
+ref expr_atom_tree_value(ref tree_ref);
+ref expr_atom_tree(char *ident);
+ref expr_atom_tree_sub(char *ident, ref tree_sub_ref);
+
+void statement_tree_sub_assign(char *ident, ref tree_sub_ref, ref expr_ref);
+void statement_tree_value_assign(ref tree_ref, ref expr_ref);
+void statement_tree_create(ref tree_ref, ref tree_initializer_ref);
+void statement_tree_release(ref tree_ref);
+
+ref tree_sub_create(unsigned long child);
+ref tree_sub_add(ref tree_sub_ref, unsigned long child);
+
+int tree_selector(char *ident);
+
+ref tree_initializer_null();
+ref tree_initializer(ref expr_ref, int left_is_subtree, ref left_tree_ref, int right_is_subtree, ref right_tree_ref);
 
 //#endif /* BL_H */

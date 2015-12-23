@@ -15,7 +15,7 @@ Value current_value;
 Value current_eh;
 bool[3] current_function_has_handlers;
 
-Type object_type, numeric_type, bool_type, string_type, eh_type, eh_ptr_type, ex_info_type;
+Type object_type, numeric_type, bool_type, string_type, eh_type, eh_ptr_type, ex_info_type, tree_type, tree_ptr_type;
 Value void_value, false_value, true_value,
       false_numeric_value, true_numeric_value,
       eh_default_flags, null_eh;
@@ -64,6 +64,26 @@ class Expression {
     Value value;
     bool is_bool;
     Symbol const_is_sym;
+}
+
+class TreeExpression {
+    mixin ReferenceHandler;
+    Value value;
+    ulong[] selection;
+}
+
+class TreeSelection {
+    mixin ReferenceHandler;
+    ulong[] selection;
+}
+
+class TreeInitializer {
+    mixin ReferenceHandler;
+    Expression value;
+    bool is_null;
+    bool left_is_init, right_is_init;
+    TreeExpression left_expr, right_expr;
+    TreeInitializer left_init, right_init;
 }
 
 class Arguments {
@@ -141,6 +161,12 @@ void init(string manifest_file) {
     ], false);
     eh_ptr_type = Type.pointer_type(eh_type);
     string_type = Type.pointer_type(Type.int_type(8));
+    tree_type = Type.named_struct_type("tree_t");
+    tree_type.set_body([
+        numeric_type,
+        Type.pointer_type(tree_type),
+        Type.pointer_type(tree_type)
+    ], false);
     void_value = Value.create_const_int(numeric_type, 0);
     true_value = Value.create_const_int(bool_type, 1);
     false_value = Value.create_const_int(bool_type, 0);
@@ -350,6 +376,59 @@ extern (C) {
             res.is_bool = true;
         }
 
+        return res.reference();
+    }
+
+    ulong expr_atom_tree_is_null(ulong tree_ref) {
+
+    }
+
+    ulong expr_atom_tree_value(ulong tree_ref) {
+
+    }
+
+    ulong expr_atom_tree(char *s) {
+        auto sym = find_symbol(text(s));
+        if (sym is null) {
+            error_unknown_identifier(text(s));
+            //            stderr.writeln("error: ", text(s), " nonexistant (line ",yylineno,")");
+            //            generic_error();
+            //            error_occured++;
+            //            return ulong.max;
+        }
+        if (sym.type != SymbolType.TREE_VARIABLE) {
+            error_symbol_of_different_type(text(s));
+        }
+        auto res = new TreeExpression;
+        if (sym.is_global && sym.parent != current_function) {
+            res.value = current_builder.load(sym.global_value);
+        } else {
+            res.value = sym.values[sym.last_block];
+        }
+        res.selection = [];
+        return res.reference();
+    }
+
+    ulong expr_atom_tree_sub(char *s, ulong tree_sub_ref) {
+        auto sym = find_symbol(text(s));
+        if (sym is null) {
+            error_unknown_identifier(text(s));
+            //            stderr.writeln("error: ", text(s), " nonexistant (line ",yylineno,")");
+            //            generic_error();
+            //            error_occured++;
+            //            return ulong.max;
+        }
+        if (sym.type != SymbolType.TREE_VARIABLE) {
+            error_symbol_of_different_type(text(s));
+        }
+        auto sub_ref = TreeSelection.lookup(tree_sub_ref);
+        auto res = new TreeExpression;
+        if (sym.is_global && sym.parent != current_function) {
+            res.value = current_builder.load(sym.global_value);
+        } else {
+            res.value = sym.values[sym.last_block];
+        }
+        res.selection = sub_ref.selection;
         return res.reference();
     }
 
@@ -1681,6 +1760,22 @@ extern (C) {
         }
     }
 
+    void statement_tree_sub_assign(char* ident, ulong tree_sub_ref, ulong expr_ref) {
+
+    }
+
+    void statement_tree_value_assign(ulong tree_ref, ulong expr_ref) {
+
+    }
+
+    void statement_tree_create(ulong tree_ref, ulong tree_initializer_ref) {
+
+    }
+
+    void statement_tree_release(ulong tree_ref) {
+
+    }
+
     /* Functions */
 
     Value make_eh(Value parent, string name) {
@@ -2030,6 +2125,63 @@ extern (C) {
     void statement_hidden_canary() {
         current_builder.call(canary_fn, [current_eh]);
         current_value = void_value;
+    }
+
+    /* Trees */
+
+    ulong tree_selector(char *ident) {
+        string s = text(ident);
+        if (s == "l") {
+            return 0;
+        } else if (s == "r") {
+            return 1;
+        } else {
+            error_bad_tree_selector(s);
+        }
+    }
+
+    ulong tree_sub_create(ulong child) {
+        auto sub = new TreeSelection;
+        sub.selection = [child];
+        return sub.reference();
+    }
+
+    ulong tree_sub_add(ulong tree_sub_ref, ulong child) {
+        auto sub = TreeSelection.lookup(tree_sub_ref);
+        sub.selection ~= child;
+        return sub.reference();
+    }
+
+    ulong tree_initializer_null() {
+        auto init = new TreeInitializer;
+        init.is_null = true;
+        return init.reference();
+    }
+
+    ulong tree_initializer(ulong expr_ref, int left_is_subtree, ulong left_tree_ref, int right_is_subtree, ulong right_tree_ref) {
+        auto init = new TreeInitializer;
+        init.is_null = false;
+        init.value = Expression.lookup(expr_ref);
+        if (left_is_subtree) {
+            init.left_is_init = true;
+            init.left_init = TreeInitializer.lookup(left_tree_ref);
+        } else if (left_tree_ref) {
+            init.left_is_init = false;
+            init.left_expr = TreeExpression.lookup(left_tree_ref);
+        } else {
+            // left is null
+        }
+        if (right_is_subtree) {
+            init.right_is_init = true;
+            init.right_init = TreeInitializer.lookup(right_tree_ref);
+        } else if (right_tree_ref) {
+            init.right_is_init = false;
+            init.right_expr = TreeExpression.lookup(right_tree_ref);
+        } else {
+            // right is null
+        }
+
+        return init.reference();
     }
 }
 
