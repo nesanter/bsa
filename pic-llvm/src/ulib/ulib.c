@@ -1927,8 +1927,26 @@ void u_ana_set_scan_select(int pin_bit, int select) {
         AD1CSSLCLR = pin_bit;
 }
 
-unsigned int volatile *u_ana_buffer_ptr(int n) {
-    return &ADC1BUF0 + n;
+unsigned int u_ana_buffer(int n) {
+    switch (n) {
+        case 0: return ADC1BUF0;
+        case 1: return ADC1BUF1;
+        case 2: return ADC1BUF2;
+        case 3: return ADC1BUF3;
+        case 4: return ADC1BUF4;
+        case 5: return ADC1BUF5;
+        case 6: return ADC1BUF6;
+        case 7: return ADC1BUF7;
+        case 8: return ADC1BUF8;
+        case 9: return ADC1BUF9;
+        case 10: return ADC1BUFA;
+        case 11: return ADC1BUFB;
+        case 12: return ADC1BUFC;
+        case 13: return ADC1BUFD;
+        case 14: return ADC1BUFE;
+        case 15: return ADC1BUFF;
+        default: return 0;
+    }
 }
 
 /*-------------------OC-----------------------------*/

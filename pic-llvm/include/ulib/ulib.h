@@ -396,7 +396,7 @@ void u_ana_set_mux(int a_neg, int a_pos, int b_neg, int b_pos);
 int u_ana_get_scan_select(int pin_bit);
 void u_ana_set_scan_select(int pin_bit, int select);
 
-unsigned int volatile *u_ana_buffer_ptr(int n);
+unsigned int u_ana_buffer(int n);
 
 /*------------------------OC----------------------------*/
 typedef struct {

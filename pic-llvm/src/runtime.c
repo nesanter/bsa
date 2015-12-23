@@ -6,7 +6,8 @@
 #include "driver/task.h"
 #include "driver/gfx.h"
 #include "driver/pulse.h"
-#include "driver/js.h"
+//#include "driver/js.h"
+#include "driver/ana.h"
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
@@ -105,11 +106,9 @@ extern struct task_info * current_task;
 // [xxx] .js.y                  11  2   r
 // [xxx] .js.sw                 11  3   r
 // [manifest] .ana.enable            12  0   rwB,vB
-// [manifest] .ana.select            12  1   rw,v
-// [manifest] .ana                   12  2
-// [manifest] .ana.cfg.active        12  3   rwB,vB
-// [manifest] .ana.cfg.cclk          12  4   rw,v
-// [manifest] .ana.cfg.sclk          12  5   rw,v
+// [manifest] .ana.cfg.activate      12  1   w,v
+// [manifest] .ana.cfg.deactivate    12  2   w,v
+// [manifest] .ana                   12  3   w,v
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -152,12 +151,14 @@ const driver_write_fn ldr_write_fns[] = {
     &drv_ldr_enable_write // 5.1
 };
 
+/*
 const driver_write_fn js_write_fns[] = {
     &drv_js_enable_write, // 10.0
     0, // 10.1
     0, // 10.2
     0 // 10.3
 };
+*/
 
 const driver_write_fn task_write_fns[] = {
     &drv_task_size_write, // 6.0
@@ -219,12 +220,14 @@ const driver_read_fn ldr_read_fns[] = {
     &drv_ldr_read // 5.0
 };
 
+/*
 const driver_read_fn js_read_fns[] = {
     &drv_js_enable_read, // 10.0
     &drv_js_x_read, // 10.1
     &drv_js_y_read, // 10.2
     &drv_js_sw_read // 10.3
 };
+*/
 
 const driver_read_fn task_read_fns[] = {
     &drv_task_size_read, // 6.0
@@ -293,20 +296,16 @@ const driver_read_fn pulse_read_fns[] = {
 
 const driver_write_fn ana_write_fns[] = {
     &drv_ana_enable_write, // 12.0
-    &drv_ana_select_write, // 12.1
-    0, // 12.2
-    &drv_ana_cfg_active_write, // 12.3
-    &drv_ana_cfg_cclk_write, // 12.4
-    &drv_ana_cfg_sclk_write // 12.5
+    &drv_ana_activate_write, // 12.1
+    &drv_ana_deactivate_write, // 12.2
+    &drv_ana_write, // 12.3
 };
 
 const driver_read_fn ana_read_fns[] = {
     &drv_ana_enable_read, // 12.0
-    &drv_ana_select_read, // 12.1
-    &drv_ana_read, // 12.2
-    &drv_ana_cfg_active_read, // 12.3
-    &drv_ana_cfg_cclk_read, // 12.4
-    &drv_ana_cfG_sclk_read // 12.5
+    0, // 12.1
+    0, // 12.2
+    0 // 12.3
 };
 
 const driver_block_fn all_block_fns[] = {
@@ -335,8 +334,8 @@ const struct driver drivers[] = {
     { expm_write_fns, expm_read_fns, &all_block_fns[3], 0 }, /* .expm */
     { pulse_write_fns, pulse_read_fns, 0, 0 }, /* .pulse */
 //    { js_write_fns, js_read_fns, 0, 0}, /* .js */
-    0,
-    { ana_write_fns, ana_read_fns, 0, 0 }, /* .ana */
+    {},
+    { ana_write_fns, ana_read_fns, 0, 0 } /* .ana */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -816,7 +815,7 @@ int drv_timer_period_read() {
 }
 
 int drv_ldr_read() {
-    return *u_ana_buffer_ptr(0);
+    return u_ana_buffer(0);
 }
 
 int drv_ldr_enable_write(int val, char *str) {
@@ -825,6 +824,7 @@ int drv_ldr_enable_write(int val, char *str) {
     return DRV_SUCCESS;
 }
 
+/*
 Pin js_sw_pin = { PIN_GROUP_B, BITS(4) };
 
 int drv_js_enable_write(int val, char *str) {
@@ -843,18 +843,18 @@ int drv_js_enable_read() {
 }
 
 int drv_js_x_read() {
-    return *u_ana_buffer_ptr(0);
+    return u_ana_buffer(0);
 }
 
 int drv_js_y_read() {
-//    return *u_ana_buffer_ptr(1);
-    return ADC1BUF1;
+    return u_ana_buffer(1);
 }
 
 
 int drv_js_sw_read() {
     return pin_test(js_sw_pin);
 }
+*/
 
 int drv_task_size_write(int val ,char *str) {
     if (val == 0) {
@@ -1262,24 +1262,116 @@ int drv_pulse_active_read() {
     }
 }
 
+int ana_enabled = 0;
 
+int drv_ana_enable_write(int val, char *str) {
+    u_ana_config cfg = u_ana_load_config();
 
-const driver_write_fn ana_write_fns[] = {
-    &drv_ana_enable_write, // 12.0
-    &drv_ana_select_write, // 12.1
-    0, // 12.2
-    &drv_ana_cfg_active_write, // 12.3
-    &drv_ana_cfg_cclk_write, // 12.4
-    &drv_ana_cfg_sclk_write // 12.5
-};
+    int active = 0;
+    if (val) {
+        // figure out how many are active;
+        for (int i = 0; i < 32; i++) {
+            if (u_ana_get_scan_select(BITS(i)))
+                active++;
+        }
+        if (active == 0) {
+            return DRV_FAILURE;
+        }
 
-const driver_read_fn ana_read_fns[] = {
-    &drv_ana_enable_read, // 12.0
-    &drv_ana_select_read, // 12.1
-    &drv_ana_read, // 12.2
-    &drv_ana_cfg_active_read, // 12.3
-    &drv_ana_cfg_cclk_read, // 12.4
-    &
+        cfg.on = 1;
+        cfg.format = 5;
+        cfg.conversion_trigger_source = 7;
+        cfg.sample_auto_start = 1;
+        cfg.sequences_per_interrupt = active - 1;
+        cfg.auto_sample_time = 31;
+        cfg.clock_select = 63;
+        cfg.scan_inputs = 1;
+        ana_enabled = 1;
+    } else {
+        cfg.on = 0;
+        ana_enabled = 0;
+    }
+    u_ana_save_config(cfg);
+
+    return DRV_SUCCESS;
+}
+
+int drv_ana_activate_write(int val, char *str) {
+    Pin an = {PIN_GROUP_B, 0};
+    switch (val) {
+        case 0: //AN2 / B0
+            u_ana_set_scan_select(BITS(2), 1);
+            an.pin = BITS(0);
+            break;
+        case 1: //AN3 / B1
+            u_ana_set_scan_select(BITS(3), 1);
+            an.pin = BITS(1);
+            break;
+        case 2: //AN4 / B2
+            u_ana_set_scan_select(BITS(4), 1);
+            an.pin = BITS(2);
+            break;
+        case 3: //AN10 / B14
+            u_ana_set_scan_select(BITS(10), 1);
+            an.pin = BITS(14);
+            break;
+        case 4: //AN11 / B13
+            u_ana_set_scan_select(BITS(11), 1);
+            an.pin = BITS(13);
+            break;
+        case 5: //AN12 / B12
+            u_ana_set_scan_select(BITS(12), 1);
+            an.pin = BITS(12);
+            break;
+        default:
+            return DRV_FAILURE;
+    }
+    pin_mode_set(an, 1, 1);
+    return DRV_SUCCESS;
+}
+
+int drv_ana_deactivate_write(int val, char *str) {
+    Pin an = {PIN_GROUP_B, 0};
+    switch (val) {
+        case 0: //AN2 / B0
+            u_ana_set_scan_select(BITS(2), 0);
+            an.pin = BITS(0);
+            break;
+        case 1: //AN3 / B1
+            u_ana_set_scan_select(BITS(3), 0);
+            an.pin = BITS(1);
+            break;
+        case 2: //AN4 / B2
+            u_ana_set_scan_select(BITS(4), 0);
+            an.pin = BITS(2);
+            break;
+        case 3: //AN10 / B14
+            u_ana_set_scan_select(BITS(10), 0);
+            an.pin = BITS(14);
+            break;
+        case 4: //AN11 / B13
+            u_ana_set_scan_select(BITS(11), 0);
+            an.pin = BITS(13);
+            break;
+        case 5: //AN12 / B12
+            u_ana_set_scan_select(BITS(12), 0);
+            an.pin = BITS(12);
+            break;
+        default:
+            return DRV_FAILURE;
+    }
+    pin_mode_set(an, 0, 0);
+    return DRV_SUCCESS;    
+}
+
+int drv_ana_write(int val, char *str) {
+    return u_ana_buffer(val);
+}
+
+int drv_ana_enable_read() {
+    return ana_enabled;
+}
+
 int rx_block_init = 0;
 
 int drv_console_rx_block() {
