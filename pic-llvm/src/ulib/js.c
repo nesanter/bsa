@@ -9,14 +9,15 @@ void init_js(void) {
     cfg.format = 5;
     cfg.conversion_trigger_source = 7;
     cfg.sample_auto_start = 1;
-    cfg.sequences_per_interrupt = 2;
+    cfg.sequences_per_interrupt = 1;
     cfg.auto_sample_time = 31;
     cfg.clock_select = 63;
     cfg.scan_inputs = 1;
+//    cfg.result_buffer_mode = 1;
 
     //u_ana_set_mux(0, 3, 0, 0);
-    u_ana_set_scan_select(BITS(0), 1);
-    u_ana_set_scan_select(BITS(1), 1);
+    u_ana_set_scan_select(BITS(2), 1);
+    u_ana_set_scan_select(BITS(3), 1);
 
     Pin x_pin = {PIN_GROUP_B, BITS(0)}; // AN2
     Pin y_pin = {PIN_GROUP_B, BITS(1)}; // AN3

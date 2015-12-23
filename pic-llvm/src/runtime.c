@@ -100,10 +100,16 @@ extern struct task_info * current_task;
 // [manifest] .pulse.map             10  3   w,v
 // [manifest] .pulse.compare         10  4   rw,v
 // [manifest] .pulse.active          10  5   rw,v
-// [manifest] .js.enable             11  0   rwB,vB
-// [manifest] .js.x                  11  1   r
-// [manifest] .js.y                  11  2   r
-// [manifest] .js.sw                 11  3   r
+// [xxx] .js.enable             11  0   rwB,vB
+// [xxx] .js.x                  11  1   r
+// [xxx] .js.y                  11  2   r
+// [xxx] .js.sw                 11  3   r
+// [manifest] .ana.enable            12  0   rwB,vB
+// [manifest] .ana.select            12  1   rw,v
+// [manifest] .ana                   12  2
+// [manifest] .ana.cfg.active        12  3   rwB,vB
+// [manifest] .ana.cfg.cclk          12  4   rw,v
+// [manifest] .ana.cfg.sclk          12  5   rw,v
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -285,6 +291,24 @@ const driver_read_fn pulse_read_fns[] = {
     &drv_pulse_active_read // 10.5
 };
 
+const driver_write_fn ana_write_fns[] = {
+    &drv_ana_enable_write, // 12.0
+    &drv_ana_select_write, // 12.1
+    0, // 12.2
+    &drv_ana_cfg_active_write, // 12.3
+    &drv_ana_cfg_cclk_write, // 12.4
+    &drv_ana_cfg_sclk_write // 12.5
+};
+
+const driver_read_fn ana_read_fns[] = {
+    &drv_ana_enable_read, // 12.0
+    &drv_ana_select_read, // 12.1
+    &drv_ana_read, // 12.2
+    &drv_ana_cfg_active_read, // 12.3
+    &drv_ana_cfg_cclk_read, // 12.4
+    &drv_ana_cfG_sclk_read // 12.5
+};
+
 const driver_block_fn all_block_fns[] = {
     /* .console */
     &drv_console_rx_block, // 0.0
@@ -310,6 +334,9 @@ const struct driver drivers[] = {
     { gfx_write_fns, gfx_read_fns, 0, 0 }, /* .gfx */
     { expm_write_fns, expm_read_fns, &all_block_fns[3], 0 }, /* .expm */
     { pulse_write_fns, pulse_read_fns, 0, 0 }, /* .pulse */
+//    { js_write_fns, js_read_fns, 0, 0}, /* .js */
+    0,
+    { ana_write_fns, ana_read_fns, 0, 0 }, /* .ana */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -798,11 +825,16 @@ int drv_ldr_enable_write(int val, char *str) {
     return DRV_SUCCESS;
 }
 
+Pin js_sw_pin = { PIN_GROUP_B, BITS(4) };
+
 int drv_js_enable_write(int val, char *str) {
-    if (val)
+    if (val) {
         init_js();
-    else
+        pin_mode_set(js_sw_pin, 1, 0);
+    } else {
         deinit_js();
+        pin_mode_set(js_sw_pin, 0, 0);
+    }
     return DRV_SUCCESS;
 }
 
@@ -815,10 +847,10 @@ int drv_js_x_read() {
 }
 
 int drv_js_y_read() {
-    return *u_ana_buffer_ptr(1);
+//    return *u_ana_buffer_ptr(1);
+    return ADC1BUF1;
 }
 
-Pin js_sw_pin = { PIN_GROUP_B, BITS(4) };
 
 int drv_js_sw_read() {
     return pin_test(js_sw_pin);
@@ -1230,6 +1262,24 @@ int drv_pulse_active_read() {
     }
 }
 
+
+
+const driver_write_fn ana_write_fns[] = {
+    &drv_ana_enable_write, // 12.0
+    &drv_ana_select_write, // 12.1
+    0, // 12.2
+    &drv_ana_cfg_active_write, // 12.3
+    &drv_ana_cfg_cclk_write, // 12.4
+    &drv_ana_cfg_sclk_write // 12.5
+};
+
+const driver_read_fn ana_read_fns[] = {
+    &drv_ana_enable_read, // 12.0
+    &drv_ana_select_read, // 12.1
+    &drv_ana_read, // 12.2
+    &drv_ana_cfg_active_read, // 12.3
+    &drv_ana_cfg_cclk_read, // 12.4
+    &
 int rx_block_init = 0;
 
 int drv_console_rx_block() {

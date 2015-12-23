@@ -26,7 +26,7 @@
     uint64_t llu;
     int32_t d;
     char *text;
-    unsigned long refid;
+    ref refid;
     struct tagged_int32 tagged_d;
 }
 

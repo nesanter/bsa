@@ -8,62 +8,64 @@ struct {
 } tagged_int32;
 */
 
+typedef unsigned long ref;
+
 void yyerror(const char *s, ...);
 void flex_error(char *s, int length);
 int error_occured;
 
-unsigned long expr_atom_ident(char *s);
-unsigned long expr_atom_numeric(unsigned long n);
-unsigned long expr_atom_function_call();
-unsigned long expr_atom_bool(int is_true);
-unsigned long expr_atom_syscall(char *ident, unsigned long qident_ref, unsigned long params_ref);
-unsigned long expr_op_lor(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_lxor(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_land(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_bor(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_bxor(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_band(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_shl(unsigned long lhs_ref, unsigned long rhs);
-unsigned long expr_op_shrl(unsigned long lhs_ref, unsigned long rhs);
-unsigned long expr_op_shra(unsigned long lhs_ref, unsigned long rhs);
-unsigned long expr_op_is(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_nis(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_eq(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_neq(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_lt(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_gt(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_lte(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_gte(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_add(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_sub(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_mul(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_sdiv(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_mod(unsigned long lhs_ref, unsigned long rhs_ref);
-unsigned long expr_op_write(unsigned long qident_ref, unsigned long rhs_ref);
-unsigned long expr_op_lnot(unsigned long lhs_ref);
-unsigned long expr_op_binv(unsigned long lhs_ref);
-unsigned long expr_op_neg(unsigned long lhs_ref);
-unsigned long expr_op_pos(unsigned long lhs_ref);
+ref expr_atom_ident(char *s);
+ref expr_atom_numeric(unsigned long n);
+ref expr_atom_function_call();
+ref expr_atom_bool(int is_true);
+ref expr_atom_syscall(char *ident, ref qident_ref, ref params_ref);
+ref expr_op_lor(ref lhs_ref, ref rhs_ref);
+ref expr_op_lxor(ref lhs_ref, ref rhs_ref);
+ref expr_op_land(ref lhs_ref, ref rhs_ref);
+ref expr_op_bor(ref lhs_ref, ref rhs_ref);
+ref expr_op_bxor(ref lhs_ref, ref rhs_ref);
+ref expr_op_band(ref lhs_ref, ref rhs_ref);
+ref expr_op_shl(ref lhs_ref, ref rhs);
+ref expr_op_shrl(ref lhs_ref, ref rhs);
+ref expr_op_shra(ref lhs_ref, ref rhs);
+ref expr_op_is(ref lhs_ref, ref rhs_ref);
+ref expr_op_nis(ref lhs_ref, ref rhs_ref);
+ref expr_op_eq(ref lhs_ref, ref rhs_ref);
+ref expr_op_neq(ref lhs_ref, ref rhs_ref);
+ref expr_op_lt(ref lhs_ref, ref rhs_ref);
+ref expr_op_gt(ref lhs_ref, ref rhs_ref);
+ref expr_op_lte(ref lhs_ref, ref rhs_ref);
+ref expr_op_gte(ref lhs_ref, ref rhs_ref);
+ref expr_op_add(ref lhs_ref, ref rhs_ref);
+ref expr_op_sub(ref lhs_ref, ref rhs_ref);
+ref expr_op_mul(ref lhs_ref, ref rhs_ref);
+ref expr_op_sdiv(ref lhs_ref, ref rhs_ref);
+ref expr_op_mod(ref lhs_ref, ref rhs_ref);
+ref expr_op_write(ref qident_ref, ref rhs_ref);
+ref expr_op_lnot(ref lhs_ref);
+ref expr_op_binv(ref lhs_ref);
+ref expr_op_neg(ref lhs_ref);
+ref expr_op_pos(ref lhs_ref);
 
-void create_function_call(char *ident, unsigned long params_ref);
+void create_function_call(char *ident, ref params_ref);
 
 void statement_empty();
-void statement_expression(unsigned long expr_ref);
-void statement_assign(char *lhs, unsigned long rhs_ref);
+void statement_expression(ref expr_ref);
+void statement_assign(char *lhs, ref rhs_ref);
 void statement_return_void();
-void statement_return_expr(unsigned long rhs_ref);
+void statement_return_expr(ref rhs_ref);
 
-unsigned long statement_if_begin(unsigned long cond_ref);
-void statement_if_break(unsigned long ifelse_ref);
-unsigned long statement_if_end(unsigned long ifelse_ref, unsigned long long nested_ref);
-unsigned long statement_else_terminal();
+ref statement_if_begin(ref cond_ref);
+void statement_if_break(ref ifelse_ref);
+ref statement_if_end(ref ifelse_ref, ref nested_ref);
+ref statement_else_terminal();
 
-unsigned long statement_while_begin();
-unsigned long statement_while_begin_do(unsigned long loop_ref);
-void statement_while_end(unsigned long loop_ref);
+ref statement_while_begin();
+ref statement_while_begin_do(ref loop_ref);
+void statement_while_end(ref loop_ref);
 
 void statement_yield();
-void statement_yield_for(unsigned long expr_ref);
+void statement_yield_for(ref expr_ref);
 
 enum {
     HANDLER_ALWAYS = 0,
