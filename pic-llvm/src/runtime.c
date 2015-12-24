@@ -91,7 +91,8 @@ extern struct task_info * current_task;
 // [manifest] .gfx.char              8   3   w,v,s
 // [manifest] .gfx.buffer            8   4   rw,v
 // [manifest] .gfx.buffer.flush      8   5   rw,v
-// [manifest] .gfx.buffer.mode       8   6   rw,v
+// [manifest] .gfx.buffer.ptr        8   6   rw,v
+// [manifest] .gfx.buffer.mode       8   7   rw,v
 // [manifest] .expm.select           9   0   rw,v
 // [manifest] .expm.wait             9   0   b
 // [manifest] .expm.emit             9   1   w,v
