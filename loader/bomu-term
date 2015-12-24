@@ -5,7 +5,7 @@ import serial
 import atexit, termios
 
 import argparse
-import loader
+import bomu_loader
 
 RAW = True
 
@@ -90,7 +90,7 @@ class BomuTerm:
                     self.port.close()
                     self.cleanup()
                     try:
-                        loader.run_loader(args)
+                        bomu_loader.run_loader(args)
                     except:
                         pass
                     if self.is_setup:
@@ -105,7 +105,7 @@ class BomuTerm:
             raise
 
 if __name__ == '__main__':
-    args = loader.parse_cmdline("BoMu Terminal / Loader")
+    args = bomu_loader.parse_cmdline("BoMu Terminal / Loader")
 
     bt = BomuTerm(args.port, args.termbaud)
     if not args.noterm:
