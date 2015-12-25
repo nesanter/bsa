@@ -1232,7 +1232,6 @@ extern (C) {
             sym.last_block = current_block;
         }
 
-        /*
 //        auto syms2 = find_symbols_in_block(ifelse.otherwise);
         phi_blocks[1] = prev_block;
         auto syms2 = find_symbols_in_blocks(ifelse.otherwise, prev_block);
@@ -1277,7 +1276,6 @@ extern (C) {
             sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
             sym.last_block = current_block;
         }
-        */
 
         current_value = ifelse.after_value;
 
@@ -1285,9 +1283,11 @@ extern (C) {
             active_ifelse = ifelse.parent;
         }
 
-        foreach (sym; syms1) {
-            sym.pop_to(ifelse.before);
-//            sym.last_block = ifelse.before;
+        if (active_ifelse !is null) {
+            foreach (sym; syms1) {
+                sym.pop_to(ifelse.before);
+                //            sym.last_block = ifelse.before;
+            }
         }
 
         return ifelse_ref;
@@ -1372,7 +1372,8 @@ extern (C) {
         foreach (sym; syms) {
             if (loop.test in sym.values) {
                 sym.values[loop.test].add_incoming([sym.values[sym.last_block]], [current_block]);
-                sym.last_block = loop.test;
+//                sym.last_block = loop.test;
+                sym.pop_to(loop.test);
             }
         }
 
