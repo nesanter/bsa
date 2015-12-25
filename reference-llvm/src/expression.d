@@ -1232,6 +1232,7 @@ extern (C) {
             sym.last_block = current_block;
         }
 
+        /*
 //        auto syms2 = find_symbols_in_block(ifelse.otherwise);
         phi_blocks[1] = prev_block;
         auto syms2 = find_symbols_in_blocks(ifelse.otherwise, prev_block);
@@ -1276,6 +1277,7 @@ extern (C) {
             sym.values[current_block] = current_builder.make_phi(t, phi_vals, phi_blocks);
             sym.last_block = current_block;
         }
+        */
 
         current_value = ifelse.after_value;
 
