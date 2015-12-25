@@ -90,9 +90,10 @@ extern struct task_info * current_task;
 // [manifest] .gfx                   8   2   w,v
 // [manifest] .gfx.char              8   3   w,v,s
 // [manifest] .gfx.buffer            8   4   rw,v
-// [manifest] .gfx.buffer.flush      8   5   rw,v
+// [manifest] .gfx.buffer.flush      8   5   wB,vB
 // [manifest] .gfx.buffer.ptr        8   6   rw,v
 // [manifest] .gfx.buffer.mode       8   7   rw,v
+// [manifest] .gfx.buffer.char       8   8   w,v,s
 // [manifest] .expm.select           9   0   rw,v
 // [manifest] .expm.wait             9   0   b
 // [manifest] .expm.emit             9   1   w,v
@@ -257,7 +258,8 @@ const driver_write_fn gfx_write_fns[] = {
     &drv_gfx_buf_write, // 8.4
     &drv_gfx_buf_flush_write, // 8.5
     &drv_gfx_buf_ptr_write, // 8.6
-    &drv_gfx_buf_mode_write // 8.7
+    &drv_gfx_buf_mode_write, // 8.7
+    &drv_gfx_buf_char_write, // 8.8
 };
 
 const driver_read_fn gfx_read_fns[] = {
@@ -265,6 +267,11 @@ const driver_read_fn gfx_read_fns[] = {
     0, // 8.1
     0, // 8.2
     0, // 8.3
+    &drv_gfx_buf_read, // 8.4
+    0, // 8.5
+    &drv_gfx_buf_ptr_read, // 8.6
+    &drv_gfx_buf_mode_read, // 8.7
+    0 // 8.7
 };
 
 const driver_write_fn expm_write_fns[] = {
@@ -1057,6 +1064,28 @@ int drv_gfx_buf_write(int val, char *str) {
     if (gfx_buf_ptr == (128 * 8))
         gfx_buf_ptr = 0;
 
+    return DRV_SUCCESS;
+}
+
+int drv_gfx_buf_char_write(int val, char *str) {
+    unsigned char blank = 0;
+    if (str) {
+        while (*str) {
+            const unsigned char *fc = font_lookup(*str);
+            for (int i = 0; i < 6; i++) {
+                drv_gfx_buf_write(fc[i], 0);
+            }
+            drv_gfx_buf_write(0, 0);
+            str++;
+        }
+    } else {
+        const unsigned char *fc = font_lookup(val);
+        for (int i = 0; i < 6; i++) {
+            drv_gfx_buf_write(fc[i], 0);
+        }
+        drv_gfx_buf_write(0, 0);
+        str++;
+    }
     return DRV_SUCCESS;
 }
 

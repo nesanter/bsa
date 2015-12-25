@@ -10,6 +10,11 @@ int drv_gfx_buf_flush_write(int val, char * str);
 int drv_gfx_char_write(int val, char * str);
 int drv_gfx_buf_ptr_write(int val, char *str);
 int drv_gfx_buf_mode_write(int val, char *str);
+int drv_gfx_buf_char_write(int val, char *str);
 //int drv_gfx_enqueue_read();
+
+int drv_gfx_buf_read();
+int drv_gfx_buf_ptr_read();
+int drv_gfx_buf_mode_read();
 
 #endif /* DRV_GFX_H */
