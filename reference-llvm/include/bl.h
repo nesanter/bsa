@@ -59,7 +59,7 @@ void statement_if_early(void);
 ref statement_if_begin(ref cond_ref);
 void statement_if_break(ref ifelse_ref);
 ref statement_if_end(ref ifelse_ref, ref nested_ref);
-ref statement_else_terminal();
+ref statement_else_terminal(int empty);
 
 ref statement_while_begin();
 ref statement_while_begin_do(ref loop_ref);

@@ -116,8 +116,8 @@ statement: SEMI { statement_empty(); } /* "empty" statement */
 if_statement: IF { statement_if_early(); } LPAREN expression RPAREN { $<refid>$ = statement_if_begin($4); } LBRACE body RBRACE { statement_if_break($<refid>6); } else_statement { $$ = statement_if_end($<refid>6, $11); }
             ;
 
-else_statement: %empty { $$ = statement_else_terminal(); }
-              | ELSE LBRACE body RBRACE { $$ = statement_else_terminal(); }
+else_statement: %empty { $$ = statement_else_terminal(1); }
+              | ELSE LBRACE body RBRACE { $$ = statement_else_terminal(0); }
               | ELSE if_statement { $$ = $2; }
               ;
 

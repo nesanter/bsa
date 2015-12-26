@@ -90,7 +90,7 @@ class IfElse {
 
     BasicBlock before, during, otherwise, after;
 
-    Value during_value, otherwise_value, after_value;
+    Value before_value, during_value, otherwise_value, after_value;
 
     IfElse parent;
 }
@@ -1102,6 +1102,7 @@ extern (C) {
 
         if (active_ifelse is null) {
             ifelse.before = current_block;
+            ifelse.before_value = current_value;
         } else {
             /*
             auto syms = find_symbols_in_blocks(active_ifelse.during, current_block);
@@ -1112,6 +1113,7 @@ extern (C) {
 
             ifelse.before = active_ifelse.before;
             ifelse.parent = active_ifelse;
+            ifelse.before_value = active_ifelse.before_value;
         }
         active_ifelse = ifelse;
 
@@ -1135,7 +1137,7 @@ extern (C) {
         current_builder.br(ifelse.after);
         current_builder.position_at_end(ifelse.otherwise);
         ifelse.during_value = current_value;
-        current_value = void_value;
+        current_value = ifelse.before_value;
 
         auto syms = find_symbols_in_blocks(ifelse.during, current_block);
         
@@ -1306,7 +1308,7 @@ extern (C) {
         return ifelse_ref;
     }
 
-    ulong statement_else_terminal() {
+    ulong statement_else_terminal(int empty) {
         return ulong.max;
     }
 
