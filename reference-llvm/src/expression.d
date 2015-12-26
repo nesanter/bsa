@@ -1086,6 +1086,15 @@ extern (C) {
     }
     */
 
+    void statement_if_early() {
+        if (active_ifelse !is null) {
+            auto syms = find_symbols_in_blocks(active_ifelse.before, current_block);
+            foreach (sym; syms) {
+                sym.pop_to(active_ifelse.before);
+            }
+        }
+    }
+
     ulong statement_if_begin(ulong cond_ref) {
         auto cond = Expression.lookup(cond_ref);
 
@@ -1094,10 +1103,12 @@ extern (C) {
         if (active_ifelse is null) {
             ifelse.before = current_block;
         } else {
+            /*
             auto syms = find_symbols_in_blocks(active_ifelse.during, current_block);
             foreach (sym; syms) {
                 sym.pop_to(active_ifelse.before);
             }
+            */
 
             ifelse.before = active_ifelse.before;
             ifelse.parent = active_ifelse;
