@@ -1088,7 +1088,7 @@ extern (C) {
 
     void statement_if_early() {
         if (active_ifelse !is null) {
-            auto syms = find_symbols_in_blocks(active_ifelse.before, active_ifelse.after);
+            auto syms = find_symbols_in_blocks(active_ifelse.before, active_ifelse.otherwise);
             foreach (sym; syms) {
                 sym.pop_to(active_ifelse.before);
             }
