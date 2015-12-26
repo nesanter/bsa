@@ -55,6 +55,7 @@ void statement_assign(char *lhs, ref rhs_ref);
 void statement_return_void();
 void statement_return_expr(ref rhs_ref);
 
+void statement_if_early(void);
 ref statement_if_begin(ref cond_ref);
 void statement_if_break(ref ifelse_ref);
 ref statement_if_end(ref ifelse_ref, ref nested_ref);
