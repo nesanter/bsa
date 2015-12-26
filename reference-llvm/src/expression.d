@@ -1287,7 +1287,7 @@ extern (C) {
 
         if (active_ifelse !is null) {
             foreach (sym; syms1) {
-                sym.pop_to(ifelse.before);
+                sym.pop_to(active_ifelse.before);
                 //            sym.last_block = ifelse.before;
             }
         }
