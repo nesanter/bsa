@@ -16,7 +16,7 @@
 
 const Pin dc = {PIN_GROUP_B, BITS(12)};
 //const Pin cs = {PIN_GROUP_B, BITS(1)};
-const Pin rst = {PIN_GROUP_B, BITS(0)};
+const Pin rst = {PIN_GROUP_A, BITS(2)};
 
 void gfx_setup(void) {
     u_spi_config config = u_spi_load_config(SPI1);
