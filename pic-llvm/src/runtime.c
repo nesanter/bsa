@@ -8,6 +8,7 @@
 #include "driver/pulse.h"
 //#include "driver/js.h"
 #include "driver/ana.h"
+#include "driver/io.h"
 #include "ulib/ulib.h"
 #include "ulib/uart.h"
 #include "ulib/util.h"
@@ -111,6 +112,20 @@ extern struct task_info * current_task;
 // [manifest] .ana.cfg.activate      12  1   w,v
 // [manifest] .ana.cfg.deactivate    12  2   w,v
 // [manifest] .ana                   12  3   w,v
+// [manifest] .io.a                  13  0   w,v
+// [manifest] .io.b                  13  1   w,v
+// [manifest] .io.a.set              13  2   w,v
+// [manifest] .io.b.set              13  3   w,v
+// [manifest] .io.a.clear            13  4   w,v
+// [manifest] .io.b.clear            13  5   w,v
+// [manifest] .io.a.toggle           13  6   w,v
+// [manifest] .io.b.toggle           13  7   w,v
+// [manifest] .io.a.mode             13  8   w,v
+// [manifest] .io.b.mode             13  9   w,v
+// [manifest] .io.a.mode.in          13  10  w,v
+// [manifest] .io.b.mode.in          13  11  w,v
+// [manifest] .io.a.mode.out         13  12  w,v
+// [manifest] .io.b.mode.out         13  13  w,v
 
 const driver_write_fn console_write_fns[] = {
     &drv_console_write, // 0.0
@@ -316,6 +331,39 @@ const driver_read_fn ana_read_fns[] = {
     0 // 12.3
 };
 
+const driver_write_fn io_write_fns[] = {
+    &drv_io_a_write,
+    &drv_io_b_write,
+    &drv_io_a_set_write,
+    &drv_io_b_set_write,
+    &drv_io_a_clear_write,
+    &drv_io_b_clear_write,
+    &drv_io_a_toggle_write,
+    &drv_io_b_toggle_write,
+    &drv_io_a_mode_write,
+    &drv_io_b_mode_write,
+    &drv_io_a_mode_in_write,
+    &drv_io_b_mode_in_write,
+    &drv_io_a_mode_out_write,
+    &drv_io_b_mode_out_write
+};
+
+const driver_read_fn io_read_fns[] = {
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+};
+
 const driver_block_fn all_block_fns[] = {
     /* .console */
     &drv_console_rx_block, // 0.0
@@ -343,7 +391,8 @@ const struct driver drivers[] = {
     { pulse_write_fns, pulse_read_fns, 0, 0 }, /* .pulse */
 //    { js_write_fns, js_read_fns, 0, 0}, /* .js */
     {},
-    { ana_write_fns, ana_read_fns, 0, 0 } /* .ana */
+    { ana_write_fns, ana_read_fns, 0, 0 }, /* .ana */
+    { io_write_fns, io_read_fns, 0, 0 }, /* .io */
 };
 
 int ___write_builtin(struct eh_t *eh, unsigned int target, int val, char *str) {
@@ -1391,7 +1440,7 @@ int drv_ana_deactivate_write(int val, char *str) {
             return DRV_FAILURE;
     }
     pin_mode_set(an, 0, 0);
-    return DRV_SUCCESS;    
+    return DRV_SUCCESS;
 }
 
 int drv_ana_write(int val, char *str) {
@@ -1400,6 +1449,86 @@ int drv_ana_write(int val, char *str) {
 
 int drv_ana_enable_read() {
     return ana_enabled;
+}
+
+int drv_io_a_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    return pin_test(p);
+}
+
+int drv_io_a_set_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    pin_set(p);
+    return DRV_SUCCESS;
+}
+
+int drv_io_a_clear_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    pin_clear(p);
+    return DRV_SUCCESS;
+}
+
+int drv_io_a_toggle_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    pin_toggle(p);
+    return DRV_SUCCESS;
+}
+
+int drv_io_a_mode_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    return pin_mode_io_get(p);
+}
+
+int drv_io_a_mode_in_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    pin_mode_set(p, 1, 0);
+    return DRV_SUCCESS;
+}
+
+int drv_io_a_mode_out_write(int val, char *str) {
+    Pin p = { PIN_GROUP_A, BITS(val) };
+    pin_mode_set(p, 0, 0);
+    return DRV_SUCCESS;
+}
+
+int drv_io_b_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    return pin_test(p);
+}
+
+int drv_io_b_set_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    pin_set(p);
+    return DRV_SUCCESS;
+}
+
+int drv_io_b_clear_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    pin_clear(p);
+    return DRV_SUCCESS;
+}
+
+int drv_io_b_toggle_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    pin_toggle(p);
+    return DRV_SUCCESS;
+}
+
+int drv_io_b_mode_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    return pin_mode_io_get(p);
+}
+
+int drv_io_b_mode_in_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    pin_mode_set(p, 1, 0);
+    return DRV_SUCCESS;
+}
+
+int drv_io_b_mode_out_write(int val, char *str) {
+    Pin p = { PIN_GROUP_B, BITS(val) };
+    pin_mode_set(p, 0, 0);
+    return DRV_SUCCESS;
 }
 
 int rx_block_init = 0;
