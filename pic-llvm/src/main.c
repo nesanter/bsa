@@ -3,6 +3,7 @@
 #include "ulib/ulib.h"
 //#include "ulib/ulib_int.h"
 #include "ulib/util.h"
+#include "util/rand.h"
 #include "runtime.h"
 #include "exception.h"
 #include "version.h"
@@ -65,6 +66,12 @@ void runtime_entry(void) {
 
     // clear tasks to zero (probably redundant)
     init_tasks();
+
+    // seed rand based on core tick
+    unsigned int seed1, seed2;
+    asm volatile ("mfc0 %0, $9;" : "=r"(seed1));
+    asm volatile ("mfc0 %0, $30;" : "=r"(seed2));
+    seed_generators(seed1 ^ seed2);
 
     // setup core timer
     runtime_set_vector_table_entry(_CORE_TIMER_VECTOR, &handler_core_timer);

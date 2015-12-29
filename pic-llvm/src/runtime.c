@@ -17,6 +17,7 @@
 #include "ulib/js.h"
 #include "ulib/piezo.h"
 #include "ulib/gfx.h"
+#include "util/rand.h"
 #include "exception.h"
 #include "task.h"
 #include "version.h"
@@ -66,6 +67,9 @@ extern struct task_info * current_task;
 // [manifest] .system.led            3   1   rw,v
 // [manifest] .system.tick           3   2   rw,v
 // [manifest] .system.exit           3   3   w,v
+// [manifest] .system.rand8          3   4   r
+// [manifest] .system.rand32         3   5   r
+// [manifest] .system.seed           3   6   w,v
 // [manifest] .timer                 4   0   rw,v
 // [manifest] .timer.enable          4   1   rwB,vB
 // [manifest] .timer.select          4   2   rw,v
@@ -152,7 +156,10 @@ const driver_write_fn sys_write_fns[] = {
     &drv_sys_delay_write, // 3.0
     &drv_sys_led_write, // 3.1
     &drv_sys_tick_write, // 3.2
-    &drv_sys_exit_write // 3.3
+    &drv_sys_exit_write, // 3.3
+    0,
+    0,
+    &drv_sys_seed_write // 3.6
 };
 
 const driver_write_fn timer_write_fns[] = {
@@ -222,7 +229,10 @@ const driver_read_fn sys_read_fns[] = {
     0, // 3.0
     &drv_sys_led_read, // 3.1
     &drv_sys_tick_read, // 3.2
-    0 // 3.3
+    0, // 3.3
+    &drv_sys_rand8_read, // 3.4
+    &drv_sys_rand32_read, // 3.5
+    0 // 3.6
 };
 
 const driver_read_fn timer_read_fns[] = {
@@ -773,6 +783,19 @@ int drv_sys_exit_write(int val, char *str) {
     throw_global_exception(val);
     runtime_exit();
     return DRV_SUCCESS;
+}
+
+int drv_sys_seed_write(int val, char *str) {
+    seed_generators(val);
+    return DRV_SUCCESS;
+}
+
+int drv_sys_rand8_read() {
+    return rand_lcg8();
+}
+
+int drv_sys_rand32_read() {
+    return rand_xorshift32();
 }
 
 u_timerb_select TASK_LOCAL selected_timer;
