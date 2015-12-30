@@ -71,7 +71,7 @@ void runtime_entry(void) {
     unsigned int seed1, seed2;
     asm volatile ("mfc0 %0, $9;" : "=r"(seed1));
     asm volatile ("mfc0 %0, $30;" : "=r"(seed2));
-    seed_generators(seed1 ^ seed2);
+    seed_generators(seed1 ^ seed2, 1);
 
     // setup core timer
     runtime_set_vector_table_entry(_CORE_TIMER_VECTOR, &handler_core_timer);

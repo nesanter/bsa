@@ -786,7 +786,7 @@ int drv_sys_exit_write(int val, char *str) {
 }
 
 int drv_sys_seed_write(int val, char *str) {
-    seed_generators(val);
+    seed_generators(val, 0);
     return DRV_SUCCESS;
 }
 

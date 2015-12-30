@@ -1,5 +1,7 @@
 #include "util/rand.h"
 
+static int __attribute__((section("persistant"))) persistant_seed;
+
 /* Linear-Congruential Generator */
 static int lcg_x;
 const int lcg_A = 1664525;
@@ -23,8 +25,12 @@ unsigned int rand_xorshift32(void) {
 
 /* Seeding functions */
 
-void seed_generators(int s) {
-    lcg_x = s;
+void seed_generators(int s, int weak) {
+    if (weak && persistant_seed != 0)
+        lcg_x = persistant_seed;
+    else
+        lcg_x = s;
+
     for (int i = 0; i < 4; i++) {
         xor_x = (xor_x << 8) | rand_lcg8();
         xor_y = (xor_y << 8) | rand_lcg8();
