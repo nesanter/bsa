@@ -151,7 +151,7 @@ const unsigned char FONT_DATA [] = {
 const unsigned char * font_lookup(char c) {
     if (c >= '0' && c <= '9') {
         return &FONT_DATA[(c - '0' + 2) * 6];
-    } else if (c >= 'A' && c <= 'F') {
+    } else if (c >= 'A' && c <= 'Z') {
         return &FONT_DATA[(c - 'A' + 12) * 6];
     } else if (c == ' ') {
         return &FONT_DATA[0];
