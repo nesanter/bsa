@@ -3,6 +3,6 @@
 
 int rand_lcg8(void);
 unsigned int rand_xorshift32(void);
-void seed_generators(int s);
+void seed_generators(int s, int weak);
 
 #endif /* UTIL_RAND_H */

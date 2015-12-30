@@ -121,7 +121,8 @@ MEMORY
   config1                     : ORIGIN = 0xBFC00BF8, LENGTH = 0x4
   config0                     : ORIGIN = 0xBFC00BFC, LENGTH = 0x4
   vector_table_mem     (w)    : ORIGIN = 0xA0000400, LENGTH = 0x100
-  kseg1_data_mem       (w)    : ORIGIN = 0xA0000500, LENGTH = 0xFB00
+  persist_data_mem     (w)    : ORIGIN = 0xA0000500, LENGTH = 0x100
+  kseg1_data_mem       (w)    : ORIGIN = 0xA0000600, LENGTH = 0xFA00
   sfrs                        : ORIGIN = 0xBF800000, LENGTH = 0x100000
   configsfrs                  : ORIGIN = 0xBFC00BF0, LENGTH = 0x10
 }
@@ -381,6 +382,11 @@ SECTIONS
   } >kseg1_data_mem
   PROVIDE(_task_local_start = . - SIZEOF(.task_local_reserved)) ;
   PROVIDE(_task_local_end = .) ;
+
+  .persist_data :
+  {
+    *(.persistant)
+  } >persist_data_mem
 
 
   /*
